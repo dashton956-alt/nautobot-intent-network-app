@@ -1,0 +1,211 @@
+"""Nautobot GitRepository datasource integration for intent YAML files.
+
+When a user configures a GitRepository in Nautobot with the
+"intent definitions" provided content type, syncing that repo will
+automatically discover ``intents/*.yaml`` files, parse them and
+create / update Intent records — no CI pipeline or REST API call needed.
+
+This is the Nautobot-native "pull" model for Git integration.
+The legacy ``sync-from-git`` REST endpoint still works as a "push"
+alternative for CI-driven workflows.
+"""
+
+import logging
+import os
+
+import yaml
+from nautobot.extras.choices import LogLevelChoices
+from nautobot.extras.models import Status
+from nautobot.extras.registry import DatasourceContent
+from nautobot.tenancy.models import Tenant
+
+logger = logging.getLogger(__name__)
+
+CONTENT_IDENTIFIER = "intent_networking.intent_definitions"
+INTENT_DIRS = ("intents", "intent_definitions", "intent-definitions")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Callback (registered in datasource_contents below)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def refresh_git_intent_definitions(repository_record, job_result, delete=False):
+    """Callback invoked by Nautobot when a GitRepository is synced.
+
+    Args:
+        repository_record: The GitRepository model instance being synced.
+        job_result: A JobResult for structured logging.
+        delete: True when the repo is being removed from Nautobot.
+    """
+    if CONTENT_IDENTIFIER not in repository_record.provided_contents:
+        return
+
+    if delete:
+        _delete_repo_intents(repository_record, job_result)
+    else:
+        _sync_repo_intents(repository_record, job_result)
+
+
+def _sync_repo_intents(repository_record, job_result):
+    """Walk the repo filesystem and create / update Intent records."""
+    from intent_networking.models import Intent
+
+    repo_path = repository_record.filesystem_path
+
+    # Locate the intent directory inside the cloned repo
+    intent_dir = None
+    for candidate in INTENT_DIRS:
+        candidate_path = os.path.join(repo_path, candidate)
+        if os.path.isdir(candidate_path):
+            intent_dir = candidate_path
+            break
+
+    if intent_dir is None:
+        msg = (
+            f"No intent directory found in repository '{repository_record.name}'. "
+            f"Expected one of: {', '.join(INTENT_DIRS)}"
+        )
+        logger.warning(msg)
+        job_result.log(msg, level_choice=LogLevelChoices.LOG_WARNING, grouping="intent definitions")
+        return
+
+    # Collect all YAML files (including nested subdirectories)
+    yaml_files = []
+    for root, _dirs, files in os.walk(intent_dir):
+        for fname in sorted(files):
+            if fname.endswith((".yaml", ".yml", ".json")):
+                yaml_files.append(os.path.join(root, fname))
+
+    if not yaml_files:
+        msg = f"No YAML/JSON files found in '{intent_dir}'"
+        job_result.log(msg, level_choice=LogLevelChoices.LOG_WARNING, grouping="intent definitions")
+        return
+
+    msg = f"Found {len(yaml_files)} intent file(s) in '{repository_record.name}'"
+    job_result.log(msg, grouping="intent definitions")
+
+    draft_status = Status.objects.get(name__iexact="Draft")
+    synced_intent_ids = set()
+    stats = {"created": 0, "updated": 0, "errors": 0}
+
+    for filepath in yaml_files:
+        rel_path = os.path.relpath(filepath, repo_path)
+        try:
+            with open(filepath, "r") as fd:
+                intent_yaml = yaml.safe_load(fd)
+
+            if not isinstance(intent_yaml, dict):
+                raise ValueError("File must contain a YAML mapping (dict)")  # noqa: TRY301
+
+            intent_id = intent_yaml.get("id")
+            if not intent_id:
+                raise ValueError("Intent file must have an 'id' field")  # noqa: TRY301
+
+            # Resolve tenant
+            tenant_name = intent_yaml.get("tenant")
+            if not tenant_name:
+                raise ValueError("Intent file must have a 'tenant' field")  # noqa: TRY301
+
+            try:
+                tenant = Tenant.objects.get(name=tenant_name)
+            except Tenant.DoesNotExist:
+                raise ValueError(  # noqa: TRY301
+                    f"Tenant '{tenant_name}' not found in Nautobot. "
+                    f"Create the tenant before syncing intents."
+                )
+
+            intent, created = Intent.objects.update_or_create(
+                intent_id=intent_id,
+                defaults={
+                    "version": intent_yaml.get("version", 1),
+                    "intent_type": intent_yaml.get("type", "connectivity"),
+                    "tenant": tenant,
+                    "intent_data": intent_yaml,
+                    "change_ticket": intent_yaml.get("change_ticket", ""),
+                    "git_commit_sha": repository_record.current_head or "",
+                    "git_branch": repository_record.branch or "",
+                    "git_repository": repository_record,
+                },
+            )
+            # New intents get Draft status; existing intents keep their status
+            # unless the YAML explicitly specifies one.
+            if created:
+                intent.status = draft_status
+                intent.save()
+            elif "status" in intent_yaml:
+                status_name = intent_yaml["status"]
+                try:
+                    new_status = Status.objects.get(name__iexact=status_name)
+                    intent.status = new_status
+                    intent.save()
+                except Status.DoesNotExist:
+                    pass
+
+            synced_intent_ids.add(intent_id)
+            action = "Created" if created else "Updated"
+            stats["created" if created else "updated"] += 1
+
+            msg = f"{action} intent '{intent_id}' v{intent.version} from `{rel_path}`"
+            job_result.log(msg, grouping="intent definitions")
+
+        except Exception as exc:
+            stats["errors"] += 1
+            msg = f"Error loading intent from `{rel_path}`: {exc}"
+            logger.error(msg)
+            job_result.log(msg, level_choice=LogLevelChoices.LOG_ERROR, grouping="intent definitions")
+
+    # Mark intents that were previously managed by this repo but are no
+    # longer present in it as deprecated (soft-delete).
+    orphaned = Intent.objects.filter(git_repository=repository_record).exclude(intent_id__in=synced_intent_ids)
+    orphan_count = orphaned.count()
+    if orphan_count:
+        deprecated_status = Status.objects.filter(name__iexact="Deprecated").first()
+        if deprecated_status:
+            orphaned.update(status=deprecated_status)
+        msg = f"Deprecated {orphan_count} intent(s) no longer present in repo"
+        job_result.log(msg, level_choice=LogLevelChoices.LOG_WARNING, grouping="intent definitions")
+
+    summary = (
+        f"Sync complete: {stats['created']} created, "
+        f"{stats['updated']} updated, {stats['errors']} errors, "
+        f"{orphan_count} deprecated"
+    )
+    job_result.log(summary, grouping="intent definitions")
+
+
+def _delete_repo_intents(repository_record, job_result):
+    """Handle GitRepository deletion — deprecate (don't hard-delete) intents."""
+    from intent_networking.models import Intent
+
+    managed = Intent.objects.filter(git_repository=repository_record)
+    count = managed.count()
+
+    if count:
+        deprecated_status = Status.objects.filter(name__iexact="Deprecated").first()
+        if deprecated_status:
+            managed.update(status=deprecated_status)
+
+        msg = f"Git repository '{repository_record.name}' deleted — deprecated {count} managed intent(s)"
+        job_result.log(msg, level_choice=LogLevelChoices.LOG_WARNING, grouping="intent definitions")
+    else:
+        msg = f"Git repository '{repository_record.name}' deleted — no managed intents to update"
+        job_result.log(msg, grouping="intent definitions")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Registration list — auto-discovered by NautobotAppConfig.ready() from
+# the ``datasource_contents`` attribute (default path: datasources.datasource_contents)
+# ─────────────────────────────────────────────────────────────────────────────
+
+datasource_contents = [
+    (
+        "extras.gitrepository",
+        DatasourceContent(
+            name="intent definitions",
+            content_identifier=CONTENT_IDENTIFIER,
+            icon="mdi-file-document-multiple-outline",
+            callback=refresh_git_intent_definitions,
+        ),
+    ),
+]

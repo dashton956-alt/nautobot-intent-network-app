@@ -1,0 +1,29 @@
+{
+    "cookiecutter": {
+        "codeowner_github_usernames": "dashton956-alt",
+        "full_name": "Daniel Ashton",
+        "email": "info@networktocode.com",
+        "github_org": "nautobot",
+        "app_name": "intent_networking",
+        "verbose_name": "Intent Networking",
+        "app_slug": "intent-networking",
+        "project_slug": "nautobot-app-intent-networking",
+        "repo_url": "https://github.com/dashton956-alt/natuobot-iintent-network-app",
+        "base_url": "intent-networking",
+        "camel_name": "IntentNetworking",
+        "project_short_description": "Intent Networking",
+        "model_class_name": "IntentNetworkingExampleModel",
+        "open_source_license": "Apache-2.0",
+        "docs_base_url": "https://docs.nautobot.com",
+        "docs_app_url": "https://docs.nautobot.com/projects/intent-networking/en/latest",
+        "_extensions": [
+            "local_extensions.camel_case_to_kebab",
+            "local_extensions.camel_case_to_words",
+            "local_extensions.NautobotVersions"
+        ],
+        "_template": "https://github.com/nautobot/cookiecutter-nautobot-app",
+        "_output_dir": "/home/dan/Nautobot-plugin/outputs",
+        "_repo_dir": "/home/dan/.cookiecutters/cookiecutter-nautobot-app/nautobot-app",
+        "_checkout": null
+    }
+}

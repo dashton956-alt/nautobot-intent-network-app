@@ -1,0 +1,31 @@
+"""FilterSet definitions for the intent_networking app."""
+
+import django_filters
+from nautobot.apps.filters import NautobotFilterSet
+from nautobot.extras.models import GitRepository, Status
+from nautobot.tenancy.models import Tenant
+
+from intent_networking.models import Intent, IntentTypeChoices
+
+
+class IntentFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors
+    """FilterSet for the Intent model."""
+
+    q = django_filters.CharFilter(method="search", label="Search")
+    tenant = django_filters.ModelMultipleChoiceFilter(queryset=Tenant.objects.all(), label="Tenant")
+    intent_type = django_filters.MultipleChoiceFilter(choices=IntentTypeChoices.choices, label="Type")
+    status = django_filters.ModelMultipleChoiceFilter(queryset=Status.objects.all(), label="Status")
+    git_repository = django_filters.ModelMultipleChoiceFilter(
+        queryset=GitRepository.objects.all(),
+        label="Git Repository",
+    )
+
+    class Meta:
+        """Meta options for IntentFilterSet."""
+
+        model = Intent
+        fields = "__all__"
+
+    def search(self, queryset, _name, value):
+        """Filter intents by intent_id substring."""
+        return queryset.filter(intent_id__icontains=value)
