@@ -52,13 +52,13 @@ Git Repository (YAML intents)
 - **Batfish pre-deployment simulation** — reachability and isolation proven mathematically before any device is touched
 - **Full lifecycle tracking** — intent status (draft → validated → deploying → deployed → failed → rolled_back → deprecated), every verification result, and all resource allocations stored in Nautobot's database
 - **Real-time topology viewer** — vis.js network graph with:
-  - Nodes colour-coded by intent status (green = deployed, amber = deploying, red = failed)
-  - Node shapes by device role (diamond = PE, square = CE, circle = other)
-  - Synthesised intent-based edges (dashed blue) alongside physical cable connections
-  - Click-to-expand interface detail cards showing status, type, speed, MTU, MAC, VRF, description and cable peer
-  - Interactive floating legend/key overlay
-  - Intent path highlighting with device + edge selection
-  - Per-device live ARP, routing table, and BGP neighbour data
+    - Nodes colour-coded by intent status (green = deployed, amber = deploying, red = failed)
+    - Node shapes by device role (diamond = PE, square = CE, circle = other)
+    - Synthesised intent-based edges (dashed blue) alongside physical cable connections
+    - Click-to-expand interface detail cards showing status, type, speed, MTU, MAC, VRF, description and cable peer
+    - Interactive floating legend/key overlay
+    - Intent path highlighting with device + edge selection
+    - Per-device live ARP, routing table, and BGP neighbour data
 - **Continuous reconciliation** — scheduled job detects drift, auto-remediates or raises GitHub issues for manual review
 - **Automated rollback** — failed deployments trigger automatic re-deployment of the previous intent version
 - **Slack + GitHub notifications** — deployment events notify via Slack webhook; non-remediable drift automatically creates GitHub issues with full context

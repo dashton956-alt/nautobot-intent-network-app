@@ -20,11 +20,11 @@
 ### Changed
 
 - **Nautobot 3.x compatibility** — all models, views, filters, and API endpoints updated for Nautobot 3.x:
-  - `Device.role` replaces `device_role`
-  - `Location` replaces `Site`
-  - Slug fields replaced with name-based lookups
-  - Cable generic foreign key queries updated (`_termination_a_device` / `_termination_b_device`)
-  - IPAddress creation requires `parent` FK to an exact Prefix
+    - `Device.role` replaces `device_role`
+    - `Location` replaces `Site`
+    - Slug fields replaced with name-based lookups
+    - Cable generic foreign key queries updated (`_termination_a_device` / `_termination_b_device`)
+    - IPAddress creation requires `parent` FK to an exact Prefix
 - API base URL updated from `/api/plugins/intent-engine/` to `/api/plugins/intent-networking/`.
 - Plugin Python module renamed from `nautobot_plugin_intent_engine` to `intent_networking`.
 - Package name updated from `nautobot-plugin-intent-engine` to `intent-networking`.
