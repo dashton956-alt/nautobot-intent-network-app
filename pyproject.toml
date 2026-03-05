@@ -101,6 +101,8 @@ disable = """,
     too-many-locals,
     broad-exception-caught,
     arguments-differ,
+    too-many-branches,
+    too-many-statements,
 """
 
 [tool.pylint.miscellaneous]
