@@ -148,8 +148,8 @@ class TopologyGraphView(APIView):
             seen_cables.add(cable.pk)
 
             try:
-                dev_a = cable._termination_a_device  # noqa: SLF001
-                dev_b = cable._termination_b_device  # noqa: SLF001
+                dev_a = cable._termination_a_device  # noqa: W0212
+                dev_b = cable._termination_b_device  # noqa: W0212
                 if not dev_a or not dev_b:
                     continue
                 if dev_a.pk not in device_ids or dev_b.pk not in device_ids:
