@@ -92,7 +92,7 @@ def _sync_repo_intents(repository_record, job_result):
     for filepath in yaml_files:
         rel_path = os.path.relpath(filepath, repo_path)
         try:
-            with open(filepath, "r") as fd:
+            with open(filepath, "r", encoding="utf-8") as fd:
                 intent_yaml = yaml.safe_load(fd)
 
             if not isinstance(intent_yaml, dict):
@@ -109,10 +109,10 @@ def _sync_repo_intents(repository_record, job_result):
 
             try:
                 tenant = Tenant.objects.get(name=tenant_name)
-            except Tenant.DoesNotExist:
+            except Tenant.DoesNotExist as exc:
                 raise ValueError(  # noqa: TRY301
                     f"Tenant '{tenant_name}' not found in Nautobot. Create the tenant before syncing intents."
-                )
+                ) from exc
 
             intent, created = Intent.objects.update_or_create(
                 intent_id=intent_id,
