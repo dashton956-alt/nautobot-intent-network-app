@@ -323,8 +323,7 @@ def resolve_connectivity(intent: Intent) -> dict:
                 "neighbor_ip": neighbor_ip,
                 "neighbor_asn": tenant_asn,
                 "neighbor_description": (
-                    f"{intent.tenant.name.upper().replace(' ', '').replace('-', '')[:8]}"
-                    f"-{vrf_name}-PE"
+                    f"{intent.tenant.name.upper().replace(' ', '').replace('-', '')[:8]}-{vrf_name}-PE"
                 ),
                 "route_map_in": f"RM-{vrf_name}-IN",
                 "route_map_out": f"RM-{vrf_name}-OUT",
