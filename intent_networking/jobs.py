@@ -110,8 +110,7 @@ class IntentSyncFromGitJob(Job):
 
 
 class IntentResolutionJob(Job):
-    """
-    Resolves an intent into a normalized deployment plan.
+    """Resolves an intent into a normalized deployment plan.
 
     Queries Nautobot ORM for topology, allocates RD/RT atomically,
     stores the plan in ResolutionPlan. Idempotent — returns cached
@@ -211,8 +210,7 @@ class IntentResolutionJob(Job):
 
 
 class IntentDeploymentJob(Job):
-    """
-    Deploys a resolved intent plan to devices via Nornir + Golden Config.
+    """Deploys a resolved intent plan to devices via Nornir + Golden Config.
 
     Expects the intent to already have a ResolutionPlan stored (run
     IntentResolutionJob first).
@@ -376,7 +374,7 @@ class IntentDeploymentJob(Job):
     def _mark_failed(self, intent: Intent):
         intent.status = Status.objects.get(name__iexact="Failed")
         intent.save()
-        notify_slack(f"❌ Intent deployment FAILED: {intent.intent_id}\n" f"Tenant: {intent.tenant.name}")
+        notify_slack(f"❌ Intent deployment FAILED: {intent.intent_id}\nTenant: {intent.tenant.name}")
 
     def _trigger_rollback(self, intent: Intent, commit: bool):
         """Enqueue a rollback job for the given intent."""
@@ -389,8 +387,7 @@ class IntentDeploymentJob(Job):
 
 
 class IntentVerificationJob(Job):
-    """
-    Verifies that a deployed intent is actually satisfied on the network.
+    """Verifies that a deployed intent is actually satisfied on the network.
 
     Checks:
       - VRF present on all affected devices
@@ -564,8 +561,7 @@ class IntentVerificationJob(Job):
 
 
 class IntentRollbackJob(Job):
-    """
-    Rolls back a failed or unwanted deployment.
+    """Rolls back a failed or unwanted deployment.
 
     Fetches the previous ResolutionPlan (version - 1) and pushes
     the previously deployed config back to the affected devices.
@@ -625,8 +621,7 @@ class IntentRollbackJob(Job):
 
 
 class IntentReconciliationJob(Job):
-    """
-    Scheduled job — runs every hour via Nautobot's JobSchedule.
+    """Scheduled job — runs every hour via Nautobot's JobSchedule.
 
     Checks all deployed intents for drift by running verification
     and comparing against expected state.

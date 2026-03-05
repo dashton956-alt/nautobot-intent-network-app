@@ -29,8 +29,7 @@ def _get_plugin_config(key: str):
 
 
 def allocate_route_distinguisher(device, vrf_name: str, intent: Intent) -> str:
-    """
-    Claim the next available RD from the configured pool for this device+VRF.
+    """Claim the next available RD from the configured pool for this device+VRF.
 
     If an RD is already allocated for this device+VRF combination, return the
     existing one (idempotent). This handles re-resolution of the same intent
@@ -101,8 +100,7 @@ def allocate_route_distinguisher(device, vrf_name: str, intent: Intent) -> str:
 
 
 def allocate_route_target(intent: Intent) -> tuple[str, str]:
-    """
-    Claim the next available RT from the configured pool for this intent.
+    """Claim the next available RT from the configured pool for this intent.
 
     Route targets are intent-level (not per-device), so one RT serves all
     devices implementing the same intent. Export and import use the same
@@ -143,9 +141,7 @@ def allocate_route_target(intent: Intent) -> tuple[str, str]:
                 return rt.value, rt.value
 
         raise ValueError(
-            f"RT pool '{pool_name}' exhausted. "
-            f"Range {pool.asn}:{pool.range_start}-{pool.range_end} "
-            f"is fully allocated."
+            f"RT pool '{pool_name}' exhausted. Range {pool.asn}:{pool.range_start}-{pool.range_end} is fully allocated."
         )
 
 

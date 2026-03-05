@@ -100,11 +100,7 @@ class IntentViewSet(NautobotModelViewSet):  # pylint: disable=too-many-ancestors
 
         if not intent.status or intent.status.name.lower() not in ("validated", "rolled back"):
             return Response(
-                {
-                    "error": (
-                        f"Intent is in status '{intent.status}'. " f"Must be 'validated' or 'rolled_back' to deploy."
-                    )
-                },
+                {"error": (f"Intent is in status '{intent.status}'. Must be 'validated' or 'rolled_back' to deploy.")},
                 status=status.HTTP_409_CONFLICT,
             )
 

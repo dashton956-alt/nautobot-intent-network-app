@@ -37,8 +37,7 @@ class IntentTypeChoices(models.TextChoices):
 
 @extras_features("custom_links", "custom_validators", "export_templates", "graphql", "webhooks")
 class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
-    """
-    The central record for a network intent.
+    """The central record for a network intent.
 
     One row per intent file in the network-as-code Git repo.
     Created/updated automatically when Nautobot syncs a GitRepository
@@ -55,7 +54,7 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
         max_length=200,
         unique=True,
         db_index=True,
-        help_text="Matches the 'id' field in the YAML file. " "e.g. fin-pci-connectivity-001",
+        help_text="Matches the 'id' field in the YAML file. e.g. fin-pci-connectivity-001",
     )
     version = models.PositiveIntegerField(
         default=1, help_text="Intent version number. Incremented when the YAML changes."
@@ -144,8 +143,7 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
 
 
 class ResolutionPlan(BaseModel):
-    """
-    The normalized output of the intent resolver for a specific intent version.
+    """The normalized output of the intent resolver for a specific intent version.
 
     Stored so N8N can retrieve it without re-resolving, giving idempotency —
     if N8N calls /deploy twice for the same commit, both calls get the same
@@ -164,7 +162,7 @@ class ResolutionPlan(BaseModel):
     # ── Plan content ──────────────────────────────────────────────────────
     primitives = models.JSONField(
         default=list,
-        help_text="List of vendor-neutral primitive dicts " "(VrfPrimitive, BgpNeighborPrimitive, AclPrimitive, ...)",
+        help_text="List of vendor-neutral primitive dicts (VrfPrimitive, BgpNeighborPrimitive, AclPrimitive, ...)",
     )
     affected_devices = models.ManyToManyField(
         "dcim.Device",
@@ -219,8 +217,7 @@ class ResolutionPlan(BaseModel):
 
 
 class VerificationResult(BaseModel):
-    """
-    Records the result of a single verification run against a deployed intent.
+    """Records the result of a single verification run against a deployed intent.
 
     Created by IntentVerificationJob (post-deployment) and
     IntentReconciliationJob (hourly). Multiple rows per intent — one per run.

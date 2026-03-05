@@ -43,8 +43,7 @@ LIVE_CACHE_TTL = 60
 
 
 class TopologyGraphView(APIView):
-    """
-    Returns nodes and edges for the vis.js Network graph.
+    """Returns nodes and edges for the vis.js Network graph.
 
     Node shape encodes device role:
       router   → dot (circle)

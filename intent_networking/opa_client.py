@@ -19,8 +19,7 @@ OPA_URL = os.environ.get("OPA_URL", "http://opa:8181")
 
 
 def check_intent_policy(intent, topology_context: dict) -> dict:
-    """
-    Run OPA policy checks on an intent before resolution.
+    """Run OPA policy checks on an intent before resolution.
 
     Called by IntentResolutionJob before allocating any resources.
     If OPA returns any deny reasons, resolution is aborted.
@@ -68,8 +67,7 @@ def check_intent_policy(intent, topology_context: dict) -> dict:
 
 
 def check_auto_remediation(intent, verify_result: dict) -> bool:
-    """
-    Ask OPA if this drift is safe to auto-remediate.
+    """Ask OPA if this drift is safe to auto-remediate.
 
     Returns True if auto-remediation is approved, False if manual review needed.
     """
@@ -89,8 +87,7 @@ def check_auto_remediation(intent, verify_result: dict) -> bool:
 
 
 def _query_opa(package: str, input_data: dict) -> dict:
-    """
-    Query an OPA policy package.
+    """Query an OPA policy package.
 
     Package name e.g. "network.common" maps to OPA URL path
     /v1/data/network/common

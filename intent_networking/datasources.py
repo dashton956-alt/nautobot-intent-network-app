@@ -111,8 +111,7 @@ def _sync_repo_intents(repository_record, job_result):
                 tenant = Tenant.objects.get(name=tenant_name)
             except Tenant.DoesNotExist:
                 raise ValueError(  # noqa: TRY301
-                    f"Tenant '{tenant_name}' not found in Nautobot. "
-                    f"Create the tenant before syncing intents."
+                    f"Tenant '{tenant_name}' not found in Nautobot. Create the tenant before syncing intents."
                 )
 
             intent, created = Intent.objects.update_or_create(

@@ -33,8 +33,7 @@ def notify_slack(message: str) -> bool:
 
 
 def raise_github_issue(intent, drift_details: list) -> str:
-    """
-    Create a GitHub issue for drift that requires manual review.
+    """Create a GitHub issue for drift that requires manual review.
 
     Returns the issue URL, or empty string if GitHub is not configured.
     """
@@ -58,7 +57,7 @@ def raise_github_issue(intent, drift_details: list) -> str:
         "",
     ]
     for check in failed_checks:
-        body_lines.append(f"- **{check.get('device', 'network')}** — " f"`{check['check']}`: {check['detail']}")
+        body_lines.append(f"- **{check.get('device', 'network')}** — `{check['check']}`: {check['detail']}")
 
     body_lines += [
         "",

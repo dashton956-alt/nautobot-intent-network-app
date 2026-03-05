@@ -5,16 +5,21 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('extras', '0132_approval_workflow_seed_data'),
-        ('intent_networking', '0002_intent_resolutionplan_routedistinguisher_and_more'),
+        ("extras", "0132_approval_workflow_seed_data"),
+        ("intent_networking", "0002_intent_resolutionplan_routedistinguisher_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='intent',
-            name='git_repository',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='intents', to='extras.gitrepository'),
+            model_name="intent",
+            name="git_repository",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="intents",
+                to="extras.gitrepository",
+            ),
         ),
     ]

@@ -60,8 +60,7 @@ def generate_vrf_name(intent: Intent) -> str:
 
 
 def get_devices_for_group(group: str, sites: list, tenant) -> list:
-    """
-    Find Nautobot Device objects that serve a given group at specified sites.
+    """Find Nautobot Device objects that serve a given group at specified sites.
 
     Uses Nautobot device tags for group membership:
       - Tag "service-group-{group}" on the device in Nautobot
@@ -113,8 +112,7 @@ def get_devices_for_group(group: str, sites: list, tenant) -> list:
 
 
 def get_pe_neighbor_ip(device: Device, vrf_name: str) -> str:  # pylint: disable=unused-argument
-    """
-    Find the PE-facing BGP neighbour IP for a device.
+    """Find the PE-facing BGP neighbour IP for a device.
 
     Looks for interfaces tagged 'pe-uplink' on the device and returns
     the IP address of the connected endpoint (the PE router interface).
@@ -253,8 +251,7 @@ def build_acl_entries(intent: Intent, vrf_name: str) -> list:
 
 @transaction.atomic
 def resolve_connectivity(intent: Intent) -> dict:
-    """
-    Resolve a connectivity intent.
+    """Resolve a connectivity intent.
 
     Queries Nautobot ORM for devices, allocates RD/RT atomically,
     builds primitives list.
@@ -325,7 +322,10 @@ def resolve_connectivity(intent: Intent) -> dict:
                 "local_asn": default_bgp_asn,
                 "neighbor_ip": neighbor_ip,
                 "neighbor_asn": tenant_asn,
-                "neighbor_description": f"{intent.tenant.name.upper().replace(' ', '').replace('-', '')[:8]}-{vrf_name}-PE",
+                "neighbor_description": (
+                    f"{intent.tenant.name.upper().replace(' ', '').replace('-', '')[:8]}"
+                    f"-{vrf_name}-PE"
+                ),
                 "route_map_in": f"RM-{vrf_name}-IN",
                 "route_map_out": f"RM-{vrf_name}-OUT",
                 "bfd_enabled": True,
@@ -442,8 +442,7 @@ RESOLVERS = {
 
 
 def resolve_intent(intent: Intent) -> dict:
-    """
-    Main entry point — dispatches to the appropriate resolver.
+    """Main entry point — dispatches to the appropriate resolver.
 
     Args:
         intent: Intent ORM object
@@ -461,7 +460,7 @@ def resolve_intent(intent: Intent) -> dict:
 
     if not resolver_fn:
         raise ValueError(
-            f"No resolver implemented for intent type '{intent.intent_type}'. " f"Known types: {list(RESOLVERS.keys())}"
+            f"No resolver implemented for intent type '{intent.intent_type}'. Known types: {list(RESOLVERS.keys())}"
         )
 
     logger.info(
