@@ -424,7 +424,7 @@ invoke ruff --fix
 invoke pylint
 ```
 
-For full development environment setup including Docker Compose, see the [developer documentation](docs/dev/dev_environment.md).
+For full development environment setup including Docker Compose, see the [developer documentation](dev/dev_environment.md).
 
 ---
 
