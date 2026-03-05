@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "intent-networking"
+name = "nautobot-app-intent-networking"
 version = "0.3.0"
 description = "Intent Networking"
 authors = ["Daniel Ashton <info@networktocode.com>"]
