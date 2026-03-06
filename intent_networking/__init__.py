@@ -54,5 +54,11 @@ class IntentNetworkingConfig(NautobotAppConfig):
     docs_view_name = "plugins:intent_networking:docs"
     searchable_models = ["intent"]
 
+    def ready(self):
+        """Called when the app is ready; import jobs to register them."""
+        super().ready()
+        # Import jobs module to register all Job classes with Nautobot
+        from . import jobs  # noqa: F401 pylint:disable=unused-import
+
 
 config = IntentNetworkingConfig  # pylint:disable=invalid-name
