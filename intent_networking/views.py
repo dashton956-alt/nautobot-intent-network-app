@@ -11,7 +11,7 @@ from nautobot.core.views.generic import ObjectListView
 from nautobot.core.views.generic import ObjectView as ObjectDetailView
 
 from intent_networking.api.serializers import IntentSerializer
-from intent_networking.filters import IntentFilterSet
+from intent_networking.filters import IntentFilterSet, RouteDistinguisherPoolFilterSet, RouteTargetPoolFilterSet
 from intent_networking.forms import (
     IntentBulkEditForm,
     IntentFilterForm,
@@ -130,6 +130,7 @@ class RouteDistinguisherPoolUIViewSet(NautobotUIViewSet):
 
     queryset = RouteDistinguisherPool.objects.all()
     form_class = RouteDistinguisherPoolForm
+    filterset_class = RouteDistinguisherPoolFilterSet
     table_class = RouteDistinguisherPoolTable
     lookup_field = "pk"
 
@@ -139,6 +140,7 @@ class RouteTargetPoolUIViewSet(NautobotUIViewSet):
 
     queryset = RouteTargetPool.objects.all()
     form_class = RouteTargetPoolForm
+    filterset_class = RouteTargetPoolFilterSet
     table_class = RouteTargetPoolTable
     lookup_field = "pk"
 
