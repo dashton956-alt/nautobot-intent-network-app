@@ -1,0 +1,18 @@
+! ACL — {{ acl_name }} (AOS-CX)
+access-list ip {{ acl_name }}
+{% set seq = namespace(n=10) %}
+{% for entry in entries %}
+{% if entry.remark %}
+    {{ seq.n }} comment {{ entry.remark }}
+{% set seq.n = seq.n + 10 %}
+{% endif %}
+{% if entry.port is defined and entry.port %}
+    {{ seq.n }} {{ entry.action }} {{ entry.protocol }} {{ entry.source }} {{ entry.destination }} eq {{ entry.port }}{% if entry.log %} log{% endif %}
+
+{% else %}
+    {{ seq.n }} {{ entry.action }} {{ entry.protocol }} {{ entry.source }} {{ entry.destination }}{% if entry.log %} log{% endif %}
+
+{% endif %}
+{% set seq.n = seq.n + 10 %}
+{% endfor %}
+!

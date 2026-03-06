@@ -1,0 +1,9 @@
+! VRF Removal — {{ vrf_name }} (AOS-CX)
+no vrf {{ vrf_name }}
+!
+no router bgp {{ bgp_asn }} vrf {{ vrf_name }}
+!
+{% if acl_name %}
+no access-list ip {{ acl_name }}
+{% endif %}
+!

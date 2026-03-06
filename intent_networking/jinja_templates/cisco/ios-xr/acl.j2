@@ -1,0 +1,15 @@
+! ACL — {{ acl_name }} (IOS-XR)
+ipv4 access-list {{ acl_name }}
+{% for entry in entries %}
+{% if entry.remark %}
+ remark {{ entry.remark }}
+{% endif %}
+{% if entry.port is defined and entry.port %}
+ {{ entry.action }} {{ entry.protocol }} {{ entry.source }} {{ entry.destination }} eq {{ entry.port }}{% if entry.log %} log{% endif %}
+
+{% else %}
+ {{ entry.action }} {{ entry.protocol }} {{ entry.source }} {{ entry.destination }}{% if entry.log %} log{% endif %}
+
+{% endif %}
+{% endfor %}
+!

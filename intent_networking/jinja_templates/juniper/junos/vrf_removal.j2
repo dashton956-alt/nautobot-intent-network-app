@@ -1,0 +1,5 @@
+{# VRF Removal — {{ vrf_name }} (Junos) #}
+delete routing-instances {{ vrf_name }}
+{% if acl_name %}
+delete firewall family inet filter {{ acl_name }}
+{% endif %}

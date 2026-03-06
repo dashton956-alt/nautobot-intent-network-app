@@ -1,0 +1,16 @@
+{# BGP Neighbor — {{ neighbor_description }} (Junos) #}
+set routing-instances {{ vrf_name }} protocols bgp group PE-{{ vrf_name }} type external
+set routing-instances {{ vrf_name }} protocols bgp group PE-{{ vrf_name }} peer-as {{ neighbor_asn }}
+set routing-instances {{ vrf_name }} protocols bgp group PE-{{ vrf_name }} neighbor {{ neighbor_ip }} description "{{ neighbor_description }}"
+{% if route_map_in %}
+set routing-instances {{ vrf_name }} protocols bgp group PE-{{ vrf_name }} neighbor {{ neighbor_ip }} import {{ route_map_in }}
+{% endif %}
+{% if route_map_out %}
+set routing-instances {{ vrf_name }} protocols bgp group PE-{{ vrf_name }} neighbor {{ neighbor_ip }} export {{ route_map_out }}
+{% endif %}
+{% if bfd_enabled %}
+set routing-instances {{ vrf_name }} protocols bgp group PE-{{ vrf_name }} neighbor {{ neighbor_ip }} bfd-liveness-detection minimum-interval 100
+{% endif %}
+{% if max_prefix %}
+set routing-instances {{ vrf_name }} protocols bgp group PE-{{ vrf_name }} neighbor {{ neighbor_ip }} family inet unicast prefix-limit maximum {{ max_prefix }}
+{% endif %}

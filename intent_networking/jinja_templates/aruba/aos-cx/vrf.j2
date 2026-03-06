@@ -1,0 +1,6 @@
+! VRF Configuration — {{ vrf_name }} (AOS-CX)
+vrf {{ vrf_name }}
+    rd {{ route_distinguisher }}
+    route-target export {{ rt_export }}
+    route-target import {{ rt_import }}
+!

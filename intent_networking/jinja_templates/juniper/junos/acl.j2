@@ -1,0 +1,15 @@
+{# ACL / Firewall Filter — {{ acl_name }} (Junos) #}
+{% set counter = namespace(term=10) %}
+{% for entry in entries %}
+set firewall family inet filter {{ acl_name }} term T{{ counter.term }} then {{ entry.action }}
+{% if entry.protocol != "ip" %}
+set firewall family inet filter {{ acl_name }} term T{{ counter.term }} from protocol {{ entry.protocol }}
+{% endif %}
+{% if entry.port is defined and entry.port %}
+set firewall family inet filter {{ acl_name }} term T{{ counter.term }} from destination-port {{ entry.port }}
+{% endif %}
+{% if entry.log %}
+set firewall family inet filter {{ acl_name }} term T{{ counter.term }} then log
+{% endif %}
+{% set counter.term = counter.term + 10 %}
+{% endfor %}

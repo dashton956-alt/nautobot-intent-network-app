@@ -1,0 +1,16 @@
+! ACL — {{ acl_name }}
+! Intent: {{ intent_id }} v{{ intent_version }}
+ip access-list {{ acl_type }} {{ acl_name }}
+{% for entry in entries %}
+{% if entry.remark %}
+ remark {{ entry.remark }}
+{% endif %}
+{% if entry.port is defined and entry.port %}
+ {{ entry.action }} {{ entry.protocol }} {{ entry.source }} {{ entry.destination }} eq {{ entry.port }}{% if entry.log %} log{% endif %}
+
+{% else %}
+ {{ entry.action }} {{ entry.protocol }} {{ entry.source }} {{ entry.destination }}{% if entry.log %} log{% endif %}
+
+{% endif %}
+{% endfor %}
+!
