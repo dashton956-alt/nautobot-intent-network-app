@@ -5,7 +5,11 @@ from importlib import metadata
 
 from nautobot.apps import NautobotAppConfig
 
-__version__ = metadata.version(__name__)
+try:
+    __version__ = metadata.version("nautobot-app-intent-networking")
+except metadata.PackageNotFoundError:
+    # Fallback for environments where package metadata isn't installed.
+    __version__ = "0.0.0"
 
 
 class IntentNetworkingConfig(NautobotAppConfig):

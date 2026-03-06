@@ -4,8 +4,8 @@
   <img src="https://raw.githubusercontent.com/dashton956-alt/nautobot-intent-network-app/main/docs/images/icon-intent-networking.png" class="logo" height="200px">
   <br>
   <a href="https://github.com/dashton956-alt/nautobot-intent-network-app/actions"><img src="https://github.com/dashton956-alt/nautobot-intent-network-app/actions/workflows/ci.yml/badge.svg?branch=main"></a>
-  <a href="https://pypi.org/project/intent-networking/"><img src="https://img.shields.io/pypi/v/intent-networking"></a>
-  <a href="https://pypi.org/project/intent-networking/"><img src="https://img.shields.io/pypi/dm/intent-networking"></a>
+  <a href="https://pypi.org/project/nautobot-app-intent-networking/"><img src="https://img.shields.io/pypi/v/nautobot-app-intent-networking"></a>
+  <a href="https://pypi.org/project/nautobot-app-intent-networking/"><img src="https://img.shields.io/pypi/dm/nautobot-app-intent-networking"></a>
   <br>
   An <a href="https://networktocode.com/nautobot-apps/">App</a> for <a href="https://nautobot.com/">Nautobot</a>.
 </p>
@@ -101,7 +101,7 @@ Git Repository (YAML intents)
 ### 1. Install the package
 
 ```bash
-pip install intent-networking
+pip install nautobot-app-intent-networking
 ```
 
 Or install from source during development:

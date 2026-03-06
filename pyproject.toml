@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "intent-networking"
-version = "0.1.0"
+name = "nautobot-app-intent-networking"
+version = "0.3.0"
 description = "Intent Networking"
 authors = ["Daniel Ashton <info@networktocode.com>"]
 license = "Apache-2.0"
