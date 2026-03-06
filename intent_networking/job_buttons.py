@@ -130,3 +130,19 @@ class RollbackIntentButton(JobButtonReceiver):
         self.logger.info("Queuing rollback for %s", obj.intent_id)
         _enqueue_job("IntentRollbackJob", intent_id=obj.intent_id)
         self.logger.info("Rollback job queued for %s", obj.intent_id)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Registration — Nautobot 3.x discovers jobs via this list + register_jobs()
+# ─────────────────────────────────────────────────────────────────────────────
+
+from nautobot.core.celery import register_jobs  # noqa: E402  pylint: disable=wrong-import-position
+
+jobs = [
+    ResolveIntentButton,
+    DeployIntentButton,
+    DryRunDeployIntentButton,
+    VerifyIntentButton,
+    RollbackIntentButton,
+]
+register_jobs(*jobs)

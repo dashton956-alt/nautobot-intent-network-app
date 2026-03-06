@@ -19,6 +19,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.utils import timezone
+from nautobot.core.celery import register_jobs
 from nautobot.dcim.models import Device
 from nautobot.extras.jobs import BooleanVar, Job, StringVar
 from nautobot.extras.models import Job as JobModel
@@ -826,3 +827,18 @@ def _enqueue_job(job_class_name: str, **job_kwargs) -> None:
         return
 
     JobResult.enqueue_job(job_model, None, **job_kwargs)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Registration — Nautobot 3.x discovers jobs via this list + register_jobs()
+# ─────────────────────────────────────────────────────────────────────────────
+
+jobs = [
+    IntentSyncFromGitJob,
+    IntentResolutionJob,
+    IntentDeploymentJob,
+    IntentVerificationJob,
+    IntentRollbackJob,
+    IntentReconciliationJob,
+]
+register_jobs(*jobs)

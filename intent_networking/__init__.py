@@ -56,10 +56,14 @@ class IntentNetworkingConfig(NautobotAppConfig):
     searchable_models = ["intent"]
 
     def ready(self):
-        """Import jobs and job buttons so Nautobot discovers them at startup."""
+        """Import jobs and job buttons so Nautobot discovers them at startup.
+
+        super().ready() auto-discovers jobs.py via the `jobs = "jobs.jobs"`
+        attribute and calls register_jobs() at import time. Job buttons live
+        in a separate module and must be imported explicitly.
+        """
         super().ready()
         import intent_networking.job_buttons  # noqa: F401  pylint:disable=unused-import,import-outside-toplevel
-        import intent_networking.jobs  # noqa: F401  pylint:disable=unused-import,import-outside-toplevel
 
         self._ensure_reconciliation_schedule()
 
