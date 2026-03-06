@@ -302,7 +302,9 @@ class IntentDeploymentJob(Job):
         """Render all primitives for one device using Jinja2 templates."""
         from jinja2 import Environment, FileSystemLoader, StrictUndefined  # noqa: PLC0415
 
-        templates_dir = os.environ.get("TEMPLATES_DIR", "/opt/nautobot/templates")
+        # Use bundled templates shipped with the plugin; allow override via env var.
+        bundled_templates = Path(__file__).resolve().parent / "jinja_templates"
+        templates_dir = os.environ.get("TEMPLATES_DIR", str(bundled_templates))
         platform_map = {
             "cisco-ios-xe": "cisco/ios-xe",
             "cisco-ios-xr": "cisco/ios-xr",
@@ -471,7 +473,11 @@ class IntentVerificationJob(Job):
         # Check 4: Latency SLA
         max_latency = intent.intent_data.get("policy", {}).get("max_latency_ms")
         if max_latency:
-            measured_latency = self._measure_latency()
+            # Pick first device + first destination prefix for the SLA probe
+            probe_device = plan.affected_devices.first()
+            dest_prefixes = intent.intent_data.get("destination", {}).get("prefixes", [])
+            probe_dest = dest_prefixes[0].split("/")[0] if dest_prefixes else ""
+            measured_latency = self._measure_latency(device=probe_device, destination=probe_dest)
             latency_ok = measured_latency <= max_latency
             checks.append(
                 {
@@ -547,12 +553,56 @@ class IntentVerificationJob(Job):
 
         return state
 
-    def _measure_latency(self) -> int:
-        """Measure latency to destination. Returns ms."""
-        # In production: use Nornir to run ping from CE to destination prefix
-        # and parse ICMP round-trip time
-        # Placeholder returns 0 — implement with nornir_netmiko ping task
-        return 0
+    def _measure_latency(self, device: Device = None, destination: str = "") -> int:
+        """Measure latency from *device* to *destination* via ping.
+
+        Uses Nornir + Netmiko to execute a ping on the device and parses
+        the average round-trip time from the output.
+
+        Returns:
+            Average round-trip time in milliseconds.  Returns 0 if
+            measurement is unavailable or fails.
+        """
+        if not device or not destination:
+            return 0
+
+        try:
+            from nornir import InitNornir  # noqa: PLC0415
+            from nornir_netmiko.tasks import netmiko_send_command  # noqa: PLC0415
+        except ImportError:
+            self.logger.warning("nornir/nornir_netmiko not installed — latency measurement skipped.")
+            return 0
+
+        try:
+            nr = InitNornir(
+                inventory={
+                    "plugin": "NautobotInventory",
+                    "options": {
+                        "nautobot_url": _nautobot_url(),
+                        "nautobot_token": _nautobot_token(),
+                        "filter_parameters": {"name": device.name},
+                    },
+                },
+                logging={"enabled": False},
+            )
+            result = nr.run(
+                task=netmiko_send_command,
+                command_string=f"ping {destination} repeat 5",
+            )
+            if result[device.name].failed:
+                return 0
+
+            import re  # noqa: PLC0415
+
+            output = str(result[device.name].result)
+            # Parse 'round-trip min/avg/max = X/Y/Z ms' or similar
+            match = re.search(r"[=/]\s*(\d+)/(\d+)/(\d+)", output)
+            if match:
+                return int(match.group(2))  # avg
+            return 0
+        except Exception as exc:
+            self.logger.warning("Latency measurement failed: %s", exc)
+            return 0
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -602,10 +652,12 @@ class IntentRollbackJob(Job):
             )
         else:
             self.logger.warning(
-                "No previous plan found for %s. Removing intent configuration from devices.",
+                "No previous plan found for %s. Generating removal config.",
                 intent_id,
             )
-            # TODO: Generate removal config (negate commands)
+            current_plan = intent.latest_plan
+            if current_plan:
+                self._push_removal_config(current_plan, commit)
 
         intent.status = Status.objects.get(name__iexact="Rolled Back")
         intent.save()
@@ -613,6 +665,54 @@ class IntentRollbackJob(Job):
         notify_slack(f"⚠️ Intent ROLLED BACK: {intent_id}\nTenant: {intent.tenant.name}")
 
         self.logger.info("Rollback complete for %s", intent_id)
+
+    def _push_removal_config(self, plan: ResolutionPlan, commit: bool):
+        """Generate and push negation commands to remove intent config from devices."""
+        from jinja2 import Environment, FileSystemLoader, StrictUndefined  # noqa: PLC0415
+
+        bundled_templates = Path(__file__).resolve().parent / "jinja_templates"
+        templates_dir = os.environ.get("TEMPLATES_DIR", str(bundled_templates))
+
+        platform_map = {
+            "cisco-ios-xe": "cisco/ios-xe",
+            "cisco-ios-xr": "cisco/ios-xr",
+            "juniper-junos": "juniper/junos",
+            "aruba-aos-cx": "aruba/aos-cx",
+        }
+
+        rendered_configs = {}
+        default_bgp_asn = settings.PLUGINS_CONFIG.get("intent_networking", {}).get("default_bgp_asn", 65000)
+
+        for device in plan.affected_devices.all():
+            platform = device.platform.name if device.platform else "cisco-ios-xe"
+            platform_dir = platform_map.get(platform, "cisco/ios-xe")
+            template_path = Path(templates_dir) / platform_dir
+
+            env = Environment(  # noqa: S701
+                loader=FileSystemLoader(str(template_path)),
+                undefined=StrictUndefined,
+                trim_blocks=True,
+                lstrip_blocks=True,
+            )
+
+            acl_names = [
+                p.get("acl_name", "") for p in plan.primitives
+                if p.get("device") == device.name and p.get("primitive_type") == "acl"
+            ]
+
+            try:
+                tpl = env.get_template("vrf_removal.j2")
+                rendered_configs[device.name] = tpl.render(
+                    vrf_name=plan.vrf_name,
+                    bgp_asn=default_bgp_asn,
+                    acl_name=acl_names[0] if acl_names else "",
+                )
+            except Exception as exc:
+                self.logger.warning("Removal template render error for %s: %s", device.name, exc)
+
+        if rendered_configs:
+            deploy_job = IntentDeploymentJob()
+            deploy_job._push_configs(plan, rendered_configs, commit)  # pylint: disable=protected-access
 
 
 # ─────────────────────────────────────────────────────────────────────────────

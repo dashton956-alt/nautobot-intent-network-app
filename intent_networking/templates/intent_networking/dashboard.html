@@ -1,0 +1,117 @@
+{% extends "generic/home.html" %}
+{% load helpers %}
+
+{% block content %}
+<div class="row">
+  {# ── Intent Status Summary ─────────────────────────────────────────── #}
+  <div class="col-md-8">
+    <div class="panel panel-default">
+      <div class="panel-heading"><strong>Intent Summary</strong></div>
+      <table class="table table-hover panel-body">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in status_counts %}
+            <tr>
+              <td>{{ item.status__name }}</td>
+              <td><strong>{{ item.count }}</strong></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="2" class="text-muted">No intents recorded.</td></tr>
+          {% endfor %}
+          <tr class="active">
+            <td><strong>Total</strong></td>
+            <td><strong>{{ total_intents }}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    {# ── Recent Activity ───────────────────────────────────────────────── #}
+    <div class="panel panel-default">
+      <div class="panel-heading"><strong>Recent Intents</strong></div>
+      <table class="table table-hover panel-body">
+        <thead>
+          <tr>
+            <th>Intent ID</th>
+            <th>Type</th>
+            <th>Tenant</th>
+            <th>Status</th>
+            <th>Last Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for intent in recent_intents %}
+            <tr>
+              <td><a href="{{ intent.get_absolute_url }}">{{ intent.intent_id }}</a></td>
+              <td>{{ intent.get_intent_type_display }}</td>
+              <td>{{ intent.tenant }}</td>
+              <td>{{ intent.status }}</td>
+              <td>{{ intent.last_updated }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="text-muted">No intents yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    {# ── Pool Utilisation ──────────────────────────────────────────────── #}
+    <div class="panel panel-default">
+      <div class="panel-heading"><strong>RD Pool Utilisation</strong></div>
+      <div class="panel-body">
+        {% for pool in rd_pools %}
+          <p>
+            <strong>{{ pool.name }}</strong><br>
+            <div class="progress" style="margin-bottom: 5px;">
+              <div class="progress-bar {% if pool.utilisation_pct > 80 %}progress-bar-danger{% elif pool.utilisation_pct > 50 %}progress-bar-warning{% else %}progress-bar-success{% endif %}"
+                   style="width: {{ pool.utilisation_pct }}%; min-width: 2em;">
+                {{ pool.utilisation_pct }}%
+              </div>
+            </div>
+            <small class="text-muted">{{ pool.asn }}:{{ pool.range_start }}-{{ pool.range_end }}</small>
+          </p>
+        {% empty %}
+          <p class="text-muted">No RD pools configured.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="panel panel-default">
+      <div class="panel-heading"><strong>RT Pool Utilisation</strong></div>
+      <div class="panel-body">
+        {% for pool in rt_pools %}
+          <p>
+            <strong>{{ pool.name }}</strong><br>
+            <small class="text-muted">{{ pool.asn }}:{{ pool.range_start }}-{{ pool.range_end }}</small>
+          </p>
+        {% empty %}
+          <p class="text-muted">No RT pools configured.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── Recent Verifications ──────────────────────────────────────────── #}
+    <div class="panel panel-default">
+      <div class="panel-heading"><strong>Recent Verifications</strong></div>
+      <div class="panel-body">
+        {% for v in recent_verifications %}
+          <p>
+            {% if v.passed %}✅{% else %}❌{% endif %}
+            <a href="{{ v.intent.get_absolute_url }}">{{ v.intent.intent_id }}</a>
+            <span class="text-muted">{{ v.verified_at|timesince }} ago</span>
+          </p>
+        {% empty %}
+          <p class="text-muted">No verifications yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

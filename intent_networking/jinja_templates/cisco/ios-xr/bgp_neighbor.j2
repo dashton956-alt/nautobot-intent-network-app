@@ -1,0 +1,24 @@
+! BGP Neighbor — {{ neighbor_description }} (IOS-XR)
+router bgp {{ local_asn }}
+ vrf {{ vrf_name }}
+  neighbor {{ neighbor_ip }}
+   remote-as {{ neighbor_asn }}
+   description {{ neighbor_description }}
+   address-family ipv4 unicast
+{% if route_map_in %}
+    route-policy {{ route_map_in }} in
+{% endif %}
+{% if route_map_out %}
+    route-policy {{ route_map_out }} out
+{% endif %}
+{% if max_prefix %}
+    maximum-prefix {{ max_prefix }} 80 restart 5
+{% endif %}
+   !
+{% if bfd_enabled %}
+   bfd minimum-interval 100
+   bfd fast-detect
+{% endif %}
+  !
+ !
+!

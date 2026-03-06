@@ -1,0 +1,10 @@
+! VRF Removal — {{ vrf_name }} (IOS-XR)
+no vrf {{ vrf_name }}
+!
+router bgp {{ bgp_asn }}
+ no vrf {{ vrf_name }}
+!
+{% if acl_name %}
+no ipv4 access-list {{ acl_name }}
+{% endif %}
+!

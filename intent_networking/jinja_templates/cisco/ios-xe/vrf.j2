@@ -1,0 +1,16 @@
+! VRF Configuration — {{ vrf_name }}
+! Intent: {{ description }}
+vrf definition {{ vrf_name }}
+ rd {{ route_distinguisher }}
+ !
+ address-family ipv4
+  route-target export {{ rt_export }}
+  route-target import {{ rt_import }}
+{% if redistribute_connected %}
+  redistribute connected
+{% endif %}
+{% if redistribute_static %}
+  redistribute static
+{% endif %}
+ exit-address-family
+!

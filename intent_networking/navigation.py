@@ -4,6 +4,11 @@ from nautobot.apps.ui import NavMenuAddButton, NavMenuGroup, NavMenuItem, NavMen
 
 items = (
     NavMenuItem(
+        link="plugins:intent_networking:dashboard",
+        name="📊 Dashboard",
+        permissions=["intent_networking.view_intent"],
+    ),
+    NavMenuItem(
         link="plugins:intent_networking:topology_viewer",
         name="🌐 Topology",
         permissions=["intent_networking.view_intent"],
@@ -31,9 +36,37 @@ items = (
     ),
 )
 
+pool_items = (
+    NavMenuItem(
+        link="plugins:intent_networking:routedistinguisherpool_list",
+        name="RD Pools",
+        permissions=["intent_networking.view_routedistinguisherpool"],
+        buttons=(
+            NavMenuAddButton(
+                link="plugins:intent_networking:routedistinguisherpool_add",
+                permissions=["intent_networking.add_routedistinguisherpool"],
+            ),
+        ),
+    ),
+    NavMenuItem(
+        link="plugins:intent_networking:routetargetpool_list",
+        name="RT Pools",
+        permissions=["intent_networking.view_routetargetpool"],
+        buttons=(
+            NavMenuAddButton(
+                link="plugins:intent_networking:routetargetpool_add",
+                permissions=["intent_networking.add_routetargetpool"],
+            ),
+        ),
+    ),
+)
+
 menu_items = (
     NavMenuTab(
         name="Apps",
-        groups=(NavMenuGroup(name="Intent Networking", items=tuple(items)),),
+        groups=(
+            NavMenuGroup(name="Intent Networking", items=tuple(items)),
+            NavMenuGroup(name="Resource Pools", items=tuple(pool_items)),
+        ),
     ),
 )

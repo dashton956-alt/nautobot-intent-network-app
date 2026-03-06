@@ -92,10 +92,22 @@ class IntentViewSet(NautobotModelViewSet):  # pylint: disable=too-many-ancestors
         if not request.user.has_perm("intent_networking.deploy_intent"):
             return Response({"error": "deploy_intent permission required"}, status=status.HTTP_403_FORBIDDEN)
 
+        # ── Approval gate (#10) ──────────────────────────────────────────
+        intent = self.get_object()
+        if not intent.approved_by:
+            return Response(
+                {
+                    "error": (
+                        "Intent must be approved before deployment. "
+                        "Set 'approved_by' via the UI or API first."
+                    )
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
         ser = DeploySerializer(data=request.data)
         ser.is_valid(raise_exception=True)
 
-        intent = self.get_object()
         dry_run = ser.validated_data["dry_run"]
 
         if not intent.status or intent.status.name.lower() not in ("validated", "rolled back"):
@@ -169,6 +181,85 @@ class IntentViewSet(NautobotModelViewSet):  # pylint: disable=too-many-ancestors
         intent = self.get_object()
         results = intent.verifications.order_by("-verified_at")[:50]
         return Response(VerificationResultSerializer(results, many=True).data)
+
+    # ── Approve (#10) ─────────────────────────────────────────────────────
+
+    @action(detail=True, methods=["post"], url_path="approve")
+    def approve(self, request, pk=None):  # pylint: disable=unused-argument
+        """POST /api/plugins/intent-networking/intents/{id}/approve/.
+
+        Records the approving user and returns the updated intent.
+        Requires the ``approve_intent`` permission.
+        """
+        if not request.user.has_perm("intent_networking.approve_intent"):
+            return Response({"error": "approve_intent permission required"}, status=status.HTTP_403_FORBIDDEN)
+
+        intent = self.get_object()
+        intent.approved_by = request.user.username
+        intent.save(update_fields=["approved_by"])
+
+        return Response({"intent_id": intent.intent_id, "approved_by": intent.approved_by})
+
+    # ── Bulk operations (#13) ─────────────────────────────────────────────
+
+    @action(detail=False, methods=["post"], url_path="bulk-resolve")
+    def bulk_resolve(self, request):
+        """POST /api/plugins/intent-networking/intents/bulk-resolve/.
+
+        Body: ``{"intent_ids": ["id-1", "id-2", ...]}``
+        Queues a resolution job for each intent.
+        """
+        intent_ids = request.data.get("intent_ids", [])
+        if not intent_ids:
+            return Response({"error": "intent_ids list is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        queued = []
+        for iid in intent_ids:
+            _enqueue_job("IntentResolutionJob", intent_id=iid)
+            queued.append(iid)
+
+        return Response({"queued": queued}, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=False, methods=["post"], url_path="bulk-deploy")
+    def bulk_deploy(self, request):
+        """POST /api/plugins/intent-networking/intents/bulk-deploy/.
+
+        Body: ``{"intent_ids": ["id-1", ...], "commit_sha": "abc123"}``
+        Queues a deployment job for each intent.
+        """
+        if not request.user.has_perm("intent_networking.deploy_intent"):
+            return Response({"error": "deploy_intent permission required"}, status=status.HTTP_403_FORBIDDEN)
+
+        intent_ids = request.data.get("intent_ids", [])
+        commit_sha = request.data.get("commit_sha", "bulk-deploy")
+
+        if not intent_ids:
+            return Response({"error": "intent_ids list is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        queued = []
+        for iid in intent_ids:
+            _enqueue_job("IntentDeploymentJob", intent_id=iid, commit_sha=commit_sha)
+            queued.append(iid)
+
+        return Response({"queued": queued}, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=False, methods=["post"], url_path="bulk-verify")
+    def bulk_verify(self, request):
+        """POST /api/plugins/intent-networking/intents/bulk-verify/.
+
+        Body: ``{"intent_ids": ["id-1", ...]}``
+        Queues a verification job for each intent.
+        """
+        intent_ids = request.data.get("intent_ids", [])
+        if not intent_ids:
+            return Response({"error": "intent_ids list is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        queued = []
+        for iid in intent_ids:
+            _enqueue_job("IntentVerificationJob", intent_id=iid, triggered_by="manual")
+            queued.append(iid)
+
+        return Response({"queued": queued}, status=status.HTTP_202_ACCEPTED)
 
 
 class ResolutionPlanViewSet(NautobotModelViewSet):  # pylint: disable=too-many-ancestors

@@ -1,0 +1,11 @@
+! VRF Removal — {{ vrf_name }}
+! Rollback: removing intent configuration
+no vrf definition {{ vrf_name }}
+!
+router bgp {{ bgp_asn }}
+ no address-family ipv4 vrf {{ vrf_name }}
+!
+{% if acl_name %}
+no ip access-list extended {{ acl_name }}
+{% endif %}
+!
