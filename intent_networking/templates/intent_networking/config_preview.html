@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load helpers %}
+
+{% block title %}Config Preview — {{ intent.intent_id }}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <h1>
+      <i class="mdi mdi-eye-outline"></i>
+      Config Preview: {{ intent.intent_id }} v{{ intent.version }}
+    </h1>
+    <p class="text-muted">
+      Rendered device configurations from the last dry-run / preview job.
+      These are the exact configs that would be pushed on deployment.
+    </p>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12">
+    {% if rendered_configs %}
+      {% for device_name, config in rendered_configs.items %}
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <strong><i class="mdi mdi-server"></i> {{ device_name }}</strong>
+            <span class="pull-right text-muted">
+              {{ config|length }} characters
+            </span>
+          </div>
+          <div class="panel-body">
+            <pre class="pre-scrollable" style="max-height: 600px; background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 4px;">{{ config }}</pre>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-info">
+        <i class="mdi mdi-information-outline"></i>
+        No rendered configs available. Run the <strong>Config Preview</strong> job first
+        from the intent detail page.
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12">
+    <a href="{{ intent.get_absolute_url }}" class="btn btn-default">
+      <i class="mdi mdi-arrow-left"></i> Back to Intent
+    </a>
+    {% if rendered_configs %}
+      <a href="{% url 'extras:job_run' class_path='intent_networking.jobs.IntentConfigPreviewJob' %}?intent_id={{ intent.intent_id }}"
+         class="btn btn-primary">
+        <i class="mdi mdi-refresh"></i> Re-run Preview
+      </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock content %}

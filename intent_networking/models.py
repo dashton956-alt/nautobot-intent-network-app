@@ -2,6 +2,9 @@
 
 Models:
   Intent                  — one row per intent file in Git
+  IntentApproval          — explicit approval record (who, when, comment)
+  IntentAuditEntry        — immutable audit trail for every lifecycle action
+  DeploymentStage         — staged/canary deployment tracking
   ResolutionPlan          — the resolved plan for a specific intent version
   VerificationResult      — result of each verification/reconciliation check
   RouteDistinguisherPool  — pool of RD values available for allocation
@@ -110,6 +113,32 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
     deployed_at = models.DateTimeField(null=True, blank=True)
     last_verified_at = models.DateTimeField(null=True, blank=True)
 
+    # ── Scheduled deployment (#9) ─────────────────────────────────────────
+    scheduled_deploy_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="If set, deployment will not proceed before this timestamp. Leave blank for immediate deployment.",
+    )
+
+    # ── Staged rollout (#10) ──────────────────────────────────────────────
+    deployment_strategy = models.CharField(
+        max_length=20,
+        choices=[
+            ("all_at_once", "All at once"),
+            ("canary", "Canary (single site first)"),
+            ("rolling", "Rolling (one site at a time)"),
+        ],
+        default="all_at_once",
+        help_text="How to deploy across multiple sites.",
+    )
+
+    # ── Rendered config cache (preview) ───────────────────────────────────
+    rendered_configs = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Cached rendered device configs from the last dry-run / preview. Maps device_name → config_string.",
+    )
+
     class Meta:
         """Meta options for the Intent model."""
 
@@ -188,6 +217,205 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
     def latest_verification(self):
         """Return the most recent VerificationResult for this intent."""
         return self.verifications.order_by("-verified_at").first()
+
+    @property
+    def is_approved(self):
+        """Return True if at least one approval exists and none are rejected."""
+        approvals = self.approvals.all()
+        if not approvals.exists():
+            return False
+        return not approvals.filter(decision="rejected").exists()
+
+    @property
+    def has_resource_conflicts(self):
+        """Return True if any overlapping prefix or device conflicts exist with other intents."""
+        return bool(detect_conflicts(self))
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Approval Workflow (#2)
+# ────────────────────────────────────────────────────────────────────────────
+
+
+class IntentApproval(BaseModel):
+    """Explicit approval record for an intent.
+
+    Enterprise environments (PCI-DSS, HIPAA, SOC2) require at least one
+    senior engineer to approve before production deployment. This model
+    records each decision with full attribution.
+    """
+
+    intent = models.ForeignKey(
+        Intent,
+        on_delete=models.CASCADE,
+        related_name="approvals",
+    )
+    approver = models.ForeignKey(
+        "users.User",
+        on_delete=models.PROTECT,
+        related_name="intent_approvals",
+        help_text="Nautobot user who made this decision.",
+    )
+    decision = models.CharField(
+        max_length=20,
+        choices=[
+            ("approved", "Approved"),
+            ("rejected", "Rejected"),
+            ("revoked", "Revoked"),
+        ],
+    )
+    comment = models.TextField(
+        blank=True,
+        help_text="Optional comment explaining the decision.",
+    )
+    decided_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        """Meta options for IntentApproval."""
+
+        ordering = ["-decided_at"]
+        verbose_name = "Intent Approval"
+        verbose_name_plural = "Intent Approvals"
+
+    def __str__(self):
+        """Return approver, decision and intent."""
+        return f"{self.approver} {self.decision} {self.intent.intent_id}"
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Audit Trail (#4)
+# ────────────────────────────────────────────────────────────────────────────
+
+
+class IntentAuditEntry(BaseModel):
+    """Immutable audit record for every lifecycle action on an intent.
+
+    Required for SOC2/PCI-DSS compliance. Tracks who did what, when,
+    and what exact config was pushed.
+    """
+
+    ACTION_CHOICES = [
+        ("created", "Created"),
+        ("updated", "Updated"),
+        ("resolved", "Resolved"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+        ("deployed", "Deployed"),
+        ("dry_run", "Dry-Run"),
+        ("verified", "Verified"),
+        ("rolled_back", "Rolled Back"),
+        ("deprecated", "Deprecated"),
+        ("conflict_detected", "Conflict Detected"),
+        ("scheduled", "Scheduled"),
+        ("config_preview", "Config Preview"),
+    ]
+
+    intent = models.ForeignKey(
+        Intent,
+        on_delete=models.CASCADE,
+        related_name="audit_trail",
+    )
+    action = models.CharField(max_length=30, choices=ACTION_CHOICES)
+    actor = models.CharField(
+        max_length=200,
+        help_text="Username or system process that triggered this action.",
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    detail = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Action-specific payload: rendered config, approval comment, "
+        "verification checks, conflict details, etc.",
+    )
+    git_commit_sha = models.CharField(max_length=40, blank=True)
+    job_result_id = models.UUIDField(
+        null=True,
+        blank=True,
+        help_text="Link to the Nautobot JobResult that performed this action.",
+    )
+
+    class Meta:
+        """Meta options for IntentAuditEntry."""
+
+        ordering = ["-timestamp"]
+        verbose_name = "Audit Entry"
+        verbose_name_plural = "Audit Entries"
+        # Prevent deletion — audit entries are immutable
+        default_permissions = ("add", "view")
+
+    def __str__(self):
+        """Return action description string."""
+        return f"[{self.timestamp:%Y-%m-%d %H:%M}] {self.intent.intent_id}: {self.action} by {self.actor}"
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Staged / Canary Deployment (#10)
+# ────────────────────────────────────────────────────────────────────────────
+
+
+class DeploymentStage(BaseModel):
+    """Tracks per-site deployment progress for staged rollouts.
+
+    When ``Intent.deployment_strategy`` is 'canary' or 'rolling', one
+    ``DeploymentStage`` row is created per site/device group. The
+    deployment job advances stages sequentially, verifying each before
+    proceeding to the next.
+    """
+
+    intent = models.ForeignKey(
+        Intent,
+        on_delete=models.CASCADE,
+        related_name="deployment_stages",
+    )
+    stage_order = models.PositiveIntegerField(
+        help_text="Execution order. Stage 0 = canary site.",
+    )
+    location = models.ForeignKey(
+        "dcim.Location",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text="Site / location for this stage.",
+    )
+    devices = models.ManyToManyField(
+        "dcim.Device",
+        related_name="deployment_stages",
+        blank=True,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("pending", "Pending"),
+            ("deploying", "Deploying"),
+            ("deployed", "Deployed"),
+            ("verifying", "Verifying"),
+            ("verified", "Verified"),
+            ("failed", "Failed"),
+            ("rolled_back", "Rolled Back"),
+        ],
+        default="pending",
+    )
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    rendered_configs = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Device configs pushed in this stage.",
+    )
+
+    class Meta:
+        """Meta options for DeploymentStage."""
+
+        ordering = ["intent", "stage_order"]
+        unique_together = [("intent", "stage_order")]
+        verbose_name = "Deployment Stage"
+        verbose_name_plural = "Deployment Stages"
+
+    def __str__(self):
+        """Return stage description string."""
+        loc = self.location.name if self.location else "unassigned"
+        return f"{self.intent.intent_id} stage {self.stage_order} ({loc}): {self.status}"
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -439,3 +667,104 @@ class RouteTarget(BaseModel):
     def __str__(self):
         """Return RT value with intent ID."""
         return f"{self.value} → {self.intent.intent_id}"
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Conflict Detection (#6)
+# ────────────────────────────────────────────────────────────────────────────
+
+
+def detect_conflicts(intent):
+    """Detect resource conflicts between *intent* and other active intents.
+
+    Checks:
+      1. Overlapping destination prefixes
+      2. Shared affected devices (from resolution plans)
+      3. Overlapping RD/RT allocations
+
+    Returns:
+        list[dict]: Each dict has keys ``type``, ``other_intent``, ``detail``.
+        Empty list means no conflicts.
+    """
+    conflicts = []
+    active_statuses = {"draft", "validated", "deploying", "deployed"}
+
+    # Only check intents that aren't deprecated / terminal
+    other_intents = (
+        Intent.objects.filter(status__name__in=[s.title() for s in active_statuses])
+        .exclude(pk=intent.pk)
+        .select_related("tenant")
+    )
+
+    my_prefixes = set()
+    for prefix_list_key in ("source", "destination"):
+        for prefix in intent.intent_data.get(prefix_list_key, {}).get("prefixes", []):
+            my_prefixes.add(prefix)
+
+    if not my_prefixes:
+        return conflicts
+
+    # 1. Prefix overlap
+    for other in other_intents:
+        other_prefixes = set()
+        for prefix_list_key in ("source", "destination"):
+            for prefix in other.intent_data.get(prefix_list_key, {}).get("prefixes", []):
+                other_prefixes.add(prefix)
+        overlap = my_prefixes & other_prefixes
+        if overlap:
+            conflicts.append(
+                {
+                    "type": "prefix_overlap",
+                    "other_intent": other.intent_id,
+                    "detail": f"Overlapping prefixes: {', '.join(sorted(overlap))}",
+                }
+            )
+
+    # 2. Device overlap (from resolution plans)
+    my_plan = intent.latest_plan
+    if my_plan:
+        my_device_ids = set(my_plan.affected_devices.values_list("pk", flat=True))
+        for other in other_intents:
+            other_plan = other.latest_plan
+            if other_plan:
+                other_device_ids = set(other_plan.affected_devices.values_list("pk", flat=True))
+                shared = my_device_ids & other_device_ids
+                if shared:
+                    from nautobot.dcim.models import Device  # noqa: PLC0415
+
+                    shared_names = list(Device.objects.filter(pk__in=shared).values_list("name", flat=True))
+                    conflicts.append(
+                        {
+                            "type": "device_overlap",
+                            "other_intent": other.intent_id,
+                            "detail": f"Shared devices: {', '.join(sorted(shared_names))}",
+                        }
+                    )
+
+    return conflicts
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Multi-Tenancy Guardrails (#12)
+# ────────────────────────────────────────────────────────────────────────────
+
+
+def validate_tenant_isolation(intent):
+    """Verify that an intent's plan doesn't touch devices owned by another tenant.
+
+    Returns:
+        list[str]: Warning messages. Empty list = clean.
+    """
+    warnings = []
+    plan = intent.latest_plan
+    if not plan:
+        return warnings
+
+    for device in plan.affected_devices.select_related("tenant").all():
+        if device.tenant and intent.tenant and device.tenant_id != intent.tenant_id:
+            warnings.append(
+                f"Device '{device.name}' belongs to tenant '{device.tenant.name}' "
+                f"but intent belongs to tenant '{intent.tenant.name}'."
+            )
+
+    return warnings

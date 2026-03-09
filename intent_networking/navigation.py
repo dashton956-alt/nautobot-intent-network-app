@@ -34,6 +34,11 @@ items = (
         name="Verifications",
         permissions=["intent_networking.view_verificationresult"],
     ),
+    NavMenuItem(
+        link="plugins:intent_networking:auditentry_list",
+        name="🔍 Audit Trail",
+        permissions=["intent_networking.view_intentauditentry"],
+    ),
 )
 
 pool_items = (

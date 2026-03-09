@@ -5,7 +5,13 @@ from nautobot.apps.filters import NautobotFilterSet
 from nautobot.extras.models import GitRepository, Status
 from nautobot.tenancy.models import Tenant
 
-from intent_networking.models import Intent, IntentTypeChoices, RouteDistinguisherPool, RouteTargetPool
+from intent_networking.models import (
+    Intent,
+    IntentAuditEntry,
+    IntentTypeChoices,
+    RouteDistinguisherPool,
+    RouteTargetPool,
+)
 
 
 class IntentFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors
@@ -19,6 +25,14 @@ class IntentFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors
         queryset=GitRepository.objects.all(),
         label="Git Repository",
     )
+    deployment_strategy = django_filters.MultipleChoiceFilter(
+        choices=[
+            ("all_at_once", "All at once"),
+            ("canary", "Canary"),
+            ("rolling", "Rolling"),
+        ],
+        label="Deployment Strategy",
+    )
 
     class Meta:
         """Meta options for IntentFilterSet."""
@@ -29,6 +43,27 @@ class IntentFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors
     def search(self, queryset, _name, value):
         """Filter intents by intent_id substring."""
         return queryset.filter(intent_id__icontains=value)
+
+
+class IntentAuditEntryFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors
+    """FilterSet for the IntentAuditEntry model."""
+
+    q = django_filters.CharFilter(method="search", label="Search")
+    action = django_filters.MultipleChoiceFilter(
+        choices=IntentAuditEntry.ACTION_CHOICES,
+        label="Action",
+    )
+    actor = django_filters.CharFilter(lookup_expr="icontains", label="Actor")
+
+    class Meta:
+        """Meta options for IntentAuditEntryFilterSet."""
+
+        model = IntentAuditEntry
+        fields = ["action", "actor"]
+
+    def search(self, queryset, _name, value):
+        """Filter audit entries by intent_id or actor substring."""
+        return queryset.filter(intent__intent_id__icontains=value) | queryset.filter(actor__icontains=value)
 
 
 class RouteDistinguisherPoolFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors

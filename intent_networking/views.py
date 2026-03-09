@@ -12,7 +12,12 @@ from nautobot.core.views.generic import ObjectView as ObjectDetailView
 from nautobot.extras.models import Job as JobModel
 
 from intent_networking.api.serializers import IntentSerializer
-from intent_networking.filters import IntentFilterSet, RouteDistinguisherPoolFilterSet, RouteTargetPoolFilterSet
+from intent_networking.filters import (
+    IntentAuditEntryFilterSet,
+    IntentFilterSet,
+    RouteDistinguisherPoolFilterSet,
+    RouteTargetPoolFilterSet,
+)
 from intent_networking.forms import (
     IntentBulkEditForm,
     IntentFilterForm,
@@ -22,12 +27,15 @@ from intent_networking.forms import (
 )
 from intent_networking.models import (
     Intent,
+    IntentApproval,
+    IntentAuditEntry,
     ResolutionPlan,
     RouteDistinguisherPool,
     RouteTargetPool,
     VerificationResult,
 )
 from intent_networking.tables import (
+    IntentAuditEntryTable,
     IntentTable,
     ResolutionPlanTable,
     RouteDistinguisherPoolTable,
@@ -60,6 +68,11 @@ class DashboardView(TemplateView):
             :10
         ]
 
+        # Approval stats
+        context["pending_approvals"] = (
+            Intent.objects.filter(approved_by="").exclude(status__name__in=["Deprecated", "Draft"]).count()
+        )
+
         return context
 
 
@@ -80,14 +93,23 @@ class IntentUIViewSet(NautobotUIViewSet):
     table_class = IntentTable
 
     def get_extra_context(self, request, instance=None):
-        """Add resolution plans, verification history, and job PKs to the detail view context."""
+        """Add resolution plans, verifications, approvals, audit trail, and job PKs to detail view."""
         context = super().get_extra_context(request, instance)
         if instance:
             context["resolution_plans"] = instance.resolution_plans.order_by("-resolved_at")[:5]
             context["verifications"] = instance.verifications.order_by("-verified_at")[:10]
+            context["approvals"] = instance.approvals.order_by("-decided_at")[:10]
+            context["audit_entries"] = instance.audit_trail.order_by("-timestamp")[:20]
+            context["rendered_configs"] = instance.rendered_configs or {}
 
         # Look up Job PKs for template URL generation (Nautobot 3.x uses UUID, not class_path)
-        for name in ("IntentResolutionJob", "IntentDeploymentJob", "IntentVerificationJob", "IntentRollbackJob"):
+        for name in (
+            "IntentResolutionJob",
+            "IntentConfigPreviewJob",
+            "IntentDeploymentJob",
+            "IntentVerificationJob",
+            "IntentRollbackJob",
+        ):
             job = JobModel.objects.filter(
                 module_name="intent_networking.jobs",
                 job_class_name=name,
@@ -161,3 +183,60 @@ class VerificationResultDetailView(ObjectDetailView):
 
     queryset = VerificationResult.objects.all().select_related("intent")
     template_name = "generic/object_detail.html"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Audit Trail (#4)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class AuditTrailListView(ObjectListView):
+    """Read-only list view for all audit entries across all intents."""
+
+    queryset = IntentAuditEntry.objects.all().select_related("intent")
+    table = IntentAuditEntryTable
+    filterset = IntentAuditEntryFilterSet
+    action_buttons = ("export",)
+
+
+class AuditTrailDetailView(ObjectDetailView):
+    """Read-only detail view for a single audit entry."""
+
+    queryset = IntentAuditEntry.objects.all().select_related("intent")
+    template_name = "intent_networking/audit_entry_detail.html"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Config Preview (#1)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class ConfigPreviewView(TemplateView):
+    """Displays the rendered configs for a given intent (dry-run preview)."""
+
+    template_name = "intent_networking/config_preview.html"
+
+    def get_context_data(self, **kwargs):
+        """Build context with intent and its rendered configs."""
+        context = super().get_context_data(**kwargs)
+        intent_id = self.kwargs.get("intent_id")
+        try:
+            intent = Intent.objects.get(intent_id=intent_id)
+        except Intent.DoesNotExist:
+            intent = None
+        context["intent"] = intent
+        context["rendered_configs"] = intent.rendered_configs if intent else {}
+        return context
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Approval History
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class ApprovalListView(ObjectListView):
+    """Read-only list of all approvals across all intents."""
+
+    queryset = IntentApproval.objects.all().select_related("intent", "approver")
+    table_class = None  # Uses generic rendering
+    action_buttons = ("export",)

@@ -18,9 +18,14 @@ class IntentForm(NautobotModelForm):  # pylint: disable=too-many-ancestors
         fields = "__all__"
         widgets = {
             "intent_data": forms.Textarea(attrs={"rows": 20, "class": "font-monospace"}),
+            "scheduled_deploy_at": forms.DateTimeInput(
+                attrs={"type": "datetime-local", "class": "form-control"},
+            ),
         }
         help_texts = {
             "intent_data": "Paste the full YAML intent content here as JSON.",
+            "scheduled_deploy_at": "Leave blank for immediate deployment. "
+            "Set a future date/time to schedule deployment.",
         }
 
 
@@ -30,11 +35,20 @@ class IntentBulkEditForm(StatusModelBulkEditFormMixin, NautobotBulkEditForm):  #
     pk = forms.ModelMultipleChoiceField(queryset=Intent.objects.all(), widget=forms.MultipleHiddenInput())
     tenant = forms.ModelChoiceField(queryset=Tenant.objects.all(), required=False)
     version = forms.IntegerField(required=False)
+    deployment_strategy = forms.ChoiceField(
+        choices=[("", "---------")]
+        + [
+            ("all_at_once", "All at once"),
+            ("canary", "Canary"),
+            ("rolling", "Rolling"),
+        ],
+        required=False,
+    )
 
     class Meta:
         """Meta options for IntentBulkEditForm."""
 
-        nullable_fields = []
+        nullable_fields = ["scheduled_deploy_at"]
 
 
 class IntentFilterForm(NautobotFilterForm):
@@ -44,6 +58,14 @@ class IntentFilterForm(NautobotFilterForm):
     q = forms.CharField(required=False, label="Search")
     tenant = forms.ModelMultipleChoiceField(queryset=Tenant.objects.all(), required=False)
     intent_type = forms.MultipleChoiceField(choices=IntentTypeChoices.choices, required=False)
+    deployment_strategy = forms.MultipleChoiceField(
+        choices=[
+            ("all_at_once", "All at once"),
+            ("canary", "Canary"),
+            ("rolling", "Rolling"),
+        ],
+        required=False,
+    )
 
 
 class RouteDistinguisherPoolForm(NautobotModelForm):  # pylint: disable=too-many-ancestors
