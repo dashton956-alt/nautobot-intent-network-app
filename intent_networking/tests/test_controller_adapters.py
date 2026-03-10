@@ -39,7 +39,7 @@ class ControllerAdapterBaseTest(SimpleTestCase):
     def test_cannot_instantiate_abc(self):
         """ControllerAdapter cannot be instantiated directly."""
         with self.assertRaises(TypeError):
-            ControllerAdapter("https://example.com")
+            ControllerAdapter("https://example.com")  # pylint: disable=abstract-class-instantiated
 
     def test_url_trailing_slash_stripped(self):
         """controller_url should have trailing slash stripped."""
