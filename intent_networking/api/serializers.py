@@ -4,6 +4,9 @@ Includes per-intent-type field validators that enforce required YAML keys
 before an intent can be saved or synced.
 """
 
+from typing import Optional
+
+from drf_spectacular.utils import extend_schema_field
 from nautobot.apps.api import NautobotModelSerializer
 from rest_framework import serializers
 
@@ -12,8 +15,16 @@ from intent_networking.models import (
     Intent,
     IntentApproval,
     IntentAuditEntry,
+    ManagedLoopback,
+    ManagedLoopbackPool,
     ResolutionPlan,
+    TunnelIdAllocation,
+    TunnelIdPool,
     VerificationResult,
+    VniAllocation,
+    VxlanVniPool,
+    WirelessVlanAllocation,
+    WirelessVlanPool,
 )
 
 # ---------------------------------------------------------------------------
@@ -199,12 +210,14 @@ class IntentSerializer(NautobotModelSerializer):
     is_approved = serializers.BooleanField(read_only=True)
     has_resource_conflicts = serializers.BooleanField(read_only=True)
 
-    def get_latest_plan_id(self, obj):
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_latest_plan_id(self, obj) -> Optional[str]:
         """Return the primary key of the latest resolution plan, or None."""
         plan = obj.latest_plan
         return str(plan.pk) if plan else None
 
-    def get_latest_verification_passed(self, obj):
+    @extend_schema_field(serializers.BooleanField(allow_null=True))
+    def get_latest_verification_passed(self, obj) -> Optional[bool]:
         """Return passed status of the latest verification, or None."""
         v = obj.latest_verification
         return v.passed if v else None
@@ -304,7 +317,8 @@ class ResolutionPlanSerializer(NautobotModelSerializer):
     affected_devices = serializers.SerializerMethodField()
     primitive_count = serializers.IntegerField(read_only=True)
 
-    def get_affected_devices(self, obj):
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_affected_devices(self, obj) -> list[str]:
         """Return list of device names in this plan."""
         return list(obj.affected_devices.values_list("name", flat=True))
 
@@ -356,3 +370,88 @@ class DeploySerializer(serializers.Serializer):
 
     commit_sha = serializers.CharField(required=True)
     dry_run = serializers.BooleanField(default=False)
+
+
+# ---------------------------------------------------------------------------
+# IPAM Resource Pool serializers
+# ---------------------------------------------------------------------------
+
+
+class VxlanVniPoolSerializer(NautobotModelSerializer):
+    """Serializer for the VxlanVniPool model."""
+
+    class Meta:
+        """Meta options for VxlanVniPoolSerializer."""
+
+        model = VxlanVniPool
+        fields = "__all__"
+
+
+class VniAllocationSerializer(NautobotModelSerializer):
+    """Serializer for the VniAllocation model."""
+
+    class Meta:
+        """Meta options for VniAllocationSerializer."""
+
+        model = VniAllocation
+        fields = "__all__"
+
+
+class TunnelIdPoolSerializer(NautobotModelSerializer):
+    """Serializer for the TunnelIdPool model."""
+
+    class Meta:
+        """Meta options for TunnelIdPoolSerializer."""
+
+        model = TunnelIdPool
+        fields = "__all__"
+
+
+class TunnelIdAllocationSerializer(NautobotModelSerializer):
+    """Serializer for the TunnelIdAllocation model."""
+
+    class Meta:
+        """Meta options for TunnelIdAllocationSerializer."""
+
+        model = TunnelIdAllocation
+        fields = "__all__"
+
+
+class ManagedLoopbackPoolSerializer(NautobotModelSerializer):
+    """Serializer for the ManagedLoopbackPool model."""
+
+    class Meta:
+        """Meta options for ManagedLoopbackPoolSerializer."""
+
+        model = ManagedLoopbackPool
+        fields = "__all__"
+
+
+class ManagedLoopbackSerializer(NautobotModelSerializer):
+    """Serializer for the ManagedLoopback model."""
+
+    class Meta:
+        """Meta options for ManagedLoopbackSerializer."""
+
+        model = ManagedLoopback
+        fields = "__all__"
+
+
+class WirelessVlanPoolSerializer(NautobotModelSerializer):
+    """Serializer for the WirelessVlanPool model."""
+
+    class Meta:
+        """Meta options for WirelessVlanPoolSerializer."""
+
+        model = WirelessVlanPool
+        fields = "__all__"
+
+
+class WirelessVlanAllocationSerializer(NautobotModelSerializer):
+    """Serializer for the WirelessVlanAllocation model."""
+
+    class Meta:
+        """Meta options for WirelessVlanAllocationSerializer."""
+
+        model = WirelessVlanAllocation
+        fields = "__all__"

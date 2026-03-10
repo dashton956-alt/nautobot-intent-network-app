@@ -21,9 +21,10 @@ import logging
 import os
 
 from django.core.cache import cache
+from drf_spectacular.utils import extend_schema, inline_serializer
 from nautobot.dcim.models import Cable, Device, Location
 from nautobot.tenancy.models import Tenant
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -62,6 +63,15 @@ class TopologyGraphView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="TopologyGraph",
+            fields={
+                "nodes": serializers.ListField(),
+                "edges": serializers.ListField(),
+            },
+        ),
+    )
     def get(self, request):
         """Return nodes and edges for the topology vis.js graph."""
         tenant_slug = request.query_params.get("tenant")
@@ -289,6 +299,20 @@ class DeviceLiveDataView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="DeviceLiveData",
+            fields={
+                "device_name": serializers.CharField(),
+                "platform": serializers.CharField(),
+                "interfaces": serializers.ListField(),
+                "arp_table": serializers.ListField(),
+                "routing_table": serializers.ListField(),
+                "bgp_neighbors": serializers.ListField(),
+                "from_cache": serializers.BooleanField(),
+            },
+        ),
+    )
     def get(self, request, device_name):
         """Return live ARP, routing, interface and intent data for a single device."""
         cache_key = f"intent_topo_live_{device_name}"
@@ -347,6 +371,17 @@ class IntentHighlightView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="IntentHighlight",
+            fields={
+                "intent_id": serializers.CharField(),
+                "device_names": serializers.ListField(child=serializers.CharField()),
+                "highlighted_edges": serializers.ListField(child=serializers.CharField()),
+                "status": serializers.CharField(),
+            },
+        ),
+    )
     def get(self, request, intent_id):
         """Return device names and edge IDs for the given intent."""
         try:
@@ -406,6 +441,16 @@ class TopologyFiltersView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="TopologyFilters",
+            fields={
+                "tenants": serializers.ListField(),
+                "sites": serializers.ListField(),
+                "intents": serializers.ListField(),
+            },
+        ),
+    )
     def get(self, request):
         """Return tenants, sites and deployed intents for filter dropdowns."""
         tenants = list(Tenant.objects.values("name").order_by("name"))
