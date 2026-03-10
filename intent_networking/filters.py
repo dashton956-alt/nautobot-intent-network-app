@@ -40,7 +40,7 @@ class RouteDistinguisherPoolFilterSet(NautobotFilterSet):  # pylint: disable=too
         """Meta options for RouteDistinguisherPoolFilterSet."""
 
         model = RouteDistinguisherPool
-        fields = ["name", "asn", "tenant"]
+        fields = "__all__"
 
     def search(self, queryset, _name, value):
         """Filter RD pools by name substring."""
@@ -56,7 +56,7 @@ class RouteTargetPoolFilterSet(NautobotFilterSet):  # pylint: disable=too-many-a
         """Meta options for RouteTargetPoolFilterSet."""
 
         model = RouteTargetPool
-        fields = ["name", "asn"]
+        fields = "__all__"
 
     def search(self, queryset, _name, value):
         """Filter RT pools by name substring."""

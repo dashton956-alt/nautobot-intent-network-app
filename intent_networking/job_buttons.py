@@ -7,6 +7,7 @@ no need to navigate to the Jobs menu and manually type intent IDs.
 
 import logging
 
+from nautobot.core.celery import register_jobs
 from nautobot.extras.jobs import JobButtonReceiver
 
 from intent_networking.jobs import _enqueue_job
@@ -135,8 +136,6 @@ class RollbackIntentButton(JobButtonReceiver):
 # ─────────────────────────────────────────────────────────────────────────────
 # Registration — Nautobot 3.x discovers jobs via this list + register_jobs()
 # ─────────────────────────────────────────────────────────────────────────────
-
-from nautobot.core.celery import register_jobs  # noqa: E402  pylint: disable=wrong-import-position
 
 jobs = [
     ResolveIntentButton,

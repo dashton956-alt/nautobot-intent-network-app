@@ -53,7 +53,7 @@ class RouteDistinguisherPoolForm(NautobotModelForm):  # pylint: disable=too-many
         """Meta options for RouteDistinguisherPoolForm."""
 
         model = RouteDistinguisherPool
-        fields = ["name", "asn", "range_start", "range_end", "tenant"]
+        fields = "__all__"
 
 
 class RouteTargetPoolForm(NautobotModelForm):  # pylint: disable=too-many-ancestors
@@ -63,4 +63,4 @@ class RouteTargetPoolForm(NautobotModelForm):  # pylint: disable=too-many-ancest
         """Meta options for RouteTargetPoolForm."""
 
         model = RouteTargetPool
-        fields = ["name", "asn", "range_start", "range_end"]
+        fields = "__all__"
