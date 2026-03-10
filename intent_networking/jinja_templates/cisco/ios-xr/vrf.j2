@@ -1,0 +1,12 @@
+! VRF Configuration — {{ vrf_name }} (IOS-XR)
+vrf {{ vrf_name }}
+ rd {{ route_distinguisher }}
+ address-family ipv4 unicast
+  import route-target
+   {{ rt_import }}
+  !
+  export route-target
+   {{ rt_export }}
+  !
+ !
+!

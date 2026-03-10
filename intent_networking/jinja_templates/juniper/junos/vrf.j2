@@ -1,0 +1,8 @@
+{# VRF Configuration — {{ vrf_name }} (Junos) #}
+set routing-instances {{ vrf_name }} instance-type vrf
+set routing-instances {{ vrf_name }} route-distinguisher {{ route_distinguisher }}
+set routing-instances {{ vrf_name }} vrf-target target:{{ rt_export }}
+set routing-instances {{ vrf_name }} vrf-table-label
+{% if redistribute_connected %}
+set routing-instances {{ vrf_name }} protocols bgp group PE-{{ vrf_name }} export CONNECTED-TO-BGP
+{% endif %}

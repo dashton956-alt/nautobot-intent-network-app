@@ -5,7 +5,7 @@ from nautobot.apps.filters import NautobotFilterSet
 from nautobot.extras.models import GitRepository, Status
 from nautobot.tenancy.models import Tenant
 
-from intent_networking.models import Intent, IntentTypeChoices
+from intent_networking.models import Intent, IntentTypeChoices, RouteDistinguisherPool, RouteTargetPool
 
 
 class IntentFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors
@@ -29,3 +29,35 @@ class IntentFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors
     def search(self, queryset, _name, value):
         """Filter intents by intent_id substring."""
         return queryset.filter(intent_id__icontains=value)
+
+
+class RouteDistinguisherPoolFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors
+    """FilterSet for the RouteDistinguisherPool model."""
+
+    q = django_filters.CharFilter(method="search", label="Search")
+
+    class Meta:
+        """Meta options for RouteDistinguisherPoolFilterSet."""
+
+        model = RouteDistinguisherPool
+        fields = "__all__"
+
+    def search(self, queryset, _name, value):
+        """Filter RD pools by name substring."""
+        return queryset.filter(name__icontains=value)
+
+
+class RouteTargetPoolFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors
+    """FilterSet for the RouteTargetPool model."""
+
+    q = django_filters.CharFilter(method="search", label="Search")
+
+    class Meta:
+        """Meta options for RouteTargetPoolFilterSet."""
+
+        model = RouteTargetPool
+        fields = "__all__"
+
+    def search(self, queryset, _name, value):
+        """Filter RT pools by name substring."""
+        return queryset.filter(name__icontains=value)

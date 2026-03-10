@@ -10,11 +10,16 @@ Models:
   RouteTarget             — individual RT allocation (intent-level)
 """
 
+import logging
+
+from django.core.exceptions import ValidationError
 from django.db import models
 from nautobot.apps.models import PrimaryModel, extras_features
 from nautobot.core.models import BaseModel
 from nautobot.extras.models import GitRepository, StatusField
 from nautobot.tenancy.models import Tenant
+
+logger = logging.getLogger(__name__)
 
 # ────────────────────────────────────────────────────────────────────────────
 # Choices
@@ -120,6 +125,54 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
     def __str__(self):
         """Return intent ID, version and status as a string."""
         return f"{self.intent_id} v{self.version} [{self.status}]"
+
+    # ── Status workflow enforcement (#9) ──────────────────────────────────
+
+    # Maps current status (lower-case) → set of allowed next statuses.
+    VALID_STATUS_TRANSITIONS = {
+        "draft": {"validated", "deprecated"},
+        "validated": {"deploying", "deprecated"},
+        "deploying": {"deployed", "failed"},
+        "deployed": {"validated", "failed", "rolled back", "deprecated"},
+        "failed": {"validated", "rolled back", "deprecated"},
+        "rolled back": {"validated", "deploying", "deprecated"},
+        "deprecated": set(),  # terminal state
+    }
+
+    def clean(self):
+        """Enforce that status transitions follow the defined workflow.
+
+        Raises ``ValidationError`` when an invalid transition is attempted.
+        Jobs that manage status internally can bypass this by calling
+        ``save(update_fields=[...])`` without going through ``full_clean()``.
+        """
+        super().clean()
+
+        if not self.pk:
+            # New record — any initial status is fine (typically "Draft")
+            return
+
+        try:
+            old = Intent.objects.only("status").get(pk=self.pk)
+        except Intent.DoesNotExist:
+            return
+
+        old_name = old.status.name.lower() if old.status else None
+        new_name = self.status.name.lower() if self.status else None
+
+        if old_name == new_name:
+            return  # no change
+
+        allowed = self.VALID_STATUS_TRANSITIONS.get(old_name)
+        if allowed is not None and new_name not in allowed:
+            raise ValidationError(
+                {
+                    "status": (
+                        f"Invalid status transition: '{old.status}' → '{self.status}'. "
+                        f"Allowed next statuses: {', '.join(sorted(allowed)) or 'none (terminal)'}."
+                    )
+                }
+            )
 
     @property
     def is_deployed(self):

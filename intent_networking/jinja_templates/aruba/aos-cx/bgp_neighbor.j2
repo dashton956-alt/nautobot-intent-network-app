@@ -1,0 +1,20 @@
+! BGP Neighbor — {{ neighbor_description }} (AOS-CX)
+router bgp {{ local_asn }} vrf {{ vrf_name }}
+    neighbor {{ neighbor_ip }} remote-as {{ neighbor_asn }}
+    neighbor {{ neighbor_ip }} description {{ neighbor_description }}
+{% if bfd_enabled %}
+    neighbor {{ neighbor_ip }} bfd
+{% endif %}
+    address-family ipv4 unicast
+        neighbor {{ neighbor_ip }} activate
+{% if route_map_in %}
+        neighbor {{ neighbor_ip }} route-map {{ route_map_in }} in
+{% endif %}
+{% if route_map_out %}
+        neighbor {{ neighbor_ip }} route-map {{ route_map_out }} out
+{% endif %}
+{% if max_prefix %}
+        neighbor {{ neighbor_ip }} maximum-prefix {{ max_prefix }} 80 restart 5
+{% endif %}
+    exit-address-family
+!
