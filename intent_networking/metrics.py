@@ -10,8 +10,8 @@ Metrics exported:
   intent_reconciliation_runs      — counter
   intent_drift_detected_total     — counter
   intent_verification_latency_ms  — histogram
-  intent_rd_pool_utilisation      — gauge per pool (0-100)
-  intent_rt_pool_utilisation      — gauge per pool (0-100)
+  intent_vrf_count                — gauge (Nautobot VRFs)
+  intent_route_target_count       — gauge (Nautobot Route Targets)
   intent_approval_pending         — gauge (intents awaiting approval)
   intent_conflicts_detected       — gauge
 """
@@ -21,11 +21,11 @@ import logging
 from django.db.models import Avg, Count, Q
 from django.http import HttpResponse
 from django.views import View
+from nautobot.ipam.models import VRF, Namespace
+from nautobot.ipam.models import RouteTarget as NautobotRouteTarget
 
 from intent_networking.models import (
     Intent,
-    RouteDistinguisherPool,
-    RouteTargetPool,
     VerificationResult,
 )
 
@@ -99,20 +99,35 @@ class PrometheusMetricsView(View):
             )
         )
 
-        # ── RD pool utilisation ───────────────────────────────────────────
-        lines.append("# HELP intent_rd_pool_utilisation_pct RD pool utilisation percentage")
-        lines.append("# TYPE intent_rd_pool_utilisation_pct gauge")
-        for pool in RouteDistinguisherPool.objects.all():
-            lines.append(f'intent_rd_pool_utilisation_pct{{pool="{pool.name}"}} {pool.utilisation_pct}')
+        # ── VRF count (Nautobot native) ─────────────────────────────────────
+        vrf_count = VRF.objects.count()
+        lines.append(
+            _prom_line(
+                "intent_vrf_count",
+                vrf_count,
+                help_text="Total Nautobot VRFs",
+            )
+        )
 
-        # ── RT pool utilisation ───────────────────────────────────────────
-        lines.append("# HELP intent_rt_pool_utilisation_pct RT pool utilisation percentage")
-        lines.append("# TYPE intent_rt_pool_utilisation_pct gauge")
-        for pool in RouteTargetPool.objects.all():
-            alloc_count = pool.allocations.count()
-            total = pool.range_end - pool.range_start + 1
-            pct = int(alloc_count / total * 100) if total > 0 else 0
-            lines.append(f'intent_rt_pool_utilisation_pct{{pool="{pool.name}"}} {pct}')
+        # ── Route Target count (Nautobot native) ─────────────────────────
+        rt_count = NautobotRouteTarget.objects.count()
+        lines.append(
+            _prom_line(
+                "intent_route_target_count",
+                rt_count,
+                help_text="Total Nautobot Route Targets",
+            )
+        )
+
+        # ── Namespace count (Nautobot native) ─────────────────────────────
+        ns_count = Namespace.objects.count()
+        lines.append(
+            _prom_line(
+                "intent_namespace_count",
+                ns_count,
+                help_text="Total Nautobot Namespaces",
+            )
+        )
 
         # ── intent_approval_pending ───────────────────────────────────────
         # Intents in 'Validated' status that have zero approvals

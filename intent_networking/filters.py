@@ -9,8 +9,6 @@ from intent_networking.models import (
     Intent,
     IntentAuditEntry,
     IntentTypeChoices,
-    RouteDistinguisherPool,
-    RouteTargetPool,
 )
 
 
@@ -64,35 +62,3 @@ class IntentAuditEntryFilterSet(NautobotFilterSet):  # pylint: disable=too-many-
     def search(self, queryset, _name, value):
         """Filter audit entries by intent_id or actor substring."""
         return queryset.filter(intent__intent_id__icontains=value) | queryset.filter(actor__icontains=value)
-
-
-class RouteDistinguisherPoolFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors
-    """FilterSet for the RouteDistinguisherPool model."""
-
-    q = django_filters.CharFilter(method="search", label="Search")
-
-    class Meta:
-        """Meta options for RouteDistinguisherPoolFilterSet."""
-
-        model = RouteDistinguisherPool
-        fields = "__all__"
-
-    def search(self, queryset, _name, value):
-        """Filter RD pools by name substring."""
-        return queryset.filter(name__icontains=value)
-
-
-class RouteTargetPoolFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors
-    """FilterSet for the RouteTargetPool model."""
-
-    q = django_filters.CharFilter(method="search", label="Search")
-
-    class Meta:
-        """Meta options for RouteTargetPoolFilterSet."""
-
-        model = RouteTargetPool
-        fields = "__all__"
-
-    def search(self, queryset, _name, value):
-        """Filter RT pools by name substring."""
-        return queryset.filter(name__icontains=value)

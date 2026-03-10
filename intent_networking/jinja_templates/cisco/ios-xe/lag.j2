@@ -1,0 +1,8 @@
+! Port-Channel {{ channel_id }}
+interface Port-channel{{ channel_id }}
+ description {{ description }}
+{% for iface in member_interfaces %}
+interface {{ iface }}
+ channel-group {{ channel_id }} mode {{ lacp_mode }}
+{% endfor %}
+!

@@ -1,0 +1,72 @@
+{# Homepage panel displayed on the Nautobot main landing page #}
+{% load helpers %}
+
+<div class="row" style="margin-bottom: 5px;">
+  <div class="col-xs-3 text-center">
+    <div style="background: #3498db; color: #fff; border-radius: 6px; padding: 10px 5px;">
+      <span style="font-size: 24px; font-weight: 700; display: block;">{{ summary.total_intents }}</span>
+      <small style="opacity: .85; text-transform: uppercase; letter-spacing: .5px;">Total</small>
+    </div>
+  </div>
+  <div class="col-xs-3 text-center">
+    <div style="background: #27ae60; color: #fff; border-radius: 6px; padding: 10px 5px;">
+      <span style="font-size: 24px; font-weight: 700; display: block;">{{ summary.deployed }}</span>
+      <small style="opacity: .85; text-transform: uppercase; letter-spacing: .5px;">Deployed</small>
+    </div>
+  </div>
+  <div class="col-xs-3 text-center">
+    <div style="background: #e74c3c; color: #fff; border-radius: 6px; padding: 10px 5px;">
+      <span style="font-size: 24px; font-weight: 700; display: block;">{{ summary.failed }}</span>
+      <small style="opacity: .85; text-transform: uppercase; letter-spacing: .5px;">Failed</small>
+    </div>
+  </div>
+  <div class="col-xs-3 text-center">
+    <div style="background: {% if summary.verification_pct >= 90 %}#27ae60{% elif summary.verification_pct >= 70 %}#f39c12{% else %}#e74c3c{% endif %}; color: #fff; border-radius: 6px; padding: 10px 5px;">
+      <span style="font-size: 24px; font-weight: 700; display: block;">{{ summary.verification_pct }}%</span>
+      <small style="opacity: .85; text-transform: uppercase; letter-spacing: .5px;">Verified</small>
+    </div>
+  </div>
+</div>
+
+{% if summary.pending %}
+<div class="alert alert-warning" style="margin: 10px 0 5px; padding: 8px 12px; font-size: 13px;">
+  <i class="mdi mdi-alert-circle-outline"></i>
+  <strong>{{ summary.pending }}</strong> intent{{ summary.pending|pluralize }} awaiting approval
+</div>
+{% endif %}
+
+{% if recent_intents %}
+<table class="table table-condensed" style="margin: 8px 0 0; font-size: 13px;">
+  <thead>
+    <tr>
+      <th>Intent</th>
+      <th>Type</th>
+      <th>Status</th>
+      <th>Updated</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for intent in recent_intents %}
+    <tr>
+      <td><a href="{{ intent.get_absolute_url }}">{{ intent.intent_id }}</a></td>
+      <td class="text-muted">{{ intent.get_intent_type_display }}</td>
+      <td>
+        <span class="label {% if intent.status.name == 'Deployed' %}label-success{% elif intent.status.name == 'Failed' %}label-danger{% elif intent.status.name == 'Deploying' %}label-info{% elif intent.status.name == 'Validated' %}label-primary{% else %}label-default{% endif %}">
+          {{ intent.status }}
+        </span>
+      </td>
+      <td class="text-muted">{{ intent.last_updated|timesince }} ago</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<div style="margin-top: 10px; text-align: center;">
+  <a href="{% url 'plugins:intent_networking:dashboard' %}" class="btn btn-xs btn-primary">
+    <i class="mdi mdi-open-in-new"></i> Open Dashboard
+  </a>
+  <a href="{% url 'plugins:intent_networking:intent_add' %}" class="btn btn-xs btn-default">
+    <i class="mdi mdi-plus"></i> New Intent
+  </a>
+</div>

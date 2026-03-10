@@ -1,0 +1,39 @@
+{# l3vni.j2 — nxos #}
+! Primitive: l3vni
+! Intent: {{ intent_id }}
+! Platform: Cisco NX-OS
+!
+! Variables:
+!   vrf_name               — VRF name
+!   vni                    — L3 VNI value
+!   vlan_id                — Transit VLAN for the L3VNI
+!   anycast_gateway_mac    — Anycast gateway virtual MAC
+!   redistribute_connected — redistribute connected subnets into BGP
+!
+
+vrf context {{ vrf_name }}
+  vni {{ vni }}
+  rd auto
+  address-family ipv4 unicast
+    route-target import auto
+    route-target import auto evpn
+    route-target export auto
+    route-target export auto evpn
+{% if redistribute_connected | default(true) %}
+    redistribute direct route-map PERMIT-ALL
+{% endif %}
+
+vlan {{ vlan_id }}
+  name L3VNI-Transit-{{ vrf_name }}
+  vn-segment {{ vni }}
+
+interface Vlan{{ vlan_id }}
+  no shutdown
+  vrf member {{ vrf_name }}
+  ip forward
+{% if anycast_gateway_mac is defined and anycast_gateway_mac %}
+  fabric forwarding mode anycast-gateway
+{% endif %}
+
+interface nve1
+  member vni {{ vni }} associate-vrf

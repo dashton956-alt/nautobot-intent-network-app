@@ -12,7 +12,7 @@ class IntentAPIViewTest(APIViewTestCases.APIViewTestCase):
     """Test the API viewsets for Intent."""
 
     model = models.Intent
-    choices_fields = ("intent_type",)
+    choices_fields = ("intent_type", "deployment_strategy")
 
     @classmethod
     def setUpTestData(cls):
@@ -30,7 +30,7 @@ class IntentAPIViewTest(APIViewTestCases.APIViewTestCase):
                 "intent_type": models.IntentTypeChoices.CONNECTIVITY,
                 "tenant": tenant.pk,
                 "status": status.pk,
-                "intent_data": {"type": "connectivity", "name": "api-test-001"},
+                "intent_data": {"type": "connectivity", "name": "api-test-001", "source": "GigabitEthernet0/1"},
             },
             {
                 "intent_id": "api-test-002",
@@ -46,11 +46,11 @@ class IntentAPIViewTest(APIViewTestCases.APIViewTestCase):
                 "intent_type": models.IntentTypeChoices.REACHABILITY,
                 "tenant": tenant.pk,
                 "status": status.pk,
-                "intent_data": {"type": "reachability", "name": "api-test-003"},
+                "intent_data": {"type": "reachability", "name": "api-test-003", "reachability_type": "static"},
             },
         ]
         cls.update_data = {
-            "intent_data": {"type": "connectivity", "name": "api-test-001", "updated": True},
+            "version": 2,
         }
         cls.bulk_update_data = {
             "version": 2,

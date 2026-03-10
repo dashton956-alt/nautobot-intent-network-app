@@ -1,117 +1,377 @@
 {% extends "base.html" %}
 {% load helpers %}
 
+{% block title %}Intent Engine Dashboard{% endblock %}
+
 {% block content %}
+
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{# KPI STAT CARDS                                                          #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+<div class="row" style="margin-bottom: 20px;">
+  <div class="col-md-2 col-sm-4">
+    <div class="panel" style="background: #3498db; color: #fff; border: none;">
+      <div class="panel-body text-center" style="padding: 18px 10px;">
+        <h1 style="margin: 0; font-size: 36px; font-weight: 700;">{{ total_intents }}</h1>
+        <p style="margin: 4px 0 0; opacity: .85; font-size: 13px; text-transform: uppercase; letter-spacing: .5px;">Total Intents</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4">
+    <div class="panel" style="background: #27ae60; color: #fff; border: none;">
+      <div class="panel-body text-center" style="padding: 18px 10px;">
+        <h1 style="margin: 0; font-size: 36px; font-weight: 700;">{{ deployed_count }}</h1>
+        <p style="margin: 4px 0 0; opacity: .85; font-size: 13px; text-transform: uppercase; letter-spacing: .5px;">Deployed</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4">
+    <div class="panel" style="background: #e74c3c; color: #fff; border: none;">
+      <div class="panel-body text-center" style="padding: 18px 10px;">
+        <h1 style="margin: 0; font-size: 36px; font-weight: 700;">{{ failed_count }}</h1>
+        <p style="margin: 4px 0 0; opacity: .85; font-size: 13px; text-transform: uppercase; letter-spacing: .5px;">Failed</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4">
+    <div class="panel" style="background: #f39c12; color: #fff; border: none;">
+      <div class="panel-body text-center" style="padding: 18px 10px;">
+        <h1 style="margin: 0; font-size: 36px; font-weight: 700;">{{ pending_approvals }}</h1>
+        <p style="margin: 4px 0 0; opacity: .85; font-size: 13px; text-transform: uppercase; letter-spacing: .5px;">Pending Approval</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4">
+    <div class="panel" style="background: #8e44ad; color: #fff; border: none;">
+      <div class="panel-body text-center" style="padding: 18px 10px;">
+        <h1 style="margin: 0; font-size: 36px; font-weight: 700;">{{ deploying_count }}</h1>
+        <p style="margin: 4px 0 0; opacity: .85; font-size: 13px; text-transform: uppercase; letter-spacing: .5px;">Deploying</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4">
+    <div class="panel" style="background: {% if verification_pass_pct >= 90 %}#27ae60{% elif verification_pass_pct >= 70 %}#f39c12{% else %}#e74c3c{% endif %}; color: #fff; border: none;">
+      <div class="panel-body text-center" style="padding: 18px 10px;">
+        <h1 style="margin: 0; font-size: 36px; font-weight: 700;">{{ verification_pass_pct }}%</h1>
+        <p style="margin: 4px 0 0; opacity: .85; font-size: 13px; text-transform: uppercase; letter-spacing: .5px;">Verification Pass</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{# QUICK ACTIONS                                                           #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+<div class="row" style="margin-bottom: 20px;">
+  <div class="col-md-12">
+    <div class="btn-toolbar">
+      <a href="{% url 'plugins:intent_networking:intent_add' %}" class="btn btn-primary">
+        <i class="mdi mdi-plus"></i> New Intent
+      </a>
+      <a href="{% url 'plugins:intent_networking:intent_list' %}" class="btn btn-default">
+        <i class="mdi mdi-format-list-bulleted"></i> All Intents
+      </a>
+      <a href="{% url 'plugins:intent_networking:topology_viewer' %}" class="btn btn-default">
+        <i class="mdi mdi-graph-outline"></i> Topology
+      </a>
+      <a href="{% url 'plugins:intent_networking:verificationresult_list' %}" class="btn btn-default">
+        <i class="mdi mdi-check-decagram"></i> Verifications
+      </a>
+      <a href="{% url 'plugins:intent_networking:auditentry_list' %}" class="btn btn-default">
+        <i class="mdi mdi-history"></i> Audit Trail
+      </a>
+    </div>
+  </div>
+</div>
+
 <div class="row">
-  {# ── Intent Status Summary ─────────────────────────────────────────── #}
+  {# ════════════════════════════════════════════════════════════════════════ #}
+  {# LEFT COLUMN                                                           #}
+  {# ════════════════════════════════════════════════════════════════════════ #}
   <div class="col-md-8">
+
+    {# ── Status Breakdown ──────────────────────────────────────────────── #}
     <div class="panel panel-default">
-      <div class="panel-heading"><strong>Intent Summary</strong></div>
-      <table class="table table-hover panel-body">
-        <thead>
-          <tr>
-            <th>Status</th>
-            <th>Count</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div class="panel-heading">
+        <strong><i class="mdi mdi-chart-bar"></i> Intent Status Breakdown</strong>
+        <a href="{% url 'plugins:intent_networking:intent_list' %}" class="pull-right text-muted" style="font-size: 12px;">View all →</a>
+      </div>
+      <div class="panel-body" style="padding: 15px;">
+        {% if status_counts %}
+        <div class="row">
           {% for item in status_counts %}
-            <tr>
-              <td>{{ item.status__name }}</td>
-              <td><strong>{{ item.count }}</strong></td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="2" class="text-muted">No intents recorded.</td></tr>
+          <div class="col-xs-6 col-sm-4 col-md-3" style="margin-bottom: 10px;">
+            <div style="border-radius: 6px; padding: 14px 12px; text-align: center; color: #fff;
+              {% if item.status__name == 'Deployed' %}background: #27ae60;
+              {% elif item.status__name == 'Failed' %}background: #e74c3c;
+              {% elif item.status__name == 'Deploying' %}background: #3498db;
+              {% elif item.status__name == 'Validated' %}background: #2980b9;
+              {% elif item.status__name == 'Draft' %}background: #7f8c8d;
+              {% elif item.status__name == 'Rolled Back' %}background: #e67e22;
+              {% elif item.status__name == 'Deprecated' %}background: #95a5a6;
+              {% else %}background: #6c757d;
+              {% endif %}">
+              <span style="font-size: 26px; font-weight: 700; display: block; color: #fff;">{{ item.count }}</span>
+              <span style="font-size: 12px; text-transform: uppercase; letter-spacing: .5px; opacity: .9;">
+                {{ item.status__name|default:"Unknown" }}
+              </span>
+            </div>
+          </div>
           {% endfor %}
-          <tr class="active">
-            <td><strong>Total</strong></td>
-            <td><strong>{{ total_intents }}</strong></td>
-          </tr>
-        </tbody>
-      </table>
+        </div>
+        {% else %}
+          <p class="text-muted text-center">No intents recorded.</p>
+        {% endif %}
+      </div>
     </div>
 
-    {# ── Recent Activity ───────────────────────────────────────────────── #}
+    {# ── Recent Intents ────────────────────────────────────────────────── #}
     <div class="panel panel-default">
-      <div class="panel-heading"><strong>Recent Intents</strong></div>
-      <table class="table table-hover panel-body">
+      <div class="panel-heading">
+        <strong><i class="mdi mdi-clock-outline"></i> Recent Intents</strong>
+        <a href="{% url 'plugins:intent_networking:intent_list' %}" class="pull-right text-muted" style="font-size: 12px;">View all →</a>
+      </div>
+      <table class="table table-hover" style="margin-bottom: 0;">
         <thead>
           <tr>
             <th>Intent ID</th>
             <th>Type</th>
             <th>Tenant</th>
             <th>Status</th>
-            <th>Last Updated</th>
+            <th>Updated</th>
           </tr>
         </thead>
         <tbody>
           {% for intent in recent_intents %}
             <tr>
-              <td><a href="{{ intent.get_absolute_url }}">{{ intent.intent_id }}</a></td>
-              <td>{{ intent.get_intent_type_display }}</td>
-              <td>{{ intent.tenant }}</td>
-              <td>{{ intent.status }}</td>
-              <td>{{ intent.last_updated }}</td>
+              <td><a href="{{ intent.get_absolute_url }}"><strong>{{ intent.intent_id }}</strong></a></td>
+              <td><span class="text-muted">{{ intent.get_intent_type_display }}</span></td>
+              <td>{{ intent.tenant|default:"—" }}</td>
+              <td>
+                <span class="label {% if intent.status.name == 'Deployed' %}label-success{% elif intent.status.name == 'Failed' %}label-danger{% elif intent.status.name == 'Deploying' %}label-info{% elif intent.status.name == 'Validated' %}label-primary{% else %}label-default{% endif %}">
+                  {{ intent.status }}
+                </span>
+              </td>
+              <td><span class="text-muted">{{ intent.last_updated|timesince }} ago</span></td>
             </tr>
           {% empty %}
-            <tr><td colspan="5" class="text-muted">No intents yet.</td></tr>
+            <tr><td colspan="5" class="text-muted text-center">No intents yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-  </div>
 
-  <div class="col-md-4">
-    {# ── Pool Utilisation ──────────────────────────────────────────────── #}
+    {# ── Intent Type Distribution ──────────────────────────────────────── #}
     <div class="panel panel-default">
-      <div class="panel-heading"><strong>RD Pool Utilisation</strong></div>
+      <div class="panel-heading">
+        <strong><i class="mdi mdi-tag-multiple"></i> Top Intent Types</strong>
+      </div>
       <div class="panel-body">
-        {% for pool in rd_pools %}
-          <p>
-            <strong>{{ pool.name }}</strong><br>
-            <div class="progress" style="margin-bottom: 5px;">
-              <div class="progress-bar {% if pool.utilisation_pct > 80 %}progress-bar-danger{% elif pool.utilisation_pct > 50 %}progress-bar-warning{% else %}progress-bar-success{% endif %}"
-                   style="width: {{ pool.utilisation_pct }}%; min-width: 2em;">
-                {{ pool.utilisation_pct }}%
-              </div>
-            </div>
-            <small class="text-muted">{{ pool.asn }}:{{ pool.range_start }}-{{ pool.range_end }}</small>
-          </p>
+        {% for item in intent_type_breakdown %}
+        <div style="margin-bottom: 8px;">
+          <div class="clearfix">
+            <span>{{ item.intent_type }}</span>
+            <span class="pull-right"><strong>{{ item.count }}</strong></span>
+          </div>
+          <div class="progress" style="height: 8px; margin-bottom: 0; border-radius: 4px;">
+            <div class="progress-bar progress-bar-info" role="progressbar"
+                 style="width: {% widthratio item.count total_intents 100 %}%; border-radius: 4px; min-width: 3%;"></div>
+          </div>
+        </div>
         {% empty %}
-          <p class="text-muted">No RD pools configured.</p>
+          <p class="text-muted text-center">No intent type data.</p>
         {% endfor %}
       </div>
     </div>
 
+  </div>
+
+  {# ════════════════════════════════════════════════════════════════════════ #}
+  {# RIGHT COLUMN                                                         #}
+  {# ════════════════════════════════════════════════════════════════════════ #}
+  <div class="col-md-4">
+
+    {# ── Verification Health ───────────────────────────────────────────── #}
     <div class="panel panel-default">
-      <div class="panel-heading"><strong>RT Pool Utilisation</strong></div>
-      <div class="panel-body">
-        {% for pool in rt_pools %}
-          <p>
-            <strong>{{ pool.name }}</strong><br>
-            <small class="text-muted">{{ pool.asn }}:{{ pool.range_start }}-{{ pool.range_end }}</small>
-          </p>
+      <div class="panel-heading">
+        <strong><i class="mdi mdi-shield-check"></i> Verification Health</strong>
+        <a href="{% url 'plugins:intent_networking:verificationresult_list' %}" class="pull-right text-muted" style="font-size: 12px;">View all →</a>
+      </div>
+      <div class="panel-body text-center">
+        {% if total_verifications %}
+        <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 10px;">
+          <svg viewBox="0 0 36 36" style="transform: rotate(-90deg);">
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none" stroke="#eee" stroke-width="3" />
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke="{% if verification_pass_pct >= 90 %}#27ae60{% elif verification_pass_pct >= 70 %}#f39c12{% else %}#e74c3c{% endif %}"
+                  stroke-width="3"
+                  stroke-dasharray="{{ verification_pass_pct }}, 100" />
+          </svg>
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-weight: 700;">
+            {{ verification_pass_pct }}%
+          </div>
+        </div>
+        <p class="text-muted" style="margin: 0;">
+          <span class="text-success"><strong>{{ passed_verifications }}</strong> passed</span> &middot;
+          <span class="text-danger"><strong>{{ failed_verifications }}</strong> failed</span>
+          <br>of {{ total_verifications }} total checks
+        </p>
+        {% else %}
+          <p class="text-muted">No verifications run yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── IPAM Resources (Nautobot native) ────────────────────────────────── #}
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <strong><i class="mdi mdi-sitemap-outline"></i> IPAM Resources</strong>
+      </div>
+      <div class="panel-body" style="padding: 12px 15px;">
+        <div class="row">
+          <div class="col-xs-4 text-center">
+            <div style="background: #2c3e50; color: #fff; border-radius: 6px; padding: 10px 5px;">
+              <span style="font-size: 22px; font-weight: 700; display: block;">{{ vrf_count }}</span>
+              <small style="opacity: .85; text-transform: uppercase; letter-spacing: .5px;">VRFs</small>
+            </div>
+          </div>
+          <div class="col-xs-4 text-center">
+            <div style="background: #2980b9; color: #fff; border-radius: 6px; padding: 10px 5px;">
+              <span style="font-size: 22px; font-weight: 700; display: block;">{{ rt_count }}</span>
+              <small style="opacity: .85; text-transform: uppercase; letter-spacing: .5px;">Route Targets</small>
+            </div>
+          </div>
+          <div class="col-xs-4 text-center">
+            <div style="background: #16a085; color: #fff; border-radius: 6px; padding: 10px 5px;">
+              <span style="font-size: 22px; font-weight: 700; display: block;">{{ namespace_count }}</span>
+              <small style="opacity: .85; text-transform: uppercase; letter-spacing: .5px;">Namespaces</small>
+            </div>
+          </div>
+        </div>
+        {% if namespaces %}
+        <div style="margin-top: 10px;">
+          {% for ns in namespaces %}
+          <div style="margin-bottom: 4px; padding: 6px 10px; background: #f0f0f0; border-radius: 4px;">
+            <small><strong>{{ ns.name }}</strong>
+              {% if ns.location %} — {{ ns.location }}{% endif %}
+              <span class="pull-right text-muted">{{ ns.vrfs.count }} VRFs</span>
+            </small>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── Resource Pool Utilisation ─────────────────────────────────────── #}
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <strong><i class="mdi mdi-database"></i> Resource Pool Utilisation</strong>
+      </div>
+      <div class="panel-body" style="padding: 12px 15px;">
+        {% for pool in vni_pools %}
+        <div style="margin-bottom: 10px;">
+          <div class="clearfix" style="margin-bottom: 3px;">
+            <small><strong>VNI:</strong> {{ pool.name }}</small>
+            <small class="pull-right text-muted">{{ pool.utilisation_pct }}%</small>
+          </div>
+          <div class="progress" style="height: 10px; margin-bottom: 0; border-radius: 5px;">
+            <div class="progress-bar {% if pool.utilisation_pct > 80 %}progress-bar-danger{% elif pool.utilisation_pct > 50 %}progress-bar-warning{% else %}progress-bar-success{% endif %}"
+                 style="width: {{ pool.utilisation_pct }}%; min-width: 2%; border-radius: 5px;"></div>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% for pool in tunnel_pools %}
+        <div style="margin-bottom: 10px;">
+          <div class="clearfix" style="margin-bottom: 3px;">
+            <small><strong>Tunnel:</strong> {{ pool.name }}</small>
+            <small class="pull-right text-muted">{{ pool.utilisation_pct }}%</small>
+          </div>
+          <div class="progress" style="height: 10px; margin-bottom: 0; border-radius: 5px;">
+            <div class="progress-bar {% if pool.utilisation_pct > 80 %}progress-bar-danger{% elif pool.utilisation_pct > 50 %}progress-bar-warning{% else %}progress-bar-success{% endif %}"
+                 style="width: {{ pool.utilisation_pct }}%; min-width: 2%; border-radius: 5px;"></div>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% for pool in loopback_pools %}
+        <div style="margin-bottom: 10px;">
+          <div class="clearfix" style="margin-bottom: 3px;">
+            <small><strong>Loopback:</strong> {{ pool.name }}</small>
+            <small class="pull-right text-muted">{{ pool.utilisation_pct }}%</small>
+          </div>
+          <div class="progress" style="height: 10px; margin-bottom: 0; border-radius: 5px;">
+            <div class="progress-bar {% if pool.utilisation_pct > 80 %}progress-bar-danger{% elif pool.utilisation_pct > 50 %}progress-bar-warning{% else %}progress-bar-success{% endif %}"
+                 style="width: {{ pool.utilisation_pct }}%; min-width: 2%; border-radius: 5px;"></div>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% for pool in wireless_pools %}
+        <div style="margin-bottom: 10px;">
+          <div class="clearfix" style="margin-bottom: 3px;">
+            <small><strong>WLAN:</strong> {{ pool.name }}</small>
+            <small class="pull-right text-muted">{{ pool.utilisation_pct }}%</small>
+          </div>
+          <div class="progress" style="height: 10px; margin-bottom: 0; border-radius: 5px;">
+            <div class="progress-bar {% if pool.utilisation_pct > 80 %}progress-bar-danger{% elif pool.utilisation_pct > 50 %}progress-bar-warning{% else %}progress-bar-success{% endif %}"
+                 style="width: {{ pool.utilisation_pct }}%; min-width: 2%; border-radius: 5px;"></div>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% if not vni_pools and not tunnel_pools and not loopback_pools and not wireless_pools %}
+          <p class="text-muted text-center">No resource pools configured.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── Recent Audit Activity ─────────────────────────────────────────── #}
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <strong><i class="mdi mdi-history"></i> Recent Activity</strong>
+        <a href="{% url 'plugins:intent_networking:auditentry_list' %}" class="pull-right text-muted" style="font-size: 12px;">View all →</a>
+      </div>
+      <div class="list-group" style="margin-bottom: 0;">
+        {% for entry in recent_audit %}
+        <div class="list-group-item" style="padding: 8px 15px; border-left: 3px solid {% if entry.action == 'deployed' %}#27ae60{% elif entry.action == 'failed' %}#e74c3c{% elif entry.action == 'created' %}#3498db{% elif entry.action == 'approved' %}#8e44ad{% else %}#95a5a6{% endif %};">
+          <div style="font-size: 13px;">
+            <strong>{{ entry.action|title }}</strong>
+            {% if entry.intent %}
+              — <a href="{{ entry.intent.get_absolute_url }}">{{ entry.intent.intent_id }}</a>
+            {% endif %}
+          </div>
+          <small class="text-muted">
+            {% if entry.user %}{{ entry.user }} &middot; {% endif %}{{ entry.timestamp|timesince }} ago
+          </small>
+        </div>
         {% empty %}
-          <p class="text-muted">No RT pools configured.</p>
+          <div class="list-group-item text-muted text-center">No audit entries yet.</div>
         {% endfor %}
       </div>
     </div>
 
     {# ── Recent Verifications ──────────────────────────────────────────── #}
     <div class="panel panel-default">
-      <div class="panel-heading"><strong>Recent Verifications</strong></div>
-      <div class="panel-body">
+      <div class="panel-heading">
+        <strong><i class="mdi mdi-check-decagram"></i> Latest Verifications</strong>
+      </div>
+      <div class="list-group" style="margin-bottom: 0;">
         {% for v in recent_verifications %}
-          <p>
-            {% if v.passed %}✅{% else %}❌{% endif %}
-            <a href="{{ v.intent.get_absolute_url }}">{{ v.intent.intent_id }}</a>
-            <span class="text-muted">{{ v.verified_at|timesince }} ago</span>
-          </p>
+        <div class="list-group-item" style="padding: 8px 15px;">
+          <span style="font-size: 16px; margin-right: 5px;">{% if v.passed %}✅{% else %}❌{% endif %}</span>
+          <a href="{{ v.intent.get_absolute_url }}">{{ v.intent.intent_id }}</a>
+          <small class="pull-right text-muted">{{ v.verified_at|timesince }} ago</small>
+        </div>
         {% empty %}
-          <p class="text-muted">No verifications yet.</p>
+          <div class="list-group-item text-muted text-center">No verifications yet.</div>
         {% endfor %}
       </div>
     </div>
+
   </div>
 </div>
 {% endblock content %}

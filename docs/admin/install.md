@@ -1,67 +1,87 @@
 # Installing the App in Nautobot
 
-Here you will find detailed instructions on how to **install** and **configure** the App within your Nautobot environment.
-
-!!! warning "Developer Note - Remove Me!"
-    Detailed instructions on installing the App. You will need to update this section based on any additional dependencies or prerequisites.
+Here you will find detailed instructions on how to **install** and **configure** the Intent Networking app within your Nautobot environment.
 
 ## Prerequisites
 
-- The app is compatible with Nautobot 3.0.0 and higher.
-- Databases supported: PostgreSQL, MySQL
+- **Nautobot 3.0.0** or higher
+- **Python 3.10** or higher
+- **PostgreSQL** (recommended) or **MySQL** database
+- A functioning **Redis** instance (required by Nautobot's Celery workers)
 
 !!! note
     Please check the [dedicated page](compatibility_matrix.md) for a full compatibility matrix and the deprecation policy.
 
-### Access Requirements
+### External Service Requirements
 
-!!! warning "Developer Note - Remove Me!"
-    What external systems (if any) it needs access to in order to work.
+The app optionally integrates with several external systems:
+
+| Service | Purpose | Required? |
+|---------|---------|-----------|
+| **OPA** (Open Policy Agent) | Policy evaluation before deployment (PCI-DSS, HIPAA, etc.) | Optional |
+| **Git hosting** (GitHub, GitLab, etc.) | Source repository for intent YAML files | Recommended |
+| **Slack** | Webhook notifications for deploy/fail/rollback events | Optional |
+| **GitHub API** | Automatic issue creation for non-remediable drift | Optional |
+| **PagerDuty** | Critical alert escalation | Optional |
+| **ServiceNow** | ITSM ticket creation | Optional |
 
 ## Install Guide
 
 !!! note
-    Apps can be installed from the [Python Package Index](https://pypi.org/) or locally. See the [Nautobot documentation](https://docs.nautobot.com/projects/core/en/stable/user-guide/administration/installation/app-install/) for more details. The pip package name for this app is [`intent-networking`](https://pypi.org/project/intent-networking/).
+    Apps can be installed from the [Python Package Index](https://pypi.org/) or locally. See the [Nautobot documentation](https://docs.nautobot.com/projects/core/en/stable/user-guide/administration/installation/app-install/) for more details. The pip package name for this app is [`nautobot-app-intent-networking`](https://pypi.org/project/nautobot-app-intent-networking/).
 
-The app is available as a Python package via PyPI and can be installed with `pip`:
-
-```shell
-pip install intent-networking
-```
-
-To ensure Intent Networking is automatically re-installed during future upgrades, create a file named `local_requirements.txt` (if not already existing) in the Nautobot root directory (alongside `requirements.txt`) and list the `intent-networking` package:
+### Step 1 — Install the Package
 
 ```shell
-echo intent-networking >> local_requirements.txt
+pip install nautobot-app-intent-networking
 ```
 
-Once installed, the app needs to be enabled in your Nautobot configuration. The following block of code below shows the additional configuration required to be added to your `nautobot_config.py` file:
+To ensure the app is automatically re-installed during future upgrades, create a file named `local_requirements.txt` (if not already existing) in the Nautobot root directory (alongside `requirements.txt`) and list the package:
 
-- Append `"intent_networking"` to the `PLUGINS` list.
-- Append the `"intent_networking"` dictionary to the `PLUGINS_CONFIG` dictionary and override any defaults.
+```shell
+echo nautobot-app-intent-networking >> local_requirements.txt
+```
+
+### Step 2 — Enable in `nautobot_config.py`
+
+Append `"intent_networking"` to the `PLUGINS` list and add the `"intent_networking"` dictionary to `PLUGINS_CONFIG`:
 
 ```python
-# In your nautobot_config.py
 PLUGINS = ["intent_networking"]
 
-# PLUGINS_CONFIG = {
-#   "intent_networking": {
-#     ADD YOUR SETTINGS HERE
-#   }
-# }
+PLUGINS_CONFIG = {
+    "intent_networking": {
+        # --- Required ---
+        "vrf_namespace": "Global",       # Nautobot IPAM Namespace for VRF allocation
+        "default_bgp_asn": 65000,        # ASN used in RD/RT values (e.g. 65000:1)
+
+        # --- Optional (shown with defaults) ---
+        "max_vrfs_per_tenant": 50,
+        "max_prefixes_per_vrf": 5000,
+        "reconciliation_interval_hours": 1,
+        "auto_remediation_enabled": True,
+
+        # Notifications — Slack (leave None to disable)
+        "slack_webhook_url": None,
+
+        # GitHub issue creation for non-remediable drift
+        "github_api_url": None,          # defaults to https://api.github.com
+        "github_repo": None,             # e.g. "your-org/network-as-code"
+    },
+}
 ```
 
-Once the Nautobot configuration is updated, run the Post Upgrade command (`nautobot-server post_upgrade`) to run migrations and clear any cache:
+See `development/nautobot_config.py` for the full reference with all available settings.
+
+### Step 3 — Run Post-Upgrade
+
+Run the `post_upgrade` command to execute migrations and clear cache:
 
 ```shell
 nautobot-server post_upgrade
 ```
 
-Then restart (if necessary) the Nautobot services which may include:
-
-- Nautobot
-- Nautobot Workers
-- Nautobot Scheduler
+### Step 4 — Restart Services
 
 ```shell
 sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
@@ -69,13 +89,78 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## App Configuration
 
-!!! warning "Developer Note - Remove Me!"
-    Any configuration required to get the App set up. Edit the table below as per the examples provided.
+### Required Settings
 
-The app behavior can be controlled with the following list of settings:
+| Setting | Type | Description |
+|---------|------|-------------|
+| `vrf_namespace` | `str` | Name of the Nautobot IPAM Namespace used for VRF allocation. Must match an existing `ipam.Namespace` object. Default: `"Global"` |
+| `default_bgp_asn` | `int` | BGP Autonomous System Number used as the prefix for auto-generated RD and RT values (e.g. `65000:1`). |
 
-| Key     | Example | Default | Description                          |
-| ------- | ------ | -------- | ------------------------------------- |
-| `enable_backup` | `True` | `True` | A boolean to represent whether or not to run backup configurations within the app. |
-| `platform_slug_map` | `{"cisco_wlc": "cisco_aireos"}` | `None` | A dictionary in which the key is the platform slug and the value is what netutils uses in any "network_os" parameter. |
-| `per_feature_bar_width` | `0.15` | `0.15` | The width of the table bar within the overview report |
+### Optional Settings
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `max_vrfs_per_tenant` | `int` | `50` | Maximum VRFs that can be allocated per tenant |
+| `max_prefixes_per_vrf` | `int` | `5000` | Maximum prefix count per VRF |
+| `reconciliation_interval_hours` | `int` | `1` | How often the reconciliation job runs (hours) |
+| `auto_remediation_enabled` | `bool` | `True` | Whether drift auto-remediation is enabled (requires OPA approval) |
+| `slack_webhook_url` | `str` | `None` | Slack incoming webhook URL for deployment/rollback notifications |
+| `github_api_url` | `str` | `None` | GitHub API base URL (defaults to `https://api.github.com`) |
+| `github_repo` | `str` | `None` | GitHub repository for drift issue creation (e.g. `"your-org/network-as-code"`) |
+| `github_token_env_var` | `str` | `"GITHUB_TOKEN"` | Environment variable name containing the GitHub token |
+| `pagerduty_routing_key` | `str` | `None` | PagerDuty Events API routing key for critical alerts |
+| `servicenow_instance` | `str` | `None` | ServiceNow instance URL |
+| `servicenow_user` | `str` | `None` | ServiceNow API username |
+| `servicenow_password` | `str` | `None` | ServiceNow API password |
+| `webhook_urls` | `list` | `[]` | Additional webhook URLs for event notifications |
+| `device_secrets_group` | `str` | `None` | Nautobot Secrets Group name for device SSH credentials |
+| `nautobot_api_secrets_group` | `str` | `None` | Nautobot Secrets Group name for API tokens |
+
+## Post-Install Setup
+
+### Create Intent Lifecycle Statuses
+
+Navigate to **Extras → Statuses** and create the following, assigning each to the **Intent** content type:
+
+| Name | Colour | Description |
+|------|--------|-------------|
+| Draft | Grey | Newly synced from Git, not yet validated |
+| Validated | Blue | Schema + OPA checks passed |
+| Deploying | Amber | Deployment in progress |
+| Deployed | Green | Successfully deployed and verified |
+| Failed | Red | Deployment or verification failed |
+| Rolled Back | Orange | Reverted to previous version |
+| Deprecated | Grey | Removed from Git repo or superseded |
+
+### Ensure a Namespace Exists
+
+The app allocates VRFs within a Nautobot IPAM Namespace. Nautobot creates a `"Global"` namespace by default, which the app uses unless you override `vrf_namespace` in the configuration.
+
+To verify:
+
+1. Navigate to **IPAM → Namespaces**
+2. Confirm the `"Global"` namespace exists (or whichever name you configured)
+
+!!! note
+    Route Distinguishers and Route Targets are allocated using Nautobot's native IPAM models (`ipam.VRF` and `ipam.RouteTarget`) and no longer require custom pool configuration. The app auto-generates RD/RT values in `<ASN>:<counter>` format within the configured Namespace.
+
+### Create Resource Pools (Optional)
+
+If your intents require VXLAN VNI, Tunnel ID, Loopback IP, or Wireless VLAN allocation, create the relevant pools via the Nautobot UI under **Intent Networking → Resource Pools**.
+
+### Configure Git Integration (Recommended)
+
+The preferred way to sync intent YAML files is via Nautobot's native Git integration:
+
+1. Navigate to **Extensibility → Git Repositories → Add**
+2. Enter the repository URL
+3. Select the branch (e.g. `main`)
+4. Configure credentials via a **Secrets Group** if the repo is private
+5. In **Provided Contents**, tick **"intent definitions"**
+6. Click **Create** then **Sync**
+
+Nautobot will clone the repo and scan these directories for intent YAML files:
+
+- `intents/`
+- `intent_definitions/`
+- `intent-definitions/`

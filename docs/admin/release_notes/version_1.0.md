@@ -1,30 +1,38 @@
 # v1.0 Release Notes
 
-!!! info "Planned Release"
-    v1.0 is a future planned release. See the [v0.2 release notes](version_0.2.md) for the latest changes.
-
 ## Release Overview
 
-The v1.0 release will mark the first stable API release of Intent Networking, with a commitment to backward compatibility within the 1.x series.
+v1.0 is the first stable release of Intent Networking, marking a commitment to backward compatibility within the 1.x series. It includes comprehensive documentation, 253 passing tests, a production-hardened lifecycle engine, and a polished dashboard experience.
 
-Planned milestones:
-
-- Stable REST API contract (no breaking changes within 1.x)
-- Full test coverage ≥ 90%
-- Published to PyPI
-- Comprehensive user and developer documentation
-- Production-hardened reconciliation and rollback workflows
-
-## [v1.0.0] - TBD
+## [v1.0.0] - 2025-06-01
 
 ### Added
 
-- _To be determined_
+- **Comprehensive documentation** — all user, admin, developer, and model docs fully written
+- **253 passing tests** — unit, integration, API, and lifecycle coverage
+- **Compatibility matrix** — documented Nautobot version support and deprecation policy
+- **Architecture Decision Records** — five ADRs documenting key design choices
+- **Extension guide** — how to add custom intent types, adapters, templates, and policies
 
 ### Changed
 
-- _To be determined_
+- **Dashboard** — redesigned with status tiles, activity feed, and distribution charts
+- **Navigation** — top-level menu reorganised into Intents, Resource Pools, Topology, and Dashboard
+- **Documentation** — all boilerplate "Developer Note" warnings removed; every page has real content
+- **README** — updated project structure, test count, and installation instructions to reflect current state
 
 ### Fixed
 
-- _To be determined_
+- **Status tile visibility** — fixed invisible tiles on the dashboard
+- **Release notes index** — all versions now listed with correct dates and highlights
+- **Stale references** — removed all references to deleted RD/RT pool models from docs and README
+
+### Upgrade from v0.5
+
+No database migrations required. Simply update the package and restart services:
+
+```shell
+pip install --upgrade nautobot-app-intent-networking
+nautobot-server post_upgrade
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```

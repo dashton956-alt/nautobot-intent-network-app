@@ -5,7 +5,7 @@ from nautobot.apps.forms import NautobotBulkEditForm, NautobotFilterForm, Nautob
 from nautobot.extras.forms.mixins import StatusModelBulkEditFormMixin
 from nautobot.tenancy.models import Tenant
 
-from intent_networking.models import Intent, IntentTypeChoices, RouteDistinguisherPool, RouteTargetPool
+from intent_networking.models import Intent, IntentTypeChoices
 
 
 class IntentForm(NautobotModelForm):  # pylint: disable=too-many-ancestors
@@ -66,23 +66,3 @@ class IntentFilterForm(NautobotFilterForm):
         ],
         required=False,
     )
-
-
-class RouteDistinguisherPoolForm(NautobotModelForm):  # pylint: disable=too-many-ancestors
-    """Model form for creating and editing RD Pool records."""
-
-    class Meta:
-        """Meta options for RouteDistinguisherPoolForm."""
-
-        model = RouteDistinguisherPool
-        fields = "__all__"
-
-
-class RouteTargetPoolForm(NautobotModelForm):  # pylint: disable=too-many-ancestors
-    """Model form for creating and editing RT Pool records."""
-
-    class Meta:
-        """Meta options for RouteTargetPoolForm."""
-
-        model = RouteTargetPool
-        fields = "__all__"

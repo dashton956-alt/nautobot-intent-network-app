@@ -27,6 +27,10 @@ from nautobot.extras.models import Job as JobModel
 from nautobot.extras.models import JobResult, Status
 from nautobot.tenancy.models import Tenant
 
+from intent_networking.controller_adapters import (
+    classify_primitives,
+    get_adapter,
+)
 from intent_networking.events import (
     EVENT_INTENT_CONFLICT,
     EVENT_INTENT_CREATED,
@@ -520,11 +524,50 @@ class IntentDeploymentJob(Job):
     def _push_configs(self, _plan: ResolutionPlan, rendered_configs: dict, commit: bool) -> dict:
         """Push rendered configs to devices via Nornir + Netmiko.
 
+        Routes wireless / SD-WAN / cloud primitives to the appropriate
+        controller adapter instead of Nornir.
+
         Uses Nautobot Secrets for device credentials (#5).
         """
         from nornir import InitNornir  # noqa: PLC0415
         from nornir_netmiko.tasks import netmiko_send_config  # noqa: PLC0415
 
+        errors = []
+
+        # ── Controller adapter routing ────────────────────────────────────
+        buckets = classify_primitives(_plan.primitives)
+        for adapter_type in ("wireless", "sdwan", "cloud"):
+            adapter_prims = buckets.get(adapter_type)
+            if not adapter_prims:
+                continue
+            try:
+                adapter = get_adapter(adapter_type)
+                intent_id = adapter_prims[0].get("intent_id", "unknown")
+                if commit:
+                    result = adapter.push(adapter_prims, intent_id)
+                    if not result["success"]:
+                        errors.append(f"{adapter_type}: {result.get('details', 'push failed')}")
+                    else:
+                        self.logger.info(
+                            "Controller adapter '%s' pushed %s primitives",
+                            adapter_type,
+                            len(adapter_prims),
+                        )
+                else:
+                    self.logger.info(
+                        "DRY RUN — would push %s primitives to %s controller",
+                        len(adapter_prims),
+                        adapter_type,
+                    )
+            except ValueError as exc:
+                self.logger.warning(
+                    "Controller adapter '%s' not configured — skipping %s primitives: %s",
+                    adapter_type,
+                    len(adapter_prims),
+                    exc,
+                )
+
+        # ── Nornir / device-level push ────────────────────────────────────
         username, password = get_device_credentials()
 
         nr = InitNornir(
@@ -616,50 +659,123 @@ class IntentVerificationJob(Job):
         all_passed = True
         measured_latency = None
 
+        # ── Controller adapter verification ───────────────────────────────
+        buckets = classify_primitives(plan.primitives)
+        for adapter_type in ("wireless", "sdwan", "cloud"):
+            adapter_prims = buckets.get(adapter_type)
+            if not adapter_prims:
+                continue
+            try:
+                adapter = get_adapter(adapter_type)
+                result = adapter.verify(adapter_prims, intent.intent_id)
+                adapter_passed = result.get("verified", False)
+                checks.append(
+                    {
+                        "check": f"{adapter_type}_controller_verify",
+                        "passed": adapter_passed,
+                        "detail": result.get("details", ""),
+                        "drift": result.get("drift", []),
+                    }
+                )
+                if not adapter_passed:
+                    all_passed = False
+            except ValueError:
+                self.logger.warning("Adapter '%s' not configured — skipping verification", adapter_type)
+
+        # ── Device-level verification (generic) ──────────────────────────
         for device in plan.affected_devices.all():
             device_state = self._collect_device_state(device, plan)
+            device_prims = [p for p in plan.primitives if p.get("device") == device.name]
+            prim_types = {p.get("primitive_type") for p in device_prims}
 
-            # Check 1: VRF present
-            vrf_present = plan.vrf_name in device_state.get("vrfs", [])
+            # Check VRF if plan requires one
+            if plan.vrf_name:
+                vrf_present = plan.vrf_name in device_state.get("vrfs", [])
+                checks.append(
+                    {
+                        "device": device.name,
+                        "check": "vrf_present",
+                        "passed": vrf_present,
+                        "detail": f"VRF {plan.vrf_name} {'present' if vrf_present else 'MISSING'}",
+                    }
+                )
+                if not vrf_present:
+                    all_passed = False
+
+            # Check BGP if there are bgp_neighbor primitives
+            if "bgp_neighbor" in prim_types or "bgp_evpn_af" in prim_types:
+                bgp_vrf = plan.vrf_name or "global"
+                bgp_state = device_state.get("bgp_sessions", {}).get(bgp_vrf, {}).get("state", "Unknown")
+                bgp_up = bgp_state == "Established"
+                checks.append(
+                    {
+                        "device": device.name,
+                        "check": "bgp_established",
+                        "passed": bgp_up,
+                        "detail": f"BGP state ({bgp_vrf}): {bgp_state}",
+                    }
+                )
+                if not bgp_up:
+                    all_passed = False
+
+                # Prefix count check
+                prefixes_received = device_state.get("prefix_count", {}).get(bgp_vrf, 0)
+                min_prefixes = intent.intent_data.get("policy", {}).get("min_prefixes", 1)
+                prefix_ok = prefixes_received >= min_prefixes
+                checks.append(
+                    {
+                        "device": device.name,
+                        "check": "prefix_count",
+                        "passed": prefix_ok,
+                        "detail": f"{prefixes_received} prefixes received (min: {min_prefixes})",
+                    }
+                )
+                if not prefix_ok:
+                    all_passed = False
+
+            # Check ACL presence
+            if "acl" in prim_types:
+                expected_acls = [
+                    p.get("acl_name") for p in device_prims if p.get("primitive_type") == "acl" and p.get("acl_name")
+                ]
+                device_acls = device_state.get("acls", [])
+                for acl_name in expected_acls:
+                    acl_present = acl_name in device_acls
+                    checks.append(
+                        {
+                            "device": device.name,
+                            "check": "acl_present",
+                            "passed": acl_present,
+                            "detail": f"ACL {acl_name} {'present' if acl_present else 'MISSING'}",
+                        }
+                    )
+                    if not acl_present:
+                        all_passed = False
+
+            # Check OSPF neighbours if ospf primitives present
+            if "ospf" in prim_types or "ospfv3" in prim_types:
+                ospf_neighbors = device_state.get("ospf_neighbor_count", 0)
+                ospf_ok = ospf_neighbors > 0
+                checks.append(
+                    {
+                        "device": device.name,
+                        "check": "ospf_neighbors",
+                        "passed": ospf_ok,
+                        "detail": f"{ospf_neighbors} OSPF neighbor(s)",
+                    }
+                )
+                if not ospf_ok:
+                    all_passed = False
+
+            # Generic: log all primitive types on this device
             checks.append(
                 {
                     "device": device.name,
-                    "check": "vrf_present",
-                    "passed": vrf_present,
-                    "detail": f"VRF {plan.vrf_name} {'present' if vrf_present else 'MISSING'}",
+                    "check": "primitives_rendered",
+                    "passed": True,
+                    "detail": f"Primitive types: {sorted(prim_types)}",
                 }
             )
-            if not vrf_present:
-                all_passed = False
-
-            # Check 2: BGP established
-            bgp_state = device_state.get("bgp_sessions", {}).get(plan.vrf_name, {}).get("state", "Unknown")
-            bgp_up = bgp_state == "Established"
-            checks.append(
-                {
-                    "device": device.name,
-                    "check": "bgp_established",
-                    "passed": bgp_up,
-                    "detail": f"BGP state: {bgp_state}",
-                }
-            )
-            if not bgp_up:
-                all_passed = False
-
-            # Check 3: Prefix count
-            prefixes_received = device_state.get("prefix_count", {}).get(plan.vrf_name, 0)
-            min_prefixes = intent.intent_data.get("policy", {}).get("min_prefixes", 1)
-            prefix_ok = prefixes_received >= min_prefixes
-            checks.append(
-                {
-                    "device": device.name,
-                    "check": "prefix_count",
-                    "passed": prefix_ok,
-                    "detail": f"{prefixes_received} prefixes received (min: {min_prefixes})",
-                }
-            )
-            if not prefix_ok:
-                all_passed = False
 
         # Check 4: Latency SLA
         max_latency = intent.intent_data.get("policy", {}).get("max_latency_ms")
@@ -741,7 +857,7 @@ class IntentVerificationJob(Job):
             logging={"enabled": False},
         )
 
-        state = {"vrfs": [], "bgp_sessions": {}, "prefix_count": {}}
+        state = {"vrfs": [], "bgp_sessions": {}, "prefix_count": {}, "acls": [], "ospf_neighbor_count": 0}
 
         # Collect VRF list
         vrf_result = nr.run(task=netmiko_send_command, command_string="show vrf brief", use_textfsm=True)
@@ -750,17 +866,41 @@ class IntentVerificationJob(Job):
                 state["vrfs"].append(row.get("name", ""))
 
         # Collect BGP state for the VRF
-        bgp_result = nr.run(
-            task=netmiko_send_command,
-            command_string=f"show bgp vpnv4 unicast vrf {plan.vrf_name} summary",
-            use_textfsm=True,
-        )
-        if not bgp_result[device.name].failed:
-            for neighbor in bgp_result[device.name].result:
-                state["bgp_sessions"][plan.vrf_name] = {
-                    "state": neighbor.get("state_pfxrcd", "Unknown"),
-                    "prefixes": neighbor.get("state_pfxrcd", 0),
-                }
+        if plan.vrf_name:
+            bgp_result = nr.run(
+                task=netmiko_send_command,
+                command_string=f"show bgp vpnv4 unicast vrf {plan.vrf_name} summary",
+                use_textfsm=True,
+            )
+            if not bgp_result[device.name].failed:
+                for neighbor in bgp_result[device.name].result:
+                    state["bgp_sessions"][plan.vrf_name] = {
+                        "state": neighbor.get("state_pfxrcd", "Unknown"),
+                        "prefixes": neighbor.get("state_pfxrcd", 0),
+                    }
+        else:
+            bgp_result = nr.run(
+                task=netmiko_send_command,
+                command_string="show bgp summary",
+                use_textfsm=True,
+            )
+            if not bgp_result[device.name].failed:
+                for neighbor in bgp_result[device.name].result:
+                    state["bgp_sessions"]["global"] = {
+                        "state": neighbor.get("state_pfxrcd", "Unknown"),
+                        "prefixes": neighbor.get("state_pfxrcd", 0),
+                    }
+
+        # Collect ACL names
+        acl_result = nr.run(task=netmiko_send_command, command_string="show access-lists", use_textfsm=True)
+        if not acl_result[device.name].failed:
+            for acl in acl_result[device.name].result:
+                state["acls"].append(acl.get("name", ""))
+
+        # Collect OSPF neighbor count
+        ospf_result = nr.run(task=netmiko_send_command, command_string="show ip ospf neighbor brief", use_textfsm=True)
+        if not ospf_result[device.name].failed:
+            state["ospf_neighbor_count"] = len(ospf_result[device.name].result)
 
         return state
 
@@ -899,6 +1039,7 @@ class IntentRollbackJob(Job):
         platform_map = {
             "cisco-ios-xe": "cisco/ios-xe",
             "cisco-ios-xr": "cisco/ios-xr",
+            "cisco-nxos": "cisco/nxos",
             "juniper-junos": "juniper/junos",
             "aruba-aos-cx": "aruba/aos-cx",
         }
@@ -1047,14 +1188,109 @@ def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
     platform_map = {
         "cisco-ios-xe": "cisco/ios-xe",
         "cisco-ios-xr": "cisco/ios-xr",
+        "cisco-nxos": "cisco/nxos",
         "juniper-junos": "juniper/junos",
         "aruba-aos-cx": "aruba/aos-cx",
     }
 
     primitive_template_map = {
+        # L2 / Switching
+        "vlan": "vlan.j2",
+        "l2_port": "l2_port.j2",
+        "lag": "lag.j2",
+        "mlag": "mlag.j2",
+        "stp": "stp.j2",
+        "qinq": "qinq.j2",
+        "pvlan": "pvlan.j2",
+        "storm_control": "storm_control.j2",
+        "port_security": "port_security.j2",
+        "dhcp_snooping": "dhcp_snooping.j2",
+        "dai": "dai.j2",
+        "ip_source_guard": "ip_source_guard.j2",
+        "macsec": "macsec.j2",
+        # L3 / Routing
         "vrf": "vrf.j2",
+        "static_route": "static_route.j2",
+        "ospf": "ospf.j2",
         "bgp_neighbor": "bgp_neighbor.j2",
+        "isis": "isis.j2",
+        "eigrp": "eigrp.j2",
+        "route_redistribution": "route_redistribution.j2",
+        "route_policy": "route_policy.j2",
+        "prefix_list": "prefix_list.j2",
+        "bfd": "bfd.j2",
+        "pbr": "pbr.j2",
+        "ipv6_interface": "ipv6_interface.j2",
+        "ospfv3": "ospfv3.j2",
+        "bgp_ipv6_af": "bgp_ipv6_af.j2",
+        "fhrp": "fhrp.j2",
+        "bgp_network": "bgp_network.j2",
+        # MPLS / SP
+        "l2vpn_vpls": "l2vpn_vpls.j2",
+        "pseudowire": "pseudowire.j2",
+        "evpn_mpls": "evpn_mpls.j2",
+        "ldp": "ldp.j2",
+        "rsvp_te_tunnel": "rsvp_te_tunnel.j2",
+        "sr_mpls": "sr_mpls.j2",
+        "srv6": "srv6.j2",
+        "6pe_6vpe": "6pe_6vpe.j2",
+        "mvpn": "mvpn.j2",
+        # DC / EVPN / VXLAN
+        "loopback": "loopback.j2",
+        "vtep": "vtep.j2",
+        "bgp_evpn_af": "bgp_evpn_af.j2",
+        "l2vni": "l2vni.j2",
+        "l3vni": "l3vni.j2",
+        "anycast_gateway": "anycast_gateway.j2",
+        "evpn_multisite": "evpn_multisite.j2",
+        # Security / Firewalling
         "acl": "acl.j2",
+        "zbf": "zbf.j2",
+        "ipsec_tunnel": "ipsec_tunnel.j2",
+        "ipsec_ikev2": "ipsec_ikev2.j2",
+        "gre_tunnel": "gre_tunnel.j2",
+        "dmvpn": "dmvpn.j2",
+        "copp": "copp.j2",
+        "urpf": "urpf.j2",
+        "dot1x": "dot1x.j2",
+        "aaa": "aaa.j2",
+        "ra_guard": "ra_guard.j2",
+        "ssl_inspection": "ssl_inspection.j2",
+        # WAN
+        "wan_uplink": "wan_uplink.j2",
+        "nat": "nat.j2",
+        "nat64": "nat64.j2",
+        "ip_sla": "ip_sla.j2",
+        # QoS
+        "qos_classify": "qos_classify.j2",
+        "qos_dscp_mark": "qos_dscp_mark.j2",
+        "qos_cos_remark": "qos_cos_remark.j2",
+        "qos_queue": "qos_queue.j2",
+        "qos_police": "qos_police.j2",
+        "qos_shape": "qos_shape.j2",
+        "qos_trust": "qos_trust.j2",
+        # Multicast
+        "pim": "pim.j2",
+        "igmp_snooping": "igmp_snooping.j2",
+        "multicast_vrf": "multicast_vrf.j2",
+        "msdp": "msdp.j2",
+        # Management
+        "ntp": "ntp.j2",
+        "dns": "dns.j2",
+        "dhcp_pool": "dhcp_pool.j2",
+        "dhcp_relay": "dhcp_relay.j2",
+        "snmp": "snmp.j2",
+        "syslog": "syslog.j2",
+        "netflow": "netflow.j2",
+        "telemetry": "telemetry.j2",
+        "ssh": "ssh.j2",
+        "mgmt_interface": "mgmt_interface.j2",
+        "lldp_cdp": "lldp_cdp.j2",
+        "stp_root": "stp_root.j2",
+        # Service
+        "lb_vip": "lb_vip.j2",
+        "dns_record": "dns_record.j2",
+        "service_insertion": "service_insertion.j2",
     }
 
     rendered = {}

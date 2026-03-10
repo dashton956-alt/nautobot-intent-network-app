@@ -28,9 +28,8 @@ class IntentNetworkingConfig(NautobotAppConfig):
 
     # ── Settings ──────────────────────────────────────────────────────────
     default_settings = {
-        # Resource allocation pools (must match names in Nautobot)
-        "rd_pool_name": "default-rd-pool",
-        "rt_pool_name": "default-rt-pool",
+        # VRF allocation namespace (Nautobot IPAM Namespace name)
+        "vrf_namespace": "Global",
         # BGP
         "default_bgp_asn": 65000,
         # Capacity limits
@@ -57,7 +56,7 @@ class IntentNetworkingConfig(NautobotAppConfig):
 
     # These MUST be set in nautobot_config.py — startup fails if missing
     required_settings = [
-        "rd_pool_name",
+        "vrf_namespace",
         "default_bgp_asn",
     ]
 

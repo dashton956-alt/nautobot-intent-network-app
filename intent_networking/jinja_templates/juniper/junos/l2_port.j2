@@ -1,0 +1,1 @@
+set interfaces {{ interface }} unit 0 family ethernet-switching {% if mode == 'access' %}interface-mode access vlan members {{ access_vlan }}{% else %}interface-mode trunk vlan members [ {{ allowed_vlans | join(' ') }} ]{% endif %}

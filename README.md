@@ -122,10 +122,9 @@ PLUGINS = [
 PLUGINS_CONFIG = {
     "intent_networking": {
         # --- Required ---
-        "rd_pool_name": "default-rd-pool",
+        "vrf_namespace": "Global",
         "default_bgp_asn": 65000,
         # --- Optional (shown with defaults) ---
-        "rt_pool_name": "default-rt-pool",
         "max_vrfs_per_tenant": 50,
         "max_prefixes_per_vrf": 5000,
         "reconciliation_interval_hours": 1,
@@ -160,23 +159,7 @@ nautobot-server migrate intent_networking
 | Rolled Back | Orange | Reverted to previous version |
 | Deprecated | Grey | Removed from Git repo or superseded |
 
-**Resource pools** — create in *Intent Networking → Route Distinguisher Pools*:
-
-```
-Name:        default-rd-pool
-ASN:         65000
-Range start: 1
-Range end:   65535
-```
-
-And in *Intent Networking → Route Target Pools*:
-
-```
-Name:        default-rt-pool
-ASN:         65000
-Range start: 100
-Range end:   9999
-```
+**Namespace** — verify in *IPAM → Namespaces* that the configured namespace exists (default: `"Global"`). VRFs and Route Targets are allocated using Nautobot's native IPAM models within this namespace.
 
 ### 5. Configure Git integration (recommended)
 
@@ -435,10 +418,9 @@ For full development environment setup including Docker Compose, see the [develo
 | `Intent` | Central record for a network intent — one row per YAML file. Stores intent data, lifecycle status, Git provenance, and links to its GitRepository |
 | `ResolutionPlan` | Resolved vendor-neutral primitives for a specific intent version, with affected device list |
 | `VerificationResult` | Result of each verification/reconciliation check, including per-device checks, SLA measurements, drift details, and GitHub issue URL |
-| `RouteDistinguisherPool` | Pool of RD values available for allocation |
-| `RouteDistinguisher` | Individual RD allocation (device + VRF) |
-| `RouteTargetPool` | Pool of RT values available for allocation |
-| `RouteTarget` | Individual RT allocation (intent-level) |
+| *Nautobot `ipam.VRF`* | VRF with auto-generated RD — replaces custom RD pools (native model) |
+| *Nautobot `ipam.RouteTarget`* | Route Target with description-based tracking (native model) |
+| *Nautobot `ipam.Namespace`* | Organisational boundary for VRFs (native model) |
 
 ---
 
@@ -455,19 +437,24 @@ For full development environment setup including Docker Compose, see the [develo
 ```
 intent_networking/
 ├── __init__.py            App registration (NautobotAppConfig), settings, metadata
-├── models.py              Intent, ResolutionPlan, VerificationResult, RD/RT pool models
+├── models.py              Intent, lifecycle models, resource pool models (VNI, Tunnel, Loopback, VLAN)
 ├── datasources.py         Nautobot GitRepository datasource — auto-syncs intent YAML files
 ├── resolver.py            Intent → vendor-neutral primitives (Nautobot ORM queries)
-├── allocations.py         Atomic RD/RT allocation with select_for_update()
-├── jobs.py                Six Nautobot Jobs (sync, resolve, deploy, verify, rollback, reconcile)
+├── allocations.py         Atomic VRF/RT/VNI/Tunnel/Loopback/VLAN allocation via native IPAM
+├── jobs.py                Seven Nautobot Jobs (sync, resolve, preview, deploy, verify, rollback, reconcile)
+├── controller_adapters.py Vendor-specific configuration generation
+├── events.py              Internal event bus for lifecycle event dispatch
 ├── topology_api.py        REST endpoints for topology graph, live device data, intent highlighting
 ├── topology_view.py       Django view serving the topology viewer page
-├── notifications.py       Slack webhook + GitHub issue creation for drift
+├── notifications.py       Slack, GitHub, PagerDuty, ServiceNow notifications
 ├── opa_client.py          OPA HTTP client for policy and auto-remediation decisions
-├── views.py               Nautobot UI views (Intent CRUD + read-only plan/verification/RD/RT)
+├── metrics.py             Prometheus metrics and dashboard counters
+├── secrets.py             Nautobot Secrets Group integration for credentials
+├── views.py               Nautobot UI views (Intent CRUD, dashboard, detail pages)
 ├── tables.py              django-tables2 table definitions for list views
 ├── forms.py               Django model forms + filter forms
 ├── filters.py             FilterSet definitions (tenant, type, status, git_repository)
+├── graphql.py             GraphQL type definitions for all models
 ├── navigation.py          Nautobot navigation menu items
 ├── urls.py                UI URL routing
 ├── api/
@@ -476,11 +463,13 @@ intent_networking/
 │   └── urls.py            API URL routing including topology endpoints
 ├── templates/
 │   └── intent_networking/
+│       ├── dashboard.html         Main dashboard with status tiles and charts
 │       └── topology_viewer.html   Full-screen vis.js topology viewer with legend
+├── jinja_templates/       Vendor-specific config templates (Jinja2)
 ├── migrations/
 │   ├── 0001_initial.py
-│   ├── 0002_intent_resolutionplan_routedistinguisher_and_more.py
-│   └── 0003_add_git_repository_fk.py
+│   ├── 0002–0005           Model evolution and Git repository FK
+│   └── 0006_native_ipam.py Replace custom RD/RT pools with native IPAM
 └── tests/
     ├── fixtures.py        Shared test data factories
     ├── test_models.py     Model unit tests
@@ -508,7 +497,7 @@ Before submitting a PR:
 ```bash
 invoke ruff --fix   # Must pass
 invoke pylint       # Must pass
-invoke tests        # Must pass (95 tests)
+invoke tests        # Must pass (253 tests)
 ```
 
 ---

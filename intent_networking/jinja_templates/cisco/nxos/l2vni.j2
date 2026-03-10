@@ -1,0 +1,30 @@
+{# l2vni.j2 — nxos #}
+! Primitive: l2vni
+! Intent: {{ intent_id }}
+! Platform: Cisco NX-OS
+!
+! Variables:
+!   vlan_id            — VLAN ID to map to VNI
+!   vni                — VXLAN VNI value
+!   vlan_name          — VLAN name (optional)
+!   replication_mode   — ingress-replication | multicast
+!   mcast_group        — multicast group (if multicast replication)
+!
+
+vlan {{ vlan_id }}
+  name {{ vlan_name | default('L2VNI-' ~ vni) }}
+  vn-segment {{ vni }}
+
+interface nve1
+  member vni {{ vni }}
+{% if replication_mode | default('ingress-replication') == 'ingress-replication' %}
+    ingress-replication protocol bgp
+{% else %}
+    mcast-group {{ mcast_group | default('239.0.0.1') }}
+{% endif %}
+
+evpn
+  vni {{ vni }} l2
+    rd auto
+    route-target import auto
+    route-target export auto

@@ -8,8 +8,6 @@ from intent_networking.topology_view import TopologyViewerView
 
 router = NautobotUIViewSetRouter()
 router.register("intents", views.IntentUIViewSet)
-router.register("rd-pools", views.RouteDistinguisherPoolUIViewSet)
-router.register("rt-pools", views.RouteTargetPoolUIViewSet)
 
 urlpatterns = router.urls + [
     # ── Dashboard ─────────────────────────────────────────────────────────

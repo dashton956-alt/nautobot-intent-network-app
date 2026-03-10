@@ -25,15 +25,28 @@ def create_intents():
     if status is None:
         status = Status.objects.first()
 
-    intent_types = [IntentTypeChoices.CONNECTIVITY, IntentTypeChoices.SECURITY, IntentTypeChoices.REACHABILITY]
-    for idx in range(1, 4):
+    intent_configs = [
+        (
+            IntentTypeChoices.CONNECTIVITY,
+            {"type": "connectivity", "name": "test-intent-001", "source": "GigabitEthernet0/1"},
+        ),
+        (
+            IntentTypeChoices.SECURITY,
+            {"type": "security", "name": "test-intent-002"},
+        ),
+        (
+            IntentTypeChoices.REACHABILITY,
+            {"type": "reachability", "name": "test-intent-003", "reachability_type": "static"},
+        ),
+    ]
+    for idx, (itype, idata) in enumerate(intent_configs, start=1):
         Intent.objects.get_or_create(
             intent_id=f"test-intent-{idx:03d}",
             defaults={
                 "version": 1,
-                "intent_type": intent_types[idx - 1],
+                "intent_type": itype,
                 "tenant": tenant,
                 "status": status,
-                "intent_data": {"type": intent_types[idx - 1], "name": f"test-intent-{idx:03d}"},
+                "intent_data": idata,
             },
         )

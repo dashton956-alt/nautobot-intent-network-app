@@ -8,8 +8,6 @@ from intent_networking.models import (
     IntentApproval,
     IntentAuditEntry,
     ResolutionPlan,
-    RouteDistinguisherPool,
-    RouteTargetPool,
     VerificationResult,
 )
 
@@ -86,41 +84,6 @@ class VerificationResultTable(BaseTable):
 
         model = VerificationResult
         fields = ["intent", "passed", "triggered_by", "measured_latency_ms", "verified_at"]
-
-
-class RouteDistinguisherPoolTable(BaseTable):
-    """Table for the RD Pool list view."""
-
-    pk = ToggleColumn()
-    name = tables.Column(linkify=True)
-    asn = tables.Column(verbose_name="ASN")
-    range_start = tables.Column(verbose_name="Start")
-    range_end = tables.Column(verbose_name="End")
-    tenant = tables.Column(linkify=True)
-    actions = ButtonsColumn(RouteDistinguisherPool, buttons=("edit", "delete"))
-
-    class Meta(BaseTable.Meta):
-        """Meta options for RouteDistinguisherPoolTable."""
-
-        model = RouteDistinguisherPool
-        fields = ["pk", "name", "asn", "range_start", "range_end", "tenant", "actions"]
-
-
-class RouteTargetPoolTable(BaseTable):
-    """Table for the RT Pool list view."""
-
-    pk = ToggleColumn()
-    name = tables.Column(linkify=True)
-    asn = tables.Column(verbose_name="ASN")
-    range_start = tables.Column(verbose_name="Start")
-    range_end = tables.Column(verbose_name="End")
-    actions = ButtonsColumn(RouteTargetPool, buttons=("edit", "delete"))
-
-    class Meta(BaseTable.Meta):
-        """Meta options for RouteTargetPoolTable."""
-
-        model = RouteTargetPool
-        fields = ["pk", "name", "asn", "range_start", "range_end", "actions"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────

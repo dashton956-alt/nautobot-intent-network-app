@@ -1,0 +1,3 @@
+interface {{ interface }}
+ switchport {% if mode == 'access' %}access vlan {{ access_vlan }}{% else %}trunk allowed {{ allowed_vlans | join(',') }}{% endif %}
+!

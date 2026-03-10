@@ -1,0 +1,22 @@
+{# anycast_gateway.j2 — nxos #}
+! Primitive: anycast_gateway
+! Intent: {{ intent_id }}
+! Platform: Cisco NX-OS
+!
+! Variables:
+!   vlan_id      — SVI VLAN ID
+!   virtual_ip   — Anycast gateway IP address
+!   subnet_mask  — Subnet mask (e.g. 255.255.255.0)
+!   anycast_mac  — Virtual MAC address shared across all leaves
+!   vrf          — VRF name (optional)
+!
+
+fabric forwarding anycast-gateway-mac {{ anycast_mac | default('0000.0000.0001') }}
+
+interface Vlan{{ vlan_id }}
+  no shutdown
+{% if vrf is defined and vrf %}
+  vrf member {{ vrf }}
+{% endif %}
+  ip address {{ virtual_ip }}/{{ subnet_mask | default('24') }}
+  fabric forwarding mode anycast-gateway

@@ -4,6 +4,9 @@ All published release notes are listed below. Patch releases are included within
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [v1.0](version_1.0.md) | 2025-06-01 | Stable release — comprehensive docs, 253 tests, production-ready |
+| [v0.5](version_0.5.md) | 2025-05-01 | Native IPAM refactor — RD/RT via Nautobot VRF/RouteTarget/Namespace |
+| [v0.4](version_0.4.md) | 2025-03-15 | 129 intent types, event-driven notifications, dashboard redesign |
+| [v0.3](version_0.3.md) | 2025-02-15 | Code quality — pylint 10.00/10, ruff clean |
 | [v0.2](version_0.2.md) | 2025-01-15 | Native GitRepository integration, expandable interface cards, topology legend, Nautobot 3.x compatibility |
 | [v0.1](version_0.1.md) | 2024-01-01 | Initial release — intent lifecycle, resource allocation, topology viewer, OPA + Slack |
-| [v1.0](version_1.0.md) | TBD | Planned stable release |

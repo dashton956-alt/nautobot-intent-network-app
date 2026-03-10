@@ -2,36 +2,36 @@
 {% load helpers %}
 
 {% block extra_buttons %}
-  {% if perms.intent_networking.change_intent and IntentResolutionJob_pk %}
-    <a href="{% url 'extras:job_run' pk=IntentResolutionJob_pk %}?intent_id={{ object.intent_id }}"
+  {% if perms.intent_networking.change_intent %}
+    <a href="{% url 'extras:job_run_by_class_path' class_path='intent_networking.jobs.IntentResolutionJob' %}?intent_id={{ object.intent_id }}"
        class="btn btn-sm btn-primary" title="Resolve">
       <i class="mdi mdi-cog-outline"></i> Resolve
     </a>
   {% endif %}
-  {% if perms.intent_networking.change_intent and IntentConfigPreviewJob_pk %}
-    <a href="{% url 'extras:job_run' pk=IntentConfigPreviewJob_pk %}?intent_id={{ object.intent_id }}"
+  {% if perms.intent_networking.change_intent %}
+    <a href="{% url 'extras:job_run_by_class_path' class_path='intent_networking.jobs.IntentConfigPreviewJob' %}?intent_id={{ object.intent_id }}"
        class="btn btn-sm btn-secondary" title="Config Preview">
       <i class="mdi mdi-eye-outline"></i> Preview
     </a>
   {% endif %}
-  {% if perms.intent_networking.deploy_intent and IntentDeploymentJob_pk %}
-    <a href="{% url 'extras:job_run' pk=IntentDeploymentJob_pk %}?intent_id={{ object.intent_id }}"
+  {% if perms.intent_networking.deploy_intent %}
+    <a href="{% url 'extras:job_run_by_class_path' class_path='intent_networking.jobs.IntentDeploymentJob' %}?intent_id={{ object.intent_id }}"
        class="btn btn-sm btn-success" title="Deploy">
       <i class="mdi mdi-rocket-launch"></i> Deploy
     </a>
-    <a href="{% url 'extras:job_run' pk=IntentDeploymentJob_pk %}?intent_id={{ object.intent_id }}&amp;commit=false"
+    <a href="{% url 'extras:job_run_by_class_path' class_path='intent_networking.jobs.IntentDeploymentJob' %}?intent_id={{ object.intent_id }}&amp;commit=false"
        class="btn btn-sm btn-info" title="Dry-Run Deploy">
       <i class="mdi mdi-flask-outline"></i> Dry Run
     </a>
   {% endif %}
-  {% if perms.intent_networking.change_intent and IntentVerificationJob_pk %}
-    <a href="{% url 'extras:job_run' pk=IntentVerificationJob_pk %}?intent_id={{ object.intent_id }}"
+  {% if perms.intent_networking.change_intent %}
+    <a href="{% url 'extras:job_run_by_class_path' class_path='intent_networking.jobs.IntentVerificationJob' %}?intent_id={{ object.intent_id }}"
        class="btn btn-sm btn-warning" title="Verify">
       <i class="mdi mdi-check-decagram"></i> Verify
     </a>
   {% endif %}
-  {% if perms.intent_networking.rollback_intent and IntentRollbackJob_pk %}
-    <a href="{% url 'extras:job_run' pk=IntentRollbackJob_pk %}?intent_id={{ object.intent_id }}"
+  {% if perms.intent_networking.rollback_intent %}
+    <a href="{% url 'extras:job_run_by_class_path' class_path='intent_networking.jobs.IntentRollbackJob' %}?intent_id={{ object.intent_id }}"
        class="btn btn-sm btn-danger" title="Rollback">
       <i class="mdi mdi-undo"></i> Rollback
     </a>
