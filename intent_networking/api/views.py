@@ -96,12 +96,7 @@ class IntentViewSet(NautobotModelViewSet):  # pylint: disable=too-many-ancestors
         intent = self.get_object()
         if not intent.approved_by:
             return Response(
-                {
-                    "error": (
-                        "Intent must be approved before deployment. "
-                        "Set 'approved_by' via the UI or API first."
-                    )
-                },
+                {"error": ("Intent must be approved before deployment. Set 'approved_by' via the UI or API first.")},
                 status=status.HTTP_409_CONFLICT,
             )
 

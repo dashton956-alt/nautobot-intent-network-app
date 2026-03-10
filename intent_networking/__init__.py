@@ -78,8 +78,8 @@ class IntentNetworkingConfig(NautobotAppConfig):
             from django.conf import settings  # noqa: PLC0415
             from nautobot.extras.models import Job as JobModel  # noqa: PLC0415
 
-            interval_hours = (
-                settings.PLUGINS_CONFIG.get("intent_networking", {}).get("reconciliation_interval_hours", 1)
+            interval_hours = settings.PLUGINS_CONFIG.get("intent_networking", {}).get(
+                "reconciliation_interval_hours", 1
             )
 
             job_model = JobModel.objects.filter(

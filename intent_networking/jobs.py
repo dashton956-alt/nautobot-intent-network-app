@@ -697,7 +697,8 @@ class IntentRollbackJob(Job):
             )
 
             acl_names = [
-                p.get("acl_name", "") for p in plan.primitives
+                p.get("acl_name", "")
+                for p in plan.primitives
                 if p.get("device") == device.name and p.get("primitive_type") == "acl"
             ]
 

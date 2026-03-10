@@ -55,9 +55,9 @@ class DashboardView(TemplateView):
         context["recent_intents"] = Intent.objects.select_related("tenant", "status").order_by("-last_updated")[:10]
         context["rd_pools"] = RouteDistinguisherPool.objects.all()
         context["rt_pools"] = RouteTargetPool.objects.all()
-        context["recent_verifications"] = (
-            VerificationResult.objects.select_related("intent").order_by("-verified_at")[:10]
-        )
+        context["recent_verifications"] = VerificationResult.objects.select_related("intent").order_by("-verified_at")[
+            :10
+        ]
 
         return context
 
