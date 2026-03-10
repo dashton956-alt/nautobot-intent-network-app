@@ -9,6 +9,7 @@ from django.views.generic import TemplateView
 from nautobot.apps.views import NautobotUIViewSet
 from nautobot.core.views.generic import ObjectListView
 from nautobot.core.views.generic import ObjectView as ObjectDetailView
+from nautobot.extras.models import Job as JobModel
 
 from intent_networking.api.serializers import IntentSerializer
 from intent_networking.filters import IntentFilterSet, RouteDistinguisherPoolFilterSet, RouteTargetPoolFilterSet
@@ -79,11 +80,21 @@ class IntentUIViewSet(NautobotUIViewSet):
     table_class = IntentTable
 
     def get_extra_context(self, request, instance=None):
-        """Add resolution plans and verification history to the detail view context."""
+        """Add resolution plans, verification history, and job PKs to the detail view context."""
         context = super().get_extra_context(request, instance)
         if instance:
             context["resolution_plans"] = instance.resolution_plans.order_by("-resolved_at")[:5]
             context["verifications"] = instance.verifications.order_by("-verified_at")[:10]
+
+        # Look up Job PKs for template URL generation (Nautobot 3.x uses UUID, not class_path)
+        for name in ("IntentResolutionJob", "IntentDeploymentJob", "IntentVerificationJob", "IntentRollbackJob"):
+            job = JobModel.objects.filter(
+                module_name="intent_networking.jobs",
+                job_class_name=name,
+            ).first()
+            if job:
+                context[f"{name}_pk"] = job.pk
+
         return context
 
 
