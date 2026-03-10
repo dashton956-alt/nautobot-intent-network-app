@@ -1,0 +1,7 @@
+interface lag {{ channel_id }}
+ description {{ description }}
+{% for iface in member_interfaces %}
+interface {{ iface }}
+ lag {{ channel_id }}
+{% endfor %}
+!

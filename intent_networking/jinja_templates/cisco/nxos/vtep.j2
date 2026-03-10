@@ -1,0 +1,40 @@
+{# vtep.j2 — nxos #}
+! Primitive: vtep
+! Intent: {{ intent_id }}
+! Platform: Cisco NX-OS
+!
+! Variables:
+!   nve_interface      — NVE interface name (e.g. nve1)
+!   source_interface   — Source loopback for VTEP (e.g. Loopback0)
+!   l2_vni             — Layer 2 VNI value (optional)
+!   l3_vni             — Layer 3 VNI value (optional)
+!   vni_map            — dict mapping VNI → VLAN (optional)
+!   replication_mode   — ingress-replication | multicast
+!
+
+feature vxlan
+feature nv overlay
+
+interface {{ nve_interface | default('nve1') }}
+  no shutdown
+  host-reachability protocol bgp
+  source-interface {{ source_interface | default('Loopback0') }}
+{% if l2_vni is defined and l2_vni %}
+  member vni {{ l2_vni }}
+{% if replication_mode | default('ingress-replication') == 'ingress-replication' %}
+    ingress-replication protocol bgp
+{% else %}
+    mcast-group {{ mcast_group | default('239.0.0.1') }}
+{% endif %}
+{% endif %}
+{% if l3_vni is defined and l3_vni %}
+  member vni {{ l3_vni }} associate-vrf
+{% endif %}
+{% if vni_map is defined %}
+{% for vni, vlan in vni_map.items() %}
+  member vni {{ vni }}
+{% if replication_mode | default('ingress-replication') == 'ingress-replication' %}
+    ingress-replication protocol bgp
+{% endif %}
+{% endfor %}
+{% endif %}

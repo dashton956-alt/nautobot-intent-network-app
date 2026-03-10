@@ -8,8 +8,6 @@ from intent_networking.topology_view import TopologyViewerView
 
 router = NautobotUIViewSetRouter()
 router.register("intents", views.IntentUIViewSet)
-router.register("rd-pools", views.RouteDistinguisherPoolUIViewSet)
-router.register("rt-pools", views.RouteTargetPoolUIViewSet)
 
 urlpatterns = router.urls + [
     # ── Dashboard ─────────────────────────────────────────────────────────
@@ -22,4 +20,9 @@ urlpatterns = router.urls + [
     # ── Verification Results (read-only UI) ───────────────────────────────
     path("verifications/", views.VerificationResultListView.as_view(), name="verificationresult_list"),
     path("verifications/<uuid:pk>/", views.VerificationResultDetailView.as_view(), name="verificationresult"),
+    # ── Audit Trail (#4) ─────────────────────────────────────────────────
+    path("audit-trail/", views.AuditTrailListView.as_view(), name="auditentry_list"),
+    path("audit-trail/<uuid:pk>/", views.AuditTrailDetailView.as_view(), name="auditentry"),
+    # ── Config Preview (#1) ──────────────────────────────────────────────
+    path("config-preview/<str:intent_id>/", views.ConfigPreviewView.as_view(), name="config_preview"),
 ]

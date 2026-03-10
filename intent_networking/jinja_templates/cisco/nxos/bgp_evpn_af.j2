@@ -1,0 +1,31 @@
+{# bgp_evpn_af.j2 — nxos #}
+! Primitive: bgp_evpn_af
+! Intent: {{ intent_id }}
+! Platform: Cisco NX-OS
+!
+! Variables:
+!   local_asn          — Local BGP AS number
+!   neighbors          — List of BGP EVPN neighbor dicts (optional)
+!   advertise_all_vni  — Advertise all locally configured VNIs
+!   route_target_auto  — Use automatic RT generation
+!
+
+feature bgp
+
+router bgp {{ local_asn }}
+  address-family l2vpn evpn
+{% if advertise_all_vni | default(true) %}
+    advertise-all-vni
+{% endif %}
+{% if neighbors is defined %}
+{% for neighbor in neighbors %}
+  neighbor {{ neighbor.ip }}
+    remote-as {{ neighbor.get('remote_as', local_asn) }}
+    update-source {{ neighbor.get('update_source', 'Loopback0') }}
+    address-family l2vpn evpn
+      send-community extended
+{% if neighbor.get('route_reflector_client', false) %}
+      route-reflector-client
+{% endif %}
+{% endfor %}
+{% endif %}

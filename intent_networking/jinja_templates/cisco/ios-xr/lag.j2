@@ -1,0 +1,7 @@
+interface Bundle-Ether{{ channel_id }}
+ description {{ description }}
+{% for iface in member_interfaces %}
+interface {{ iface }}
+ bundle id {{ channel_id }} mode {{ lacp_mode }}
+{% endfor %}
+!

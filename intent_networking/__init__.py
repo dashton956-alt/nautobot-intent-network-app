@@ -28,9 +28,8 @@ class IntentNetworkingConfig(NautobotAppConfig):
 
     # ── Settings ──────────────────────────────────────────────────────────
     default_settings = {
-        # Resource allocation pools (must match names in Nautobot)
-        "rd_pool_name": "default-rd-pool",
-        "rt_pool_name": "default-rt-pool",
+        # VRF allocation namespace (Nautobot IPAM Namespace name)
+        "vrf_namespace": "Global",
         # BGP
         "default_bgp_asn": 65000,
         # Capacity limits
@@ -39,16 +38,25 @@ class IntentNetworkingConfig(NautobotAppConfig):
         # Reconciliation
         "reconciliation_interval_hours": 1,
         "auto_remediation_enabled": True,
-        # Notifications (optional)
+        # Notifications — Slack (legacy)
         "slack_webhook_url": None,
         "github_api_url": None,
         "github_repo": None,
         "github_token_env_var": "GITHUB_TOKEN",
+        # Webhooks / events (#8)
+        "pagerduty_routing_key": None,
+        "servicenow_instance": None,
+        "servicenow_user": None,
+        "servicenow_password": None,
+        "webhook_urls": [],
+        # Secrets integration (#5)
+        "device_secrets_group": None,
+        "nautobot_api_secrets_group": None,
     }
 
     # These MUST be set in nautobot_config.py — startup fails if missing
     required_settings = [
-        "rd_pool_name",
+        "vrf_namespace",
         "default_bgp_asn",
     ]
 

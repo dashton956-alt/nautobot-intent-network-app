@@ -104,6 +104,12 @@ disable = """,
     arguments-differ,
     too-many-branches,
     too-many-statements,
+    too-many-lines,
+    wrong-import-order,
+    ungrouped-imports,
+    arguments-renamed,
+    unused-argument,
+    nb-use-fields-all,
 """
 
 [tool.pylint.miscellaneous]

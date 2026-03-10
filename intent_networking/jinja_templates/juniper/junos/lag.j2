@@ -1,0 +1,3 @@
+set interfaces ae{{ channel_id }} description "{{ description }}"
+{% for iface in member_interfaces %}set interfaces {{ iface }} ether-options 802.3ad ae{{ channel_id }}
+{% endfor %}

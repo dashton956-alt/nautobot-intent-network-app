@@ -1,8 +1,27 @@
 # Compatibility Matrix
 
-!!! warning "Developer Note - Remove Me!"
-    Explain how the release models of the app and of Nautobot work together, how releases are supported, how features and older releases are deprecated etc.
+The app follows semantic versioning. Patch releases (e.g. `0.4.1`) contain only bug-fixes; minor releases (e.g. `0.5.0`) may add features; major releases (e.g. `1.0.0`) may include breaking changes.
 
-| Intent Networking Version | Nautobot First Support Version | Nautobot Last Support Version |
-| ------------- | -------------------- | ------------- |
-| 1.0.X         | 3.0.0                | 2.99.99        |
+## Supported Versions
+
+| Intent Networking Version | Nautobot Minimum | Nautobot Maximum | Python | Status |
+|---------------------------|-----------------|-----------------|--------|--------|
+| 1.0.x | 3.0.0 | 3.x | ≥ 3.10 | Current |
+| 0.5.x | 3.0.0 | 3.x | ≥ 3.10 | Supported |
+| 0.4.x | 3.0.0 | 3.x | ≥ 3.10 | Supported |
+| 0.3.x | 3.0.0 | 3.x | ≥ 3.10 | Deprecated |
+| 0.2.x | 3.0.0 | 3.x | ≥ 3.10 | Deprecated |
+| 0.1.x | 3.0.0 | 3.x | ≥ 3.10 | End of Life |
+
+## Database Support
+
+| Database | Supported |
+|----------|-----------|
+| PostgreSQL 14+ | ✅ Yes (recommended) |
+| MySQL 8+ | ✅ Yes |
+
+## Deprecation Policy
+
+- Only the latest minor release receives bug-fix patches.
+- Features deprecated in release N are removed no earlier than release N+2.
+- Database migrations are always forward-compatible within a major version series.

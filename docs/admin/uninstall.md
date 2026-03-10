@@ -10,15 +10,23 @@ Prior to removing the app from the `nautobot_config.py`, run the following comma
 nautobot-server migrate intent_networking zero
 ```
 
-!!! warning "Developer Note - Remove Me!"
-    Any other cleanup operations to ensure the database is clean after the app is removed. Is there anything else that needs cleaning up, such as CFs, relationships, etc. if they're no longer desired?
+This will remove all Intent Networking database tables including intents, resolution plans, verification results, resource pools, and audit entries.
 
-## Remove App configuration
+!!! warning
+    Rolling back migrations will **permanently delete** all data stored by the app. Make sure to export any data you wish to retain before proceeding. Note that Nautobot native IPAM objects (VRFs, Route Targets, Namespaces) created by the app will **not** be removed — manage those through the standard IPAM interface if desired.
 
-Remove the configuration you added in `nautobot_config.py` from `PLUGINS` & `PLUGINS_CONFIG`.
+## Remove App Configuration
 
-## Uninstall the package
+Remove the `"intent_networking"` entry from `PLUGINS` and `PLUGINS_CONFIG` in your `nautobot_config.py`.
 
-```bash
-$ pip3 uninstall intent-networking
+## Uninstall the Package
+
+```shell
+pip uninstall nautobot-app-intent-networking
+```
+
+## Restart Services
+
+```shell
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 ```

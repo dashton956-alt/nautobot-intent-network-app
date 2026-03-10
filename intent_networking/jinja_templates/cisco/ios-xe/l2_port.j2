@@ -1,0 +1,13 @@
+! Interface {{ interface }} — {{ mode }} mode
+interface {{ interface }}
+{% if mode == 'access' %} switchport mode access
+ switchport access vlan {{ access_vlan }}
+{% if voice_vlan %} switchport voice vlan {{ voice_vlan }}{% endif %}
+{% if portfast %} spanning-tree portfast{% endif %}
+{% if bpdu_guard %} spanning-tree bpduguard enable{% endif %}
+{% else %} switchport mode trunk
+ switchport trunk allowed vlan {{ allowed_vlans | join(',') }}
+{% if native_vlan %} switchport trunk native vlan {{ native_vlan }}{% endif %}
+{% endif %}
+{% if description %} description {{ description }}{% endif %}
+!

@@ -6,15 +6,13 @@ VerificationResult models so they can be queried via Nautobot's
 """
 
 from graphene_django import DjangoObjectType
+from nautobot.ipam.models import VRF, Namespace
+from nautobot.ipam.models import RouteTarget as NautobotRouteTarget
 
 from intent_networking.filters import IntentFilterSet
 from intent_networking.models import (
     Intent,
     ResolutionPlan,
-    RouteDistinguisher,
-    RouteDistinguisherPool,
-    RouteTarget,
-    RouteTargetPool,
     VerificationResult,
 )
 
@@ -96,52 +94,41 @@ class VerificationResultType(DjangoObjectType):
         ]
 
 
-class RouteDistinguisherPoolType(DjangoObjectType):
-    """GraphQL type for RouteDistinguisherPool objects."""
+class NautobotVRFType(DjangoObjectType):
+    """GraphQL type for Nautobot VRF objects."""
 
     class Meta:
-        """Meta options for RouteDistinguisherPoolType."""
+        """Meta options for NautobotVRFType."""
 
-        model = RouteDistinguisherPool
-        fields = ["id", "name", "asn", "range_start", "range_end", "tenant"]
-
-
-class RouteDistinguisherType(DjangoObjectType):
-    """GraphQL type for RouteDistinguisher objects."""
-
-    class Meta:
-        """Meta options for RouteDistinguisherType."""
-
-        model = RouteDistinguisher
-        fields = ["id", "pool", "value", "device", "vrf_name", "intent", "allocated_at"]
+        model = VRF
+        fields = ["id", "name", "rd", "namespace", "tenant", "description", "created", "last_updated"]
 
 
-class RouteTargetPoolType(DjangoObjectType):
-    """GraphQL type for RouteTargetPool objects."""
+class NautobotRouteTargetType(DjangoObjectType):
+    """GraphQL type for Nautobot RouteTarget objects."""
 
     class Meta:
-        """Meta options for RouteTargetPoolType."""
+        """Meta options for NautobotRouteTargetType."""
 
-        model = RouteTargetPool
-        fields = ["id", "name", "asn", "range_start", "range_end"]
+        model = NautobotRouteTarget
+        fields = ["id", "name", "description", "tenant", "created", "last_updated"]
 
 
-class RouteTargetType(DjangoObjectType):
-    """GraphQL type for RouteTarget objects."""
+class NautobotNamespaceType(DjangoObjectType):
+    """GraphQL type for Nautobot Namespace objects."""
 
     class Meta:
-        """Meta options for RouteTargetType."""
+        """Meta options for NautobotNamespaceType."""
 
-        model = RouteTarget
-        fields = ["id", "pool", "value", "intent", "allocated_at"]
+        model = Namespace
+        fields = ["id", "name", "description", "location", "tenant", "created", "last_updated"]
 
 
 graphql_types = [
     IntentType,
     ResolutionPlanType,
     VerificationResultType,
-    RouteDistinguisherPoolType,
-    RouteDistinguisherType,
-    RouteTargetPoolType,
-    RouteTargetType,
+    NautobotVRFType,
+    NautobotRouteTargetType,
+    NautobotNamespaceType,
 ]

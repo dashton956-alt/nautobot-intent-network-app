@@ -1,0 +1,49 @@
+{% extends "generic/object_detail.html" %}
+{% load helpers %}
+
+{% block content_left_page %}
+  <div class="panel panel-default">
+    <div class="panel-heading"><strong>Audit Entry Details</strong></div>
+    <table class="table table-hover panel-body attr-table">
+      <tr>
+        <td>Intent</td>
+        <td>
+          {% if object.intent %}
+            <a href="{{ object.intent.get_absolute_url }}">{{ object.intent.intent_id }}</a>
+          {% else %}
+            &mdash;
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td>Action</td>
+        <td><span class="label label-default">{{ object.get_action_display }}</span></td>
+      </tr>
+      <tr>
+        <td>Actor</td>
+        <td>{{ object.actor }}</td>
+      </tr>
+      <tr>
+        <td>Timestamp</td>
+        <td>{{ object.timestamp }}</td>
+      </tr>
+      <tr>
+        <td>Git Commit SHA</td>
+        <td><code>{{ object.git_commit_sha|default:"&mdash;" }}</code></td>
+      </tr>
+      <tr>
+        <td>Job Result ID</td>
+        <td><code>{{ object.job_result_id|default:"&mdash;" }}</code></td>
+      </tr>
+    </table>
+  </div>
+{% endblock content_left_page %}
+
+{% block content_right_page %}
+  <div class="panel panel-default">
+    <div class="panel-heading"><strong>Detail Payload</strong></div>
+    <div class="panel-body">
+      <pre class="pre-scrollable" style="max-height: 500px;">{{ object.detail|pprint }}</pre>
+    </div>
+  </div>
+{% endblock content_right_page %}

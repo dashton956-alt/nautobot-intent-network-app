@@ -5,9 +5,9 @@ from nautobot.apps.tables import BaseTable, ButtonsColumn, ColoredLabelColumn, T
 
 from intent_networking.models import (
     Intent,
+    IntentApproval,
+    IntentAuditEntry,
     ResolutionPlan,
-    RouteDistinguisherPool,
-    RouteTargetPool,
     VerificationResult,
 )
 
@@ -21,8 +21,11 @@ class IntentTable(BaseTable):
     intent_type = tables.Column(verbose_name="Type")
     status = ColoredLabelColumn()
     version = tables.Column()
+    is_approved = tables.BooleanColumn(verbose_name="Approved", orderable=False)
+    deployment_strategy = tables.Column(verbose_name="Strategy")
     deployed_at = tables.DateTimeColumn(verbose_name="Deployed")
     last_verified_at = tables.DateTimeColumn(verbose_name="Last Verified")
+    scheduled_deploy_at = tables.DateTimeColumn(verbose_name="Scheduled")
     actions = ButtonsColumn(Intent, buttons=("edit", "delete"))
 
     class Meta(BaseTable.Meta):
@@ -36,11 +39,21 @@ class IntentTable(BaseTable):
             "intent_type",
             "status",
             "version",
+            "is_approved",
+            "deployment_strategy",
             "deployed_at",
             "last_verified_at",
+            "scheduled_deploy_at",
             "actions",
         ]
-        default_columns = ["intent_id", "tenant", "intent_type", "status", "deployed_at"]
+        default_columns = [
+            "intent_id",
+            "tenant",
+            "intent_type",
+            "status",
+            "is_approved",
+            "deployed_at",
+        ]
 
 
 class ResolutionPlanTable(BaseTable):
@@ -73,36 +86,45 @@ class VerificationResultTable(BaseTable):
         fields = ["intent", "passed", "triggered_by", "measured_latency_ms", "verified_at"]
 
 
-class RouteDistinguisherPoolTable(BaseTable):
-    """Table for the RD Pool list view."""
-
-    pk = ToggleColumn()
-    name = tables.Column(linkify=True)
-    asn = tables.Column(verbose_name="ASN")
-    range_start = tables.Column(verbose_name="Start")
-    range_end = tables.Column(verbose_name="End")
-    tenant = tables.Column(linkify=True)
-    actions = ButtonsColumn(RouteDistinguisherPool, buttons=("edit", "delete"))
-
-    class Meta(BaseTable.Meta):
-        """Meta options for RouteDistinguisherPoolTable."""
-
-        model = RouteDistinguisherPool
-        fields = ["pk", "name", "asn", "range_start", "range_end", "tenant", "actions"]
+# ─────────────────────────────────────────────────────────────────────────────
+# Audit Trail (#4)
+# ─────────────────────────────────────────────────────────────────────────────
 
 
-class RouteTargetPoolTable(BaseTable):
-    """Table for the RT Pool list view."""
+class IntentAuditEntryTable(BaseTable):
+    """Table for the Audit Trail list view."""
 
-    pk = ToggleColumn()
-    name = tables.Column(linkify=True)
-    asn = tables.Column(verbose_name="ASN")
-    range_start = tables.Column(verbose_name="Start")
-    range_end = tables.Column(verbose_name="End")
-    actions = ButtonsColumn(RouteTargetPool, buttons=("edit", "delete"))
+    intent = tables.Column(linkify=True, accessor="intent.intent_id", verbose_name="Intent")
+    action = tables.Column()
+    actor = tables.Column()
+    timestamp = tables.DateTimeColumn()
+    git_commit_sha = tables.Column(verbose_name="Commit SHA")
 
     class Meta(BaseTable.Meta):
-        """Meta options for RouteTargetPoolTable."""
+        """Meta options for IntentAuditEntryTable."""
 
-        model = RouteTargetPool
-        fields = ["pk", "name", "asn", "range_start", "range_end", "actions"]
+        model = IntentAuditEntry
+        fields = ["intent", "action", "actor", "timestamp", "git_commit_sha"]
+        default_columns = ["intent", "action", "actor", "timestamp"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Approvals (#2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class IntentApprovalTable(BaseTable):
+    """Table for the Approval list view."""
+
+    intent = tables.Column(linkify=True, accessor="intent.intent_id", verbose_name="Intent")
+    approver = tables.Column(accessor="approver.username", verbose_name="Approver")
+    decision = tables.Column()
+    comment = tables.Column()
+    decided_at = tables.DateTimeColumn(verbose_name="Decided At")
+
+    class Meta(BaseTable.Meta):
+        """Meta options for IntentApprovalTable."""
+
+        model = IntentApproval
+        fields = ["intent", "approver", "decision", "comment", "decided_at"]
+        default_columns = ["intent", "approver", "decision", "decided_at"]

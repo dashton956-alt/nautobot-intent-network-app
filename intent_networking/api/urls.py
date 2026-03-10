@@ -4,6 +4,7 @@ from django.urls import path
 from nautobot.apps.api import OrderedDefaultRouter
 
 from intent_networking.api import views
+from intent_networking.metrics import PrometheusMetricsView
 from intent_networking.topology_api import (
     DeviceLiveDataView,
     IntentHighlightView,
@@ -19,6 +20,8 @@ router.register("verification-results", views.VerificationResultViewSet)
 app_name = "intent_networking-api"
 
 urlpatterns = router.urls + [
+    # Prometheus metrics (#7)
+    path("metrics/", PrometheusMetricsView.as_view(), name="metrics"),
     # Topology viewer API
     path("topology/", TopologyGraphView.as_view(), name="topology-graph"),
     path("topology/filters/", TopologyFiltersView.as_view(), name="topology-filters"),

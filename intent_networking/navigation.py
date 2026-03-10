@@ -34,39 +34,39 @@ items = (
         name="Verifications",
         permissions=["intent_networking.view_verificationresult"],
     ),
+    NavMenuItem(
+        link="plugins:intent_networking:auditentry_list",
+        name="🔍 Audit Trail",
+        permissions=["intent_networking.view_intentauditentry"],
+    ),
 )
 
-pool_items = (
+ipam_items = (
     NavMenuItem(
-        link="plugins:intent_networking:routedistinguisherpool_list",
-        name="RD Pools",
-        permissions=["intent_networking.view_routedistinguisherpool"],
-        buttons=(
-            NavMenuAddButton(
-                link="plugins:intent_networking:routedistinguisherpool_add",
-                permissions=["intent_networking.add_routedistinguisherpool"],
-            ),
-        ),
+        link="ipam:vrf_list",
+        name="VRFs",
+        permissions=["ipam.view_vrf"],
     ),
     NavMenuItem(
-        link="plugins:intent_networking:routetargetpool_list",
-        name="RT Pools",
-        permissions=["intent_networking.view_routetargetpool"],
-        buttons=(
-            NavMenuAddButton(
-                link="plugins:intent_networking:routetargetpool_add",
-                permissions=["intent_networking.add_routetargetpool"],
-            ),
-        ),
+        link="ipam:routetarget_list",
+        name="Route Targets",
+        permissions=["ipam.view_routetarget"],
+    ),
+    NavMenuItem(
+        link="ipam:namespace_list",
+        name="Namespaces",
+        permissions=["ipam.view_namespace"],
     ),
 )
 
 menu_items = (
     NavMenuTab(
-        name="Apps",
+        name="Intent Engine",
+        weight=450,  # Between Circuits (400) and VPN (450) – prominent position
+        icon="route",
         groups=(
-            NavMenuGroup(name="Intent Networking", items=tuple(items)),
-            NavMenuGroup(name="Resource Pools", items=tuple(pool_items)),
+            NavMenuGroup(name="Intent Networking", weight=100, items=tuple(items)),
+            NavMenuGroup(name="IPAM Resources", weight=200, items=tuple(ipam_items)),
         ),
     ),
 )

@@ -27,7 +27,9 @@ class IntentViewTest(ViewTestCases.PrimaryObjectViewTestCase):
             "intent_type": models.IntentTypeChoices.CONNECTIVITY,
             "tenant": tenant.pk,
             "status": status.pk,
-            "intent_data": '{"name": "view-test-new-001", "type": "connectivity"}',
+            "intent_data": '{"name": "view-test-new-001", "type": "connectivity", "source": "GigabitEthernet0/1"}',
+            "deployment_strategy": "all_at_once",
+            "rendered_configs": "{}",
         }
         cls.update_data = {
             "intent_id": "view-test-new-001",
@@ -35,7 +37,9 @@ class IntentViewTest(ViewTestCases.PrimaryObjectViewTestCase):
             "intent_type": models.IntentTypeChoices.CONNECTIVITY,
             "tenant": tenant.pk,
             "status": status.pk,
-            "intent_data": '{"name": "view-test-new-001", "type": "connectivity", "updated": true}',
+            "intent_data": '{"name": "view-test-new-001", "type": "connectivity", "source": "GigabitEthernet0/1", "updated": true}',
+            "deployment_strategy": "all_at_once",
+            "rendered_configs": "{}",
         }
         cls.bulk_edit_data = {
             "version": 2,

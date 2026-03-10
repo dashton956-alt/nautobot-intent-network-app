@@ -14,6 +14,8 @@ from nautobot.dcim.models import (
     Manufacturer,
 )
 from nautobot.extras.models import Role, Status
+from nautobot.ipam.models import VRF, Namespace
+from nautobot.ipam.models import RouteTarget as NautobotRouteTarget
 from nautobot.tenancy.models import Tenant
 
 # ─── Plugin models ───────────────────────────────────────────────────────────
@@ -21,10 +23,6 @@ from intent_networking.models import (
     Intent,
     IntentTypeChoices,
     ResolutionPlan,
-    RouteDistinguisher,
-    RouteDistinguisherPool,
-    RouteTarget,
-    RouteTargetPool,
     VerificationResult,
 )
 
@@ -554,41 +552,34 @@ for i, (iid, passed, trigger, latency, bgp_exp, bgp_est, pfx_exp, pfx_rcv, drift
     print(f"  Created verification: {iid} — {'PASS' if passed else 'FAIL'} ({trigger})")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 8. Route Distinguisher & Target Pools
+# 8. Nautobot IPAM — Namespace, VRFs & Route Targets
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n[8/9] Creating RD/RT pools...")
-rd_pool, created = RouteDistinguisherPool.objects.get_or_create(
-    name="provider-rd-pool",
-    defaults={"asn": 65000, "range_start": 1000, "range_end": 9999, "tenant": tenants["FinServ Corp"]},
-)
-print(f"  {'Created' if created else 'Exists '} RD pool: provider-rd-pool (65000:1000-9999)")
-
-rt_pool, created = RouteTargetPool.objects.get_or_create(
-    name="provider-rt-pool",
-    defaults={"asn": 65000, "range_start": 5000, "range_end": 5999},
-)
-print(f"  {'Created' if created else 'Exists '} RT pool: provider-rt-pool (65000:5000-5999)")
+print("\n[8/9] Creating Namespaces, VRFs & Route Targets (Nautobot native)...")
+namespace, created = Namespace.objects.get_or_create(name="Global")
+print(f"  {'Created' if created else 'Exists '} Namespace: Global")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 9. RD/RT Allocations
+# 9. VRF & RT Allocations
 # ─────────────────────────────────────────────────────────────────────────────
-print("\n[9/9] Creating RD/RT allocations...")
-RD_ALLOCS = [
-    ("65000:1001", "nyc-pe01", "VRF-PCI-FIN", "fin-pci-connectivity-001"),
-    ("65000:1002", "lon-pe01", "VRF-PCI-FIN", "fin-pci-connectivity-001"),
-    ("65000:1010", "nyc-pe01", "VRF-CORP-FIN", "fin-office-connectivity-002"),
-    ("65000:1011", "ams-pe01", "VRF-CORP-FIN", "fin-office-connectivity-002"),
-    ("65000:1020", "nyc-pe01", "VRF-DR-FIN", "fin-dr-connectivity-003"),
-    ("65000:1021", "lon-pe01", "VRF-DR-FIN", "fin-dr-connectivity-003"),
+print("\n[9/9] Creating VRF & RT allocations...")
+VRF_ALLOCS = [
+    ("VRF-PCI-FIN", "65000:1001", "fin-pci-connectivity-001", ["nyc-pe01", "lon-pe01"]),
+    ("VRF-CORP-FIN", "65000:1010", "fin-office-connectivity-002", ["nyc-pe01", "ams-pe01"]),
+    ("VRF-DR-FIN", "65000:1020", "fin-dr-connectivity-003", ["nyc-pe01", "lon-pe01"]),
 ]
-for value, dev_name, vrf, iid in RD_ALLOCS:
-    # unique_together on (device, vrf_name), so check that
-    rd, created = RouteDistinguisher.objects.get_or_create(
-        device=devices[dev_name],
-        vrf_name=vrf,
-        defaults={"pool": rd_pool, "value": value, "intent": intents[iid]},
+for vrf_name, rd_value, iid, dev_names in VRF_ALLOCS:
+    vrf, created = VRF.objects.get_or_create(
+        name=vrf_name,
+        namespace=namespace,
+        defaults={
+            "rd": rd_value,
+            "tenant": intents[iid].tenant,
+            "description": f"Auto-allocated by intent {iid}",
+        },
     )
-    print(f"  {'Created' if created else 'Exists '} RD: {value} → {dev_name}/{vrf}")
+    for dn in dev_names:
+        vrf.devices.add(devices[dn])
+    print(f"  {'Created' if created else 'Exists '} VRF: {vrf_name} (RD={rd_value})")
 
 RT_ALLOCS = [
     ("65000:5001", "fin-pci-connectivity-001"),
@@ -596,9 +587,12 @@ RT_ALLOCS = [
     ("65000:5020", "fin-dr-connectivity-003"),
 ]
 for value, iid in RT_ALLOCS:
-    rt, created = RouteTarget.objects.get_or_create(
-        intent=intents[iid],
-        defaults={"pool": rt_pool, "value": value},
+    rt, created = NautobotRouteTarget.objects.get_or_create(
+        name=value,
+        defaults={
+            "description": f"Auto-allocated for intent {iid}",
+            "tenant": intents[iid].tenant,
+        },
     )
     print(f"  {'Created' if created else 'Exists '} RT: {value} → {iid}")
 
@@ -611,8 +605,7 @@ print(f"  Devices:       {Device.objects.count()}")
 print(f"  Intents:       {Intent.objects.count()}")
 print(f"  Plans:         {ResolutionPlan.objects.count()}")
 print(f"  Verifications: {VerificationResult.objects.count()}")
-print(f"  RD Pools:      {RouteDistinguisherPool.objects.count()}")
-print(f"  RD Allocs:     {RouteDistinguisher.objects.count()}")
-print(f"  RT Pools:      {RouteTargetPool.objects.count()}")
-print(f"  RT Allocs:     {RouteTarget.objects.count()}")
+print(f"  Namespaces:    {Namespace.objects.count()}")
+print(f"  VRFs:          {VRF.objects.count()}")
+print(f"  Route Targets: {NautobotRouteTarget.objects.count()}")
 print("=" * 60)

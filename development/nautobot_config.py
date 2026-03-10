@@ -126,10 +126,9 @@ PLUGINS = ["intent_networking"]
 PLUGINS_CONFIG = {
     "intent_networking": {
         # --- Required settings ---
-        "rd_pool_name": "default-rd-pool",
+        "vrf_namespace": "Global",
         "default_bgp_asn": 65000,
         # --- Optional settings (shown with their defaults) ---
-        "rt_pool_name": "default-rt-pool",
         "max_vrfs_per_tenant": 100,
         "max_prefixes_per_vrf": 500,
         "reconciliation_interval_hours": 6,

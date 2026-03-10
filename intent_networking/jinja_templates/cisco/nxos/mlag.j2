@@ -1,0 +1,40 @@
+{# mlag.j2 — nxos #}
+! Primitive: mlag (vPC on NX-OS)
+! Intent: {{ intent_id }}
+! Platform: Cisco NX-OS
+!
+! Variables:
+!   domain_id              — vPC domain ID
+!   peer_link_interfaces   — List of interfaces for peer-link port-channel
+!   peer_address           — vPC peer keepalive destination IP
+!   keepalive_vlan         — VLAN for keepalive (optional)
+!   peer_link_vlan         — VLAN for peer-link (optional)
+!
+
+feature vpc
+feature lacp
+
+vpc domain {{ domain_id }}
+  peer-keepalive destination {{ peer_address | default('10.255.255.2') }}
+{% if keepalive_vlan is defined and keepalive_vlan %}
+  peer-keepalive vrf default
+{% endif %}
+  peer-gateway
+  auto-recovery
+
+interface port-channel{{ domain_id }}
+  description vPC Peer-Link -- {{ intent_id }}
+  switchport
+  switchport mode trunk
+{% if peer_link_vlan is defined and peer_link_vlan %}
+  switchport trunk allowed vlan {{ peer_link_vlan }}
+{% endif %}
+  vpc peer-link
+
+{% for iface in peer_link_interfaces %}
+interface {{ iface }}
+  description vPC Peer-Link Member -- {{ intent_id }}
+  switchport
+  switchport mode trunk
+  channel-group {{ domain_id }} mode active
+{% endfor %}

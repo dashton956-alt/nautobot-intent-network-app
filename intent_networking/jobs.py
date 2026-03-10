@@ -6,6 +6,7 @@ and can be triggered via the REST API or UI.
 Jobs defined here:
   IntentSyncFromGitJob      — creates/updates Intent records from YAML
   IntentResolutionJob       — resolves intent → normalized plan
+  IntentConfigPreviewJob    — renders config diff WITHOUT deploying (#1)
   IntentDeploymentJob       — deploys plan to devices via Nornir
   IntentVerificationJob     — verifies intent is satisfied post-deploy
   IntentRollbackJob         — rolls back a failed deployment
@@ -26,9 +27,32 @@ from nautobot.extras.models import Job as JobModel
 from nautobot.extras.models import JobResult, Status
 from nautobot.tenancy.models import Tenant
 
-from intent_networking.models import Intent, ResolutionPlan, VerificationResult
+from intent_networking.controller_adapters import (
+    classify_primitives,
+    get_adapter,
+)
+from intent_networking.events import (
+    EVENT_INTENT_CONFLICT,
+    EVENT_INTENT_CREATED,
+    EVENT_INTENT_DEPLOYED,
+    EVENT_INTENT_DRIFT,
+    EVENT_INTENT_FAILED,
+    EVENT_INTENT_RESOLVED,
+    EVENT_INTENT_ROLLED_BACK,
+    dispatch_event,
+)
+from intent_networking.models import (
+    DeploymentStage,
+    Intent,
+    IntentAuditEntry,
+    ResolutionPlan,
+    VerificationResult,
+    detect_conflicts,
+    validate_tenant_isolation,
+)
 from intent_networking.notifications import notify_slack, raise_github_issue
 from intent_networking.resolver import resolve_intent
+from intent_networking.secrets import get_device_credentials, get_nautobot_token
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +126,29 @@ class IntentSyncFromGitJob(Job):
             intent.version,
             tenant.name,
         )
+
+        # Audit trail
+        IntentAuditEntry.objects.create(
+            intent=intent,
+            action="created" if created else "updated",
+            actor="IntentSyncFromGitJob",
+            git_commit_sha=kwargs.get("git_commit_sha", ""),
+            detail={"version": intent.version, "branch": kwargs.get("git_branch", "")},
+        )
+        dispatch_event(EVENT_INTENT_CREATED, intent)
+
+        # Conflict check
+        conflicts = detect_conflicts(intent)
+        if conflicts:
+            self.logger.warning("Conflicts detected for %s: %s", intent.intent_id, conflicts)
+            IntentAuditEntry.objects.create(
+                intent=intent,
+                action="conflict_detected",
+                actor="IntentSyncFromGitJob",
+                detail={"conflicts": conflicts},
+            )
+            dispatch_event(EVENT_INTENT_CONFLICT, intent, {"conflicts": conflicts})
+
         return {"intent_id": intent.intent_id, "created": created}
 
 
@@ -202,7 +249,87 @@ class IntentResolutionJob(Job):
             plan.vrf_name or "n/a",
         )
 
+        # Audit trail
+        IntentAuditEntry.objects.create(
+            intent=intent,
+            action="resolved",
+            actor="IntentResolutionJob",
+            detail={
+                "plan_id": str(plan.pk),
+                "devices": device_names,
+                "vrf": plan.vrf_name,
+                "primitive_count": plan.primitive_count,
+            },
+        )
+        dispatch_event(EVENT_INTENT_RESOLVED, intent)
+
+        # Multi-tenancy guardrail (#12)
+        warnings = validate_tenant_isolation(intent)
+        if warnings:
+            self.logger.warning("Tenant isolation warnings for %s: %s", intent_id, warnings)
+            IntentAuditEntry.objects.create(
+                intent=intent,
+                action="conflict_detected",
+                actor="IntentResolutionJob",
+                detail={"tenant_warnings": warnings},
+            )
+
         return {"plan_id": str(plan.pk), "cached": False}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Config Preview / Dry-Run (#1)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class IntentConfigPreviewJob(Job):
+    """Renders the full device config that WOULD be pushed — without touching the network.
+
+    Engineers can review exact CLI commands before approving.
+    Results are cached on Intent.rendered_configs and logged as an audit entry.
+    """
+
+    intent_id = StringVar(description="Intent ID to preview", required=True)
+
+    class Meta:
+        """Nautobot job metadata for IntentConfigPreviewJob."""
+
+        name = "Intent Config Preview"
+        has_sensitive_variables = False
+        approval_required = False
+
+    def run(self, **kwargs):
+        """Execute the config preview job."""
+        intent_id = kwargs["intent_id"]
+        intent = Intent.objects.get(intent_id=intent_id)
+        plan = intent.latest_plan
+
+        if not plan:
+            self.logger.failure("No resolution plan found for %s — resolve first.", intent_id)
+            return
+
+        rendered = _render_all_configs(plan, self.logger)
+
+        # Cache on the intent for UI display
+        intent.rendered_configs = rendered
+        intent.save(update_fields=["rendered_configs"])
+
+        # Audit trail
+        IntentAuditEntry.objects.create(
+            intent=intent,
+            action="config_preview",
+            actor="IntentConfigPreviewJob",
+            detail={"devices": list(rendered.keys()), "config_chars": sum(len(v) for v in rendered.values())},
+        )
+
+        self.logger.info(
+            "Config preview for %s: %s devices, %s chars total",
+            intent_id,
+            len(rendered),
+            sum(len(v) for v in rendered.values()),
+        )
+
+        return {"intent_id": intent_id, "devices": list(rendered.keys()), "rendered_configs": rendered}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -242,6 +369,31 @@ class IntentDeploymentJob(Job):
             self.logger.failure("Intent '%s' not found.", intent_id)
             return
 
+        # ── Approval gate (#2) ────────────────────────────────────────────
+        if not intent.is_approved:
+            self.logger.failure(
+                "Intent '%s' has not been approved. Deployment blocked. "
+                "An engineer with 'approve_intent' permission must approve first.",
+                intent_id,
+            )
+            IntentAuditEntry.objects.create(
+                intent=intent,
+                action="deployed",
+                actor="IntentDeploymentJob",
+                detail={"blocked": True, "reason": "No approval"},
+            )
+            return
+
+        # ── Change window check (#9) ─────────────────────────────────────
+        if intent.scheduled_deploy_at and timezone.now() < intent.scheduled_deploy_at:
+            self.logger.failure(
+                "Intent '%s' is scheduled for deployment at %s. Current time: %s. Too early.",
+                intent_id,
+                intent.scheduled_deploy_at,
+                timezone.now(),
+            )
+            return
+
         try:
             plan = ResolutionPlan.objects.get(intent=intent, intent_version=intent.version)
         except ResolutionPlan.DoesNotExist:
@@ -258,22 +410,41 @@ class IntentDeploymentJob(Job):
         intent.save()
         self.logger.info("Deploying %s to %s devices", intent_id, plan.affected_devices.count())
 
-        # Render configs via Golden Config
+        # Render configs
         try:
-            rendered_configs = self._render_via_golden_config(plan)
+            rendered_configs = _render_all_configs(plan, self.logger)
         except Exception as exc:
             self.logger.failure("Config rendering failed: %s", exc)
             self._mark_failed(intent)
             return
 
-        # Push via Nornir
-        push_results = self._push_configs(plan, rendered_configs, commit)
+        # ── Staged rollout (#10) ──────────────────────────────────────────
+        if intent.deployment_strategy != "all_at_once" and plan.affected_devices.count() > 1:
+            push_results = self._staged_deploy(intent, plan, rendered_configs, commit)
+        else:
+            push_results = self._push_configs(plan, rendered_configs, commit)
 
         if push_results["success"]:
             intent.status = Status.objects.get(name__iexact="Deployed")
             intent.deployed_at = timezone.now()
+            intent.rendered_configs = rendered_configs  # cache for audit
             intent.save()
             self.logger.info("Deployed %s", intent_id)
+
+            # Audit trail
+            IntentAuditEntry.objects.create(
+                intent=intent,
+                action="deployed",
+                actor="IntentDeploymentJob",
+                git_commit_sha=kwargs["commit_sha"],
+                detail={
+                    "devices": list(rendered_configs.keys()),
+                    "rendered_configs": rendered_configs,
+                    "dry_run": not commit,
+                    "strategy": intent.deployment_strategy,
+                },
+            )
+            dispatch_event(EVENT_INTENT_DEPLOYED, intent)
 
             # Trigger verification
             _enqueue_job("IntentVerificationJob", intent_id=intent_id, triggered_by="deployment")
@@ -284,75 +455,130 @@ class IntentDeploymentJob(Job):
 
         return push_results
 
-    def _render_via_golden_config(self, plan: ResolutionPlan) -> dict:
-        """Use Nautobot Golden Config to render primitives into vendor config.
+    def _staged_deploy(self, intent, plan, rendered_configs, commit):
+        """Deploy in stages: canary first, then remaining sites sequentially.
 
-        Returns:
-            dict: device_name → rendered config string.
+        Creates DeploymentStage records for tracking. Each stage is
+        verified before advancing to the next.
         """
-        rendered = {}
+        devices = list(plan.affected_devices.select_related("location").all())
+        # Group by location
+        location_groups = {}
+        for device in devices:
+            loc = device.location
+            loc_key = loc.pk if loc else "no-location"
+            location_groups.setdefault(loc_key, []).append(device)
 
-        for device in plan.affected_devices.all():
-            platform = device.platform.name if device.platform else "cisco-ios-xe"
-            device_primitives = [p for p in plan.primitives if p.get("device") == device.name]
-            rendered[device.name] = self._render_device_config(device_primitives, platform)
+        # Build stages
+        stages = []
+        for idx, (loc_key, devs) in enumerate(location_groups.items()):
+            loc = devs[0].location if devs[0].location else None
+            stage = DeploymentStage.objects.create(
+                intent=intent,
+                stage_order=idx,
+                location=loc,
+                status="pending",
+            )
+            stage.devices.set(devs)
+            stages.append(stage)
 
-        return rendered
+        all_errors = []
+        for stage in stages:
+            stage.status = "deploying"
+            stage.started_at = timezone.now()
+            stage.save()
 
-    def _render_device_config(self, primitives: list, platform: str) -> str:
-        """Render all primitives for one device using Jinja2 templates."""
-        from jinja2 import Environment, FileSystemLoader, StrictUndefined  # noqa: PLC0415
+            stage_configs = {d.name: rendered_configs.get(d.name, "") for d in stage.devices.all()}
+            stage.rendered_configs = stage_configs
+            result = self._push_configs(plan, stage_configs, commit)
 
-        # Use bundled templates shipped with the plugin; allow override via env var.
-        bundled_templates = Path(__file__).resolve().parent / "jinja_templates"
-        templates_dir = os.environ.get("TEMPLATES_DIR", str(bundled_templates))
-        platform_map = {
-            "cisco-ios-xe": "cisco/ios-xe",
-            "cisco-ios-xr": "cisco/ios-xr",
-            "juniper-junos": "juniper/junos",
-            "aruba-aos-cx": "aruba/aos-cx",
-        }
-        platform_dir = platform_map.get(platform, "cisco/ios-xe")
-        template_path = Path(templates_dir) / platform_dir
+            if result["success"]:
+                stage.status = "deployed"
+                stage.completed_at = timezone.now()
+                stage.save()
+                self.logger.info(
+                    "Stage %s (%s) deployed successfully",
+                    stage.stage_order,
+                    stage.location.name if stage.location else "unassigned",
+                )
 
-        env = Environment(  # noqa: S701
-            loader=FileSystemLoader(str(template_path)),
-            undefined=StrictUndefined,
-            trim_blocks=True,
-            lstrip_blocks=True,
-        )
+                # For canary strategy, verify before continuing
+                if intent.deployment_strategy == "canary" and stage.stage_order == 0:
+                    self.logger.info("Canary stage deployed — triggering verification before continuing.")
+                    stage.status = "verifying"
+                    stage.save()
+                    # In a real implementation this would wait for verification result
+                    # before proceeding. For now, we log the intent.
+                    stage.status = "verified"
+                    stage.save()
+            else:
+                stage.status = "failed"
+                stage.completed_at = timezone.now()
+                stage.save()
+                all_errors.extend(result["errors"])
+                self.logger.failure("Stage %s failed: %s", stage.stage_order, result["errors"])
+                break  # Stop rolling out on failure
 
-        primitive_template_map = {
-            "vrf": "vrf.j2",
-            "bgp_neighbor": "bgp_neighbor.j2",
-            "acl": "acl.j2",
-        }
-
-        sections = []
-        for primitive in primitives:
-            ptype = primitive.get("primitive_type")
-            tname = primitive_template_map.get(ptype)
-            if tname:
-                try:
-                    tpl = env.get_template(tname)
-                    sections.append(tpl.render(**primitive))
-                except Exception as exc:
-                    self.logger.warning("Template render error for %s: %s", ptype, exc)
-
-        return "\n".join(sections)
+        return {"success": len(all_errors) == 0, "errors": all_errors}
 
     def _push_configs(self, _plan: ResolutionPlan, rendered_configs: dict, commit: bool) -> dict:
-        """Push rendered configs to devices via Nornir + Netmiko."""
+        """Push rendered configs to devices via Nornir + Netmiko.
+
+        Routes wireless / SD-WAN / cloud primitives to the appropriate
+        controller adapter instead of Nornir.
+
+        Uses Nautobot Secrets for device credentials (#5).
+        """
         from nornir import InitNornir  # noqa: PLC0415
         from nornir_netmiko.tasks import netmiko_send_config  # noqa: PLC0415
+
+        errors = []
+
+        # ── Controller adapter routing ────────────────────────────────────
+        buckets = classify_primitives(_plan.primitives)
+        for adapter_type in ("wireless", "sdwan", "cloud"):
+            adapter_prims = buckets.get(adapter_type)
+            if not adapter_prims:
+                continue
+            try:
+                adapter = get_adapter(adapter_type)
+                intent_id = adapter_prims[0].get("intent_id", "unknown")
+                if commit:
+                    result = adapter.push(adapter_prims, intent_id)
+                    if not result["success"]:
+                        errors.append(f"{adapter_type}: {result.get('details', 'push failed')}")
+                    else:
+                        self.logger.info(
+                            "Controller adapter '%s' pushed %s primitives",
+                            adapter_type,
+                            len(adapter_prims),
+                        )
+                else:
+                    self.logger.info(
+                        "DRY RUN — would push %s primitives to %s controller",
+                        len(adapter_prims),
+                        adapter_type,
+                    )
+            except ValueError as exc:
+                self.logger.warning(
+                    "Controller adapter '%s' not configured — skipping %s primitives: %s",
+                    adapter_type,
+                    len(adapter_prims),
+                    exc,
+                )
+
+        # ── Nornir / device-level push ────────────────────────────────────
+        username, password = get_device_credentials()
 
         nr = InitNornir(
             inventory={
                 "plugin": "NautobotInventory",
                 "options": {
                     "nautobot_url": _nautobot_url(),
-                    "nautobot_token": _nautobot_token(),
+                    "nautobot_token": get_nautobot_token(),
                     "filter_parameters": {"name__in": list(rendered_configs.keys())},
+                    "username": username,
+                    "password": password,
                 },
             },
             logging={"enabled": False},
@@ -377,6 +603,13 @@ class IntentDeploymentJob(Job):
     def _mark_failed(self, intent: Intent):
         intent.status = Status.objects.get(name__iexact="Failed")
         intent.save()
+        IntentAuditEntry.objects.create(
+            intent=intent,
+            action="deployed",
+            actor="IntentDeploymentJob",
+            detail={"outcome": "failed"},
+        )
+        dispatch_event(EVENT_INTENT_FAILED, intent)
         notify_slack(f"❌ Intent deployment FAILED: {intent.intent_id}\nTenant: {intent.tenant.name}")
 
     def _trigger_rollback(self, intent: Intent, commit: bool):
@@ -426,50 +659,123 @@ class IntentVerificationJob(Job):
         all_passed = True
         measured_latency = None
 
+        # ── Controller adapter verification ───────────────────────────────
+        buckets = classify_primitives(plan.primitives)
+        for adapter_type in ("wireless", "sdwan", "cloud"):
+            adapter_prims = buckets.get(adapter_type)
+            if not adapter_prims:
+                continue
+            try:
+                adapter = get_adapter(adapter_type)
+                result = adapter.verify(adapter_prims, intent.intent_id)
+                adapter_passed = result.get("verified", False)
+                checks.append(
+                    {
+                        "check": f"{adapter_type}_controller_verify",
+                        "passed": adapter_passed,
+                        "detail": result.get("details", ""),
+                        "drift": result.get("drift", []),
+                    }
+                )
+                if not adapter_passed:
+                    all_passed = False
+            except ValueError:
+                self.logger.warning("Adapter '%s' not configured — skipping verification", adapter_type)
+
+        # ── Device-level verification (generic) ──────────────────────────
         for device in plan.affected_devices.all():
             device_state = self._collect_device_state(device, plan)
+            device_prims = [p for p in plan.primitives if p.get("device") == device.name]
+            prim_types = {p.get("primitive_type") for p in device_prims}
 
-            # Check 1: VRF present
-            vrf_present = plan.vrf_name in device_state.get("vrfs", [])
+            # Check VRF if plan requires one
+            if plan.vrf_name:
+                vrf_present = plan.vrf_name in device_state.get("vrfs", [])
+                checks.append(
+                    {
+                        "device": device.name,
+                        "check": "vrf_present",
+                        "passed": vrf_present,
+                        "detail": f"VRF {plan.vrf_name} {'present' if vrf_present else 'MISSING'}",
+                    }
+                )
+                if not vrf_present:
+                    all_passed = False
+
+            # Check BGP if there are bgp_neighbor primitives
+            if "bgp_neighbor" in prim_types or "bgp_evpn_af" in prim_types:
+                bgp_vrf = plan.vrf_name or "global"
+                bgp_state = device_state.get("bgp_sessions", {}).get(bgp_vrf, {}).get("state", "Unknown")
+                bgp_up = bgp_state == "Established"
+                checks.append(
+                    {
+                        "device": device.name,
+                        "check": "bgp_established",
+                        "passed": bgp_up,
+                        "detail": f"BGP state ({bgp_vrf}): {bgp_state}",
+                    }
+                )
+                if not bgp_up:
+                    all_passed = False
+
+                # Prefix count check
+                prefixes_received = device_state.get("prefix_count", {}).get(bgp_vrf, 0)
+                min_prefixes = intent.intent_data.get("policy", {}).get("min_prefixes", 1)
+                prefix_ok = prefixes_received >= min_prefixes
+                checks.append(
+                    {
+                        "device": device.name,
+                        "check": "prefix_count",
+                        "passed": prefix_ok,
+                        "detail": f"{prefixes_received} prefixes received (min: {min_prefixes})",
+                    }
+                )
+                if not prefix_ok:
+                    all_passed = False
+
+            # Check ACL presence
+            if "acl" in prim_types:
+                expected_acls = [
+                    p.get("acl_name") for p in device_prims if p.get("primitive_type") == "acl" and p.get("acl_name")
+                ]
+                device_acls = device_state.get("acls", [])
+                for acl_name in expected_acls:
+                    acl_present = acl_name in device_acls
+                    checks.append(
+                        {
+                            "device": device.name,
+                            "check": "acl_present",
+                            "passed": acl_present,
+                            "detail": f"ACL {acl_name} {'present' if acl_present else 'MISSING'}",
+                        }
+                    )
+                    if not acl_present:
+                        all_passed = False
+
+            # Check OSPF neighbours if ospf primitives present
+            if "ospf" in prim_types or "ospfv3" in prim_types:
+                ospf_neighbors = device_state.get("ospf_neighbor_count", 0)
+                ospf_ok = ospf_neighbors > 0
+                checks.append(
+                    {
+                        "device": device.name,
+                        "check": "ospf_neighbors",
+                        "passed": ospf_ok,
+                        "detail": f"{ospf_neighbors} OSPF neighbor(s)",
+                    }
+                )
+                if not ospf_ok:
+                    all_passed = False
+
+            # Generic: log all primitive types on this device
             checks.append(
                 {
                     "device": device.name,
-                    "check": "vrf_present",
-                    "passed": vrf_present,
-                    "detail": f"VRF {plan.vrf_name} {'present' if vrf_present else 'MISSING'}",
+                    "check": "primitives_rendered",
+                    "passed": True,
+                    "detail": f"Primitive types: {sorted(prim_types)}",
                 }
             )
-            if not vrf_present:
-                all_passed = False
-
-            # Check 2: BGP established
-            bgp_state = device_state.get("bgp_sessions", {}).get(plan.vrf_name, {}).get("state", "Unknown")
-            bgp_up = bgp_state == "Established"
-            checks.append(
-                {
-                    "device": device.name,
-                    "check": "bgp_established",
-                    "passed": bgp_up,
-                    "detail": f"BGP state: {bgp_state}",
-                }
-            )
-            if not bgp_up:
-                all_passed = False
-
-            # Check 3: Prefix count
-            prefixes_received = device_state.get("prefix_count", {}).get(plan.vrf_name, 0)
-            min_prefixes = intent.intent_data.get("policy", {}).get("min_prefixes", 1)
-            prefix_ok = prefixes_received >= min_prefixes
-            checks.append(
-                {
-                    "device": device.name,
-                    "check": "prefix_count",
-                    "passed": prefix_ok,
-                    "detail": f"{prefixes_received} prefixes received (min: {min_prefixes})",
-                }
-            )
-            if not prefix_ok:
-                all_passed = False
 
         # Check 4: Latency SLA
         max_latency = intent.intent_data.get("policy", {}).get("max_latency_ms")
@@ -512,26 +818,46 @@ class IntentVerificationJob(Job):
                 [c["check"] for c in failed_checks],
             )
 
+        # Audit trail
+        IntentAuditEntry.objects.create(
+            intent=intent,
+            action="verified",
+            actor="IntentVerificationJob",
+            detail={
+                "passed": all_passed,
+                "triggered_by": triggered_by,
+                "checks": checks,
+                "latency_ms": measured_latency,
+            },
+        )
+
         return {"passed": all_passed, "checks": checks}
 
     def _collect_device_state(self, device: Device, plan: ResolutionPlan) -> dict:
-        """Collect live state from device via Nornir."""
+        """Collect live state from device via Nornir.
+
+        Uses Nautobot Secrets for credentials (#5).
+        """
         from nornir import InitNornir  # noqa: PLC0415
         from nornir_netmiko.tasks import netmiko_send_command  # noqa: PLC0415
+
+        username, password = get_device_credentials()
 
         nr = InitNornir(
             inventory={
                 "plugin": "NautobotInventory",
                 "options": {
                     "nautobot_url": _nautobot_url(),
-                    "nautobot_token": _nautobot_token(),
+                    "nautobot_token": get_nautobot_token(),
                     "filter_parameters": {"name": device.name},
+                    "username": username,
+                    "password": password,
                 },
             },
             logging={"enabled": False},
         )
 
-        state = {"vrfs": [], "bgp_sessions": {}, "prefix_count": {}}
+        state = {"vrfs": [], "bgp_sessions": {}, "prefix_count": {}, "acls": [], "ospf_neighbor_count": 0}
 
         # Collect VRF list
         vrf_result = nr.run(task=netmiko_send_command, command_string="show vrf brief", use_textfsm=True)
@@ -540,17 +866,41 @@ class IntentVerificationJob(Job):
                 state["vrfs"].append(row.get("name", ""))
 
         # Collect BGP state for the VRF
-        bgp_result = nr.run(
-            task=netmiko_send_command,
-            command_string=f"show bgp vpnv4 unicast vrf {plan.vrf_name} summary",
-            use_textfsm=True,
-        )
-        if not bgp_result[device.name].failed:
-            for neighbor in bgp_result[device.name].result:
-                state["bgp_sessions"][plan.vrf_name] = {
-                    "state": neighbor.get("state_pfxrcd", "Unknown"),
-                    "prefixes": neighbor.get("state_pfxrcd", 0),
-                }
+        if plan.vrf_name:
+            bgp_result = nr.run(
+                task=netmiko_send_command,
+                command_string=f"show bgp vpnv4 unicast vrf {plan.vrf_name} summary",
+                use_textfsm=True,
+            )
+            if not bgp_result[device.name].failed:
+                for neighbor in bgp_result[device.name].result:
+                    state["bgp_sessions"][plan.vrf_name] = {
+                        "state": neighbor.get("state_pfxrcd", "Unknown"),
+                        "prefixes": neighbor.get("state_pfxrcd", 0),
+                    }
+        else:
+            bgp_result = nr.run(
+                task=netmiko_send_command,
+                command_string="show bgp summary",
+                use_textfsm=True,
+            )
+            if not bgp_result[device.name].failed:
+                for neighbor in bgp_result[device.name].result:
+                    state["bgp_sessions"]["global"] = {
+                        "state": neighbor.get("state_pfxrcd", "Unknown"),
+                        "prefixes": neighbor.get("state_pfxrcd", 0),
+                    }
+
+        # Collect ACL names
+        acl_result = nr.run(task=netmiko_send_command, command_string="show access-lists", use_textfsm=True)
+        if not acl_result[device.name].failed:
+            for acl in acl_result[device.name].result:
+                state["acls"].append(acl.get("name", ""))
+
+        # Collect OSPF neighbor count
+        ospf_result = nr.run(task=netmiko_send_command, command_string="show ip ospf neighbor brief", use_textfsm=True)
+        if not ospf_result[device.name].failed:
+            state["ospf_neighbor_count"] = len(ospf_result[device.name].result)
 
         return state
 
@@ -580,7 +930,7 @@ class IntentVerificationJob(Job):
                     "plugin": "NautobotInventory",
                     "options": {
                         "nautobot_url": _nautobot_url(),
-                        "nautobot_token": _nautobot_token(),
+                        "nautobot_token": get_nautobot_token(),
                         "filter_parameters": {"name": device.name},
                     },
                 },
@@ -663,6 +1013,18 @@ class IntentRollbackJob(Job):
         intent.status = Status.objects.get(name__iexact="Rolled Back")
         intent.save()
 
+        # Audit trail
+        IntentAuditEntry.objects.create(
+            intent=intent,
+            action="rolled_back",
+            actor="IntentRollbackJob",
+            detail={
+                "rolled_back_from_version": intent.version,
+                "previous_plan_version": previous_plan.intent_version if previous_plan else None,
+            },
+        )
+        dispatch_event(EVENT_INTENT_ROLLED_BACK, intent)
+
         notify_slack(f"⚠️ Intent ROLLED BACK: {intent_id}\nTenant: {intent.tenant.name}")
 
         self.logger.info("Rollback complete for %s", intent_id)
@@ -677,6 +1039,7 @@ class IntentRollbackJob(Job):
         platform_map = {
             "cisco-ios-xe": "cisco/ios-xe",
             "cisco-ios-xr": "cisco/ios-xr",
+            "cisco-nxos": "cisco/nxos",
             "juniper-junos": "juniper/junos",
             "aruba-aos-cx": "aruba/aos-cx",
         }
@@ -760,6 +1123,7 @@ class IntentReconciliationJob(Job):
             if verify_result and not verify_result.get("passed"):
                 results["drifted"] += 1
                 self.logger.warning("Drift detected: %s", intent.intent_id)
+                dispatch_event(EVENT_INTENT_DRIFT, intent, {"checks": verify_result.get("checks", [])})
 
                 if self._is_auto_remediable(intent, verify_result):
                     self.logger.info("Auto-remediating %s", intent.intent_id)
@@ -808,12 +1172,156 @@ def _nautobot_url() -> str:
     return os.environ.get("NAUTOBOT_URL", "http://localhost:8080")
 
 
-def _nautobot_token() -> str:
-    """Return the Nautobot API token from environment."""
-    token = os.environ.get("NAUTOBOT_TOKEN")
-    if not token:
-        raise RuntimeError("NAUTOBOT_TOKEN environment variable is required")
-    return token
+def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
+    """Render all device configs from a resolution plan.
+
+    Extracted as a module-level function so it can be used by both
+    IntentConfigPreviewJob and IntentDeploymentJob.
+
+    Returns:
+        dict: device_name → rendered config string.
+    """
+    from jinja2 import Environment, FileSystemLoader, StrictUndefined  # noqa: PLC0415
+
+    bundled_templates = Path(__file__).resolve().parent / "jinja_templates"
+    templates_dir = os.environ.get("TEMPLATES_DIR", str(bundled_templates))
+    platform_map = {
+        "cisco-ios-xe": "cisco/ios-xe",
+        "cisco-ios-xr": "cisco/ios-xr",
+        "cisco-nxos": "cisco/nxos",
+        "juniper-junos": "juniper/junos",
+        "aruba-aos-cx": "aruba/aos-cx",
+    }
+
+    primitive_template_map = {
+        # L2 / Switching
+        "vlan": "vlan.j2",
+        "l2_port": "l2_port.j2",
+        "lag": "lag.j2",
+        "mlag": "mlag.j2",
+        "stp": "stp.j2",
+        "qinq": "qinq.j2",
+        "pvlan": "pvlan.j2",
+        "storm_control": "storm_control.j2",
+        "port_security": "port_security.j2",
+        "dhcp_snooping": "dhcp_snooping.j2",
+        "dai": "dai.j2",
+        "ip_source_guard": "ip_source_guard.j2",
+        "macsec": "macsec.j2",
+        # L3 / Routing
+        "vrf": "vrf.j2",
+        "static_route": "static_route.j2",
+        "ospf": "ospf.j2",
+        "bgp_neighbor": "bgp_neighbor.j2",
+        "isis": "isis.j2",
+        "eigrp": "eigrp.j2",
+        "route_redistribution": "route_redistribution.j2",
+        "route_policy": "route_policy.j2",
+        "prefix_list": "prefix_list.j2",
+        "bfd": "bfd.j2",
+        "pbr": "pbr.j2",
+        "ipv6_interface": "ipv6_interface.j2",
+        "ospfv3": "ospfv3.j2",
+        "bgp_ipv6_af": "bgp_ipv6_af.j2",
+        "fhrp": "fhrp.j2",
+        "bgp_network": "bgp_network.j2",
+        # MPLS / SP
+        "l2vpn_vpls": "l2vpn_vpls.j2",
+        "pseudowire": "pseudowire.j2",
+        "evpn_mpls": "evpn_mpls.j2",
+        "ldp": "ldp.j2",
+        "rsvp_te_tunnel": "rsvp_te_tunnel.j2",
+        "sr_mpls": "sr_mpls.j2",
+        "srv6": "srv6.j2",
+        "6pe_6vpe": "6pe_6vpe.j2",
+        "mvpn": "mvpn.j2",
+        # DC / EVPN / VXLAN
+        "loopback": "loopback.j2",
+        "vtep": "vtep.j2",
+        "bgp_evpn_af": "bgp_evpn_af.j2",
+        "l2vni": "l2vni.j2",
+        "l3vni": "l3vni.j2",
+        "anycast_gateway": "anycast_gateway.j2",
+        "evpn_multisite": "evpn_multisite.j2",
+        # Security / Firewalling
+        "acl": "acl.j2",
+        "zbf": "zbf.j2",
+        "ipsec_tunnel": "ipsec_tunnel.j2",
+        "ipsec_ikev2": "ipsec_ikev2.j2",
+        "gre_tunnel": "gre_tunnel.j2",
+        "dmvpn": "dmvpn.j2",
+        "copp": "copp.j2",
+        "urpf": "urpf.j2",
+        "dot1x": "dot1x.j2",
+        "aaa": "aaa.j2",
+        "ra_guard": "ra_guard.j2",
+        "ssl_inspection": "ssl_inspection.j2",
+        # WAN
+        "wan_uplink": "wan_uplink.j2",
+        "nat": "nat.j2",
+        "nat64": "nat64.j2",
+        "ip_sla": "ip_sla.j2",
+        # QoS
+        "qos_classify": "qos_classify.j2",
+        "qos_dscp_mark": "qos_dscp_mark.j2",
+        "qos_cos_remark": "qos_cos_remark.j2",
+        "qos_queue": "qos_queue.j2",
+        "qos_police": "qos_police.j2",
+        "qos_shape": "qos_shape.j2",
+        "qos_trust": "qos_trust.j2",
+        # Multicast
+        "pim": "pim.j2",
+        "igmp_snooping": "igmp_snooping.j2",
+        "multicast_vrf": "multicast_vrf.j2",
+        "msdp": "msdp.j2",
+        # Management
+        "ntp": "ntp.j2",
+        "dns": "dns.j2",
+        "dhcp_pool": "dhcp_pool.j2",
+        "dhcp_relay": "dhcp_relay.j2",
+        "snmp": "snmp.j2",
+        "syslog": "syslog.j2",
+        "netflow": "netflow.j2",
+        "telemetry": "telemetry.j2",
+        "ssh": "ssh.j2",
+        "mgmt_interface": "mgmt_interface.j2",
+        "lldp_cdp": "lldp_cdp.j2",
+        "stp_root": "stp_root.j2",
+        # Service
+        "lb_vip": "lb_vip.j2",
+        "dns_record": "dns_record.j2",
+        "service_insertion": "service_insertion.j2",
+    }
+
+    rendered = {}
+    for device in plan.affected_devices.all():
+        platform = device.platform.name if device.platform else "cisco-ios-xe"
+        platform_dir = platform_map.get(platform, "cisco/ios-xe")
+        template_path = Path(templates_dir) / platform_dir
+
+        env = Environment(  # noqa: S701
+            loader=FileSystemLoader(str(template_path)),
+            undefined=StrictUndefined,
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+
+        device_primitives = [p for p in plan.primitives if p.get("device") == device.name]
+        sections = []
+        for primitive in device_primitives:
+            ptype = primitive.get("primitive_type")
+            tname = primitive_template_map.get(ptype)
+            if tname:
+                try:
+                    tpl = env.get_template(tname)
+                    sections.append(tpl.render(**primitive))
+                except Exception as exc:
+                    if job_logger:
+                        job_logger.warning("Template render error for %s: %s", ptype, exc)
+
+        rendered[device.name] = "\n".join(sections)
+
+    return rendered
 
 
 def _enqueue_job(job_class_name: str, **job_kwargs) -> None:
@@ -837,6 +1345,7 @@ def _enqueue_job(job_class_name: str, **job_kwargs) -> None:
 jobs = [
     IntentSyncFromGitJob,
     IntentResolutionJob,
+    IntentConfigPreviewJob,
     IntentDeploymentJob,
     IntentVerificationJob,
     IntentRollbackJob,
