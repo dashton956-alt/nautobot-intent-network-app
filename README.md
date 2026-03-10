@@ -45,6 +45,7 @@ Git Repository (YAML intents)
 ### Key Features
 
 - **Native Nautobot Git integration** — configure a GitRepository with the "intent definitions" content type; Nautobot auto-syncs intent YAML files on every pull (no CI scripts needed)
+- **[129 intent types](docs/models/intent.md#intent-type-categories)** across 14 network domains — L2/L3, MPLS, EVPN/VXLAN, Security, WAN, Wireless, Cloud, QoS, Multicast, and more
 - **YAML-first intent authoring** — engineers write what they want, not how to configure it
 - **Atomic resource allocation** — route distinguishers and route targets allocated from pools using `select_for_update()`, preventing duplicates even under concurrent deployments
 - **Multi-vendor rendering** — Jinja2 templates per platform (Cisco IOS-XE, IOS-XR, Juniper JunOS, Aruba AOS-CX); swap the router, keep the intent
@@ -426,9 +427,12 @@ For full development environment setup including Docker Compose, see the [develo
 
 ## Documentation
 
-- **App Overview** — Architecture, models, and design decisions
-- **Getting Started** — Installation and first steps
-- **Developer Guide** — Local development environment setup
+- **[App Overview](docs/user/app_overview.md)** — Architecture, models, and design decisions
+- **[Getting Started](docs/user/app_getting_started.md)** — Installation and first steps
+- **[Intent Types Reference](docs/models/intent.md#intent-type-categories)** — All 129 supported intent types across 14 domains
+- **[Use Cases](docs/user/app_use_cases.md)** — Real-world examples for each domain
+- **[Extending the App](docs/dev/extending.md)** — Add custom intent types, adapters, templates, and policies
+- **[Developer Guide](docs/dev/dev_environment.md)** — Local development environment setup
 
 ---
 
