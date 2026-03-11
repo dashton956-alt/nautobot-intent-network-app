@@ -1,0 +1,30 @@
+intent:
+  id: corp-mgmt-motd-all-devices-001
+  type: mgmt_motd
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012400
+  description: "Login and MOTD banners — all network devices — security warning banners"
+
+  scope:
+    all_tenant_devices: true
+
+  login_banner: |
+    ********************************************************************
+    *  AUTHORIZED ACCESS ONLY — This system is the property of        *
+    *  Acme Corp.  Unauthorized access is prohibited and will be      *
+    *  prosecuted to the fullest extent of the law.                   *
+    ********************************************************************
+
+  motd_banner: |
+    ============================================================
+    Acme Corp Network Device — Managed by Intent Networking
+    All sessions are monitored and logged.
+    ============================================================
+
+  exec_banner: ""
+  delimiter: "^"
+
+  policy:
+    compliance: NONE
+    encryption: none

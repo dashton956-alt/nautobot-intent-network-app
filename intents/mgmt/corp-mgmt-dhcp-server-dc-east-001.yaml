@@ -1,0 +1,40 @@
+intent:
+  id: corp-mgmt-dhcp-server-dc-east-001
+  type: mgmt_dhcp_server
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012402
+  description: "DHCP server pools on DC-East distribution switches for server management VLANs"
+
+  scope:
+    site: dc-east
+    role: distribution
+
+  pools:
+    - name: SERVER-MGMT-POOL
+      network: "10.10.100.0/24"
+      default_router: "10.10.100.1"
+      dns_servers:
+        - "10.0.0.10"
+        - "10.0.0.11"
+      domain_name: "dc-east.acme-corp.local"
+      lease_time: 86400
+    - name: IPMI-POOL
+      network: "10.10.101.0/24"
+      default_router: "10.10.101.1"
+      dns_servers:
+        - "10.0.0.10"
+      domain_name: "ipmi.dc-east.acme-corp.local"
+      lease_time: 43200
+
+  excluded_addresses:
+    - start: "10.10.100.1"
+      end: "10.10.100.10"
+    - start: "10.10.101.1"
+      end: "10.10.101.10"
+
+  lease_time: 86400
+
+  policy:
+    compliance: NONE
+    encryption: none

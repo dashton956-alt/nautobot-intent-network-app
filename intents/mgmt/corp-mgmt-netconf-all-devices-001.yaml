@@ -1,0 +1,22 @@
+intent:
+  id: corp-mgmt-netconf-all-devices-001
+  type: mgmt_netconf
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012401
+  description: "Enable NETCONF and RESTCONF on all managed devices for automation"
+
+  scope:
+    all_tenant_devices: true
+
+  netconf_enabled: true
+  netconf_port: 830
+  netconf_vrf: "MGMT"
+  restconf_enabled: true
+  restconf_port: 443
+  gnmi_enabled: false
+  gnmi_port: 6030
+
+  policy:
+    compliance: NONE
+    encryption: tls

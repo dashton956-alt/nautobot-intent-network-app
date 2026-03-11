@@ -1,0 +1,76 @@
+intent:
+  id: corp-mgmt-global-config-all-devices-001
+  type: mgmt_global_config
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012403
+  description: "Day-0 global management bundle — NTP, DNS, Syslog, SNMP, SSH, banners, NETCONF for all devices"
+
+  scope:
+    all_tenant_devices: true
+
+  management:
+    # Hostname / Domain
+    domain_name: "acme-corp.local"
+
+    # NTP
+    ntp_servers:
+      - "10.0.0.1"
+      - "10.0.0.2"
+    ntp_source_interface: "Loopback0"
+    timezone: "UTC"
+    timezone_offset: 0
+
+    # DNS
+    dns_servers:
+      - "10.0.0.10"
+      - "10.0.0.11"
+    dns_domain_list:
+      - "acme-corp.local"
+      - "dc-east.acme-corp.local"
+
+    # Syslog
+    syslog_servers:
+      - host: "10.0.0.50"
+        port: 514
+        protocol: udp
+      - host: "10.0.0.51"
+        port: 514
+        protocol: udp
+    syslog_source_interface: "Loopback0"
+    syslog_trap_level: "informational"
+
+    # SNMP
+    snmp_community: "acme-RO-2025"
+    snmp_location: "DC-East, Rack A1"
+    snmp_contact: "noc@acme-corp.com"
+    snmp_trap_targets:
+      - host: "10.0.0.60"
+        community: "acme-TRAP-2025"
+        version: "2c"
+
+    # SSH
+    ssh_version: 2
+    ssh_timeout: 60
+
+    # Banners
+    login_banner: |
+      *** AUTHORIZED ACCESS ONLY — Acme Corp ***
+    motd_banner: |
+      Managed by Intent Networking — All sessions logged.
+
+    # NETCONF / RESTCONF
+    netconf_enabled: true
+    netconf_port: 830
+    restconf_enabled: false
+
+    # DHCP (optional — omit if not a DHCP server)
+    dhcp_pools: []
+
+    # LLDP / CDP
+    lldp_enabled: true
+    cdp_enabled: false
+
+  policy:
+    compliance: NONE
+    encryption: tls
