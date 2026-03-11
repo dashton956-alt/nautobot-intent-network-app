@@ -1,0 +1,25 @@
+intent:
+  id: corp-sp-sr-mpls-core-001
+  type: sr_mpls
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012360
+  description: "Segment Routing MPLS — configure SRGB and prefix-SID on all core P/PE routers"
+
+  scope:
+    sites:
+      - dc-east
+      - dc-west
+      - pop-london
+      - pop-frankfurt
+    roles:
+      - p-router
+      - pe-router
+
+  routing:
+    protocol: isis
+    process_id: 1
+
+  policy:
+    compliance: NONE
+    encryption: none

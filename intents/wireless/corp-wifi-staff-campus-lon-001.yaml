@@ -1,0 +1,23 @@
+intent:
+  id: corp-wifi-staff-campus-lon-001
+  type: wireless_ssid
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012351
+  description: "Staff wireless SSID — WPA3 Enterprise 802.1X — London campus"
+
+  wireless:
+    ssid: CORP-STAFF
+    security_mode: wpa3-enterprise
+    band: dual
+    hidden: false
+    client_isolation: false
+    radius_server_group: corp-radius-group
+    fast_roaming: true
+    band_steering: true
+    sites:
+      - campus-london
+
+  policy:
+    compliance: NONE
+    encryption: required

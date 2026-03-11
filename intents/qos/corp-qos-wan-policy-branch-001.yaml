@@ -1,0 +1,51 @@
+intent:
+  id: corp-qos-wan-policy-branch-001
+  type: qos_classify
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012355
+  description: "WAN QoS classification and queuing policy — all branch routers"
+
+  scope:
+    roles:
+      - branch-router
+
+  qos:
+    classes:
+      - name: VOICE
+        dscp: ef
+        bandwidth_percent: 20
+        priority: true
+        match:
+          dscp:
+            - ef
+          protocol:
+            - rtp
+      - name: VIDEO
+        dscp: af41
+        bandwidth_percent: 30
+        priority: false
+        match:
+          dscp:
+            - af41
+            - af42
+            - af43
+      - name: CRITICAL-DATA
+        dscp: af31
+        bandwidth_percent: 25
+        priority: false
+        match:
+          dscp:
+            - af31
+            - af32
+      - name: BEST-EFFORT
+        dscp: default
+        bandwidth_percent: 25
+        priority: false
+        match:
+          dscp:
+            - default
+
+  policy:
+    compliance: NONE
+    encryption: none

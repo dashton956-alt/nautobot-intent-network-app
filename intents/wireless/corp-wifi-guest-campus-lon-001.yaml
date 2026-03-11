@@ -1,0 +1,23 @@
+intent:
+  id: corp-wifi-guest-campus-lon-001
+  type: wireless_guest
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012352
+  description: "Guest wireless SSID — captive portal — London campus — rate limited"
+
+  wireless:
+    ssid: CORP-GUEST
+    security_mode: open
+    band: dual
+    hidden: false
+    client_isolation: true
+    captive_portal_url: "https://guest.acme-corp.com/login"
+    rate_limit_down_mbps: 10
+    rate_limit_up_mbps: 5
+    sites:
+      - campus-london
+
+  policy:
+    compliance: NONE
+    encryption: none

@@ -1,0 +1,18 @@
+intent:
+  id: corp-dc-east-l2vni-servers-prod-001
+  type: l2vni
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012349
+  description: "Map VLAN 100 (SERVERS-PROD) to a VXLAN VNI across DC East fabric"
+
+  fabric:
+    name: dc-east-fabric
+
+  vni:
+    type: l2
+    vlan_id: 100
+
+  policy:
+    compliance: NONE
+    encryption: none

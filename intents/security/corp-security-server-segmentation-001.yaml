@@ -1,0 +1,26 @@
+intent:
+  id: corp-security-server-segmentation-001
+  type: security
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012359
+  description: "ACL-based segmentation — deny employee-lan from reaching production servers"
+
+  scope:
+    sites:
+      - dc-east
+      - dc-west
+
+  isolation:
+    deny_groups:
+      - employee-lan
+      - guest-wifi
+    deny_protocols:
+      - telnet
+      - ftp
+      - snmpv1
+      - snmpv2
+
+  policy:
+    compliance: NONE
+    encryption: none

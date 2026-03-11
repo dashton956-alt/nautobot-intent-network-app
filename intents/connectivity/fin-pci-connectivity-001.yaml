@@ -1,0 +1,37 @@
+intent:
+  id: fin-pci-connectivity-001
+  type: connectivity
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012345
+  description: "Finance servers to Stripe payment gateway — PCI-DSS compliant MPLS L3VPN"
+
+  source:
+    group: finance-servers
+    sites:
+      - dc-east
+      - dc-west
+
+  destination:
+    external: true
+    provider: stripe
+    prefixes:
+      - "52.84.0.0/14"
+      - "54.182.0.0/16"
+
+  policy:
+    compliance: PCI-DSS
+    encryption: required
+    max_latency_ms: 20
+    tenant_asn: 64612
+
+  isolation:
+    deny_groups:
+      - employee-lan
+      - guest-wifi
+    deny_protocols:
+      - telnet
+      - http
+      - ftp
+      - snmpv1
+      - snmpv2

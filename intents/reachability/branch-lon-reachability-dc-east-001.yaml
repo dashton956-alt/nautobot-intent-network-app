@@ -1,0 +1,26 @@
+intent:
+  id: branch-lon-reachability-dc-east-001
+  type: reachability_static
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012358
+  description: "Static route — London branch to DC East management prefix via MPLS PE"
+
+  scope:
+    devices:
+      - lon-branch-rtr-01
+
+  destination:
+    prefixes:
+      - "10.0.0.0/8"
+
+  routing:
+    protocol: static
+    neighbors:
+      - ip: "192.168.1.1"
+        remote_as: 0
+        description: "Next-hop via MPLS PE uplink"
+
+  policy:
+    compliance: NONE
+    encryption: none

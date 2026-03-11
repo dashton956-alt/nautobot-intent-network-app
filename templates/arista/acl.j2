@@ -1,8 +1,0 @@
-{# acl.j2 - generate standard ACLs from device.acls #}
-{%- for acl in device.acls %}
-ip access-list {{ acl.name }}
-  {%- for e in acl.entries %}
-  {{ e.action }} {{ e.protocol }} {{ e.src }} {{ e.dst }}{%- if e.src_port is defined %} eq {{ e.src_port }}{%- endif %}{%- if e.dst_port is defined %} eq {{ e.dst_port }}{%- endif %}
-  {%- endfor %}
-!
-{%- endfor %}

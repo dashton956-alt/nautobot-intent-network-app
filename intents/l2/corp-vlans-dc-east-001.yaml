@@ -1,0 +1,30 @@
+intent:
+  id: corp-vlans-dc-east-001
+  type: vlan_provision
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012346
+  description: "Provision standard server VLANs across all access switches in DC East"
+
+  scope:
+    sites:
+      - dc-east
+    roles:
+      - access-switch
+
+  vlans:
+    - id: 100
+      name: SERVERS-PROD
+      description: "Production server VLAN"
+    - id: 101
+      name: SERVERS-DEV
+      description: "Development server VLAN"
+    - id: 200
+      name: STORAGE
+      description: "Storage network VLAN"
+    - id: 300
+      name: MGMT
+      description: "Out-of-band management VLAN"
+    - id: 999
+      name: QUARANTINE
+      description: "Quarantine VLAN for non-compliant devices"

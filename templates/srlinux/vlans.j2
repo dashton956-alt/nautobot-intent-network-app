@@ -1,6 +1,0 @@
-{# srlinux/vlans.j2 - VLAN and bridge domain configs #}
-{%- for v in device.vlans %}
-configure system bridge-domain bd-{{ v.id }}
-  name {{ v.name }}
-exit
-{%- endfor %}

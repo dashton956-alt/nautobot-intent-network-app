@@ -1,0 +1,26 @@
+intent:
+  id: corp-dc-east-evpn-fabric-001
+  type: evpn_vxlan_fabric
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012348
+  description: "Full EVPN/VXLAN spine-leaf fabric for DC East — BGP underlay and overlay"
+
+  fabric:
+    name: dc-east-fabric
+    spines:
+      - dc-east-spine-01
+      - dc-east-spine-02
+    leaves:
+      - dc-east-leaf-01
+      - dc-east-leaf-02
+      - dc-east-leaf-03
+      - dc-east-leaf-04
+    underlay_protocol: ospf
+    overlay_asn: 65100
+    anycast_gateway_mac: "00:00:00:aa:bb:cc"
+    replication_mode: ingress
+
+  policy:
+    compliance: NONE
+    encryption: none

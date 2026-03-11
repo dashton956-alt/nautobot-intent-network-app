@@ -1,0 +1,29 @@
+intent:
+  id: corp-isp-bgp-lon-001
+  type: bgp_ebgp
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012347
+  description: "eBGP peering to primary ISP (AS 1299 Telia) at London edge router"
+
+  scope:
+    devices:
+      - lon-edge-rtr-01
+
+  routing:
+    protocol: bgp
+    as_number: 65001
+    router_id: "10.255.0.1"
+    neighbors:
+      - ip: "195.12.0.1"
+        remote_as: 1299
+        description: "Telia — primary ISP"
+        update_source: Loopback0
+      - ip: "195.12.0.3"
+        remote_as: 1299
+        description: "Telia — secondary peer"
+        update_source: Loopback0
+
+  policy:
+    compliance: NONE
+    encryption: none

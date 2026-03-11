@@ -1,0 +1,754 @@
+# intent.schema.yaml
+# pykwalify schema for all intent YAML files.
+# Validates structure and required fields before intents reach Nautobot.
+# Run: pykwalify -d <intent-file>.yaml -s intent.schema.yaml
+
+type: map
+matching-rule: any
+mapping:
+  intent:
+    type: map
+    required: true
+    mapping:
+
+      # ── Universal required fields ────────────────────────────────────────
+      id:
+        type: str
+        required: true
+        pattern: "^[a-z0-9][a-z0-9-]{2,198}[a-z0-9]$"
+
+      type:
+        type: str
+        required: true
+        enum:
+          # Layer 2
+          - vlan_provision
+          - l2_access_port
+          - l2_trunk_port
+          - lag
+          - mlag
+          - stp_policy
+          - qinq
+          - pvlan
+          - storm_control
+          - port_security
+          - dhcp_snooping
+          - dai
+          - ip_source_guard
+          - macsec
+          # Layer 3
+          - static_route
+          - ospf
+          - bgp_ebgp
+          - bgp_ibgp
+          - isis
+          - eigrp
+          - route_redistribution
+          - route_policy
+          - prefix_list
+          - vrf_basic
+          - bfd
+          - pbr
+          - ipv6_dual_stack
+          - ospfv3
+          - bgp_ipv6_af
+          - fhrp
+          # MPLS / SP
+          - mpls_l3vpn
+          - mpls_l2vpn
+          - pseudowire
+          - evpn_mpls
+          - ldp
+          - rsvp_te
+          - sr_mpls
+          - srv6
+          - 6pe_6vpe
+          - mvpn
+          # DC / EVPN
+          - evpn_vxlan_fabric
+          - l2vni
+          - l3vni
+          - bgp_evpn_af
+          - anycast_gateway
+          - vtep
+          - evpn_multisite
+          - dc_underlay
+          - dc_mlag
+          # Security
+          - connectivity
+          - security
+          - acl
+          - zbf
+          - ipsec_s2s
+          - ipsec_ikev2
+          - gre_tunnel
+          - gre_over_ipsec
+          - dmvpn
+          - macsec_policy
+          - copp
+          - urpf
+          - dot1x_nac
+          - aaa
+          - ra_guard
+          - ssl_inspection
+          # WAN / SD-WAN
+          - wan_uplink
+          - bgp_isp
+          - sdwan_overlay
+          - sdwan_app_policy
+          - sdwan_qos
+          - sdwan_dia
+          - nat_pat
+          - nat64
+          - wan_failover
+          # Wireless
+          - wireless_ssid
+          - wireless_vlan_map
+          - wireless_dot1x
+          - wireless_guest
+          - wireless_rf
+          - wireless_qos
+          - wireless_band_steer
+          - wireless_roam
+          - wireless_segment
+          - wireless_mesh
+          - wireless_flexconnect
+          # Cloud / Hybrid
+          - cloud_vpc_peer
+          - cloud_transit_gw
+          - cloud_direct_connect
+          - cloud_vpn_gw
+          - cloud_bgp
+          - cloud_security_group
+          - cloud_nat
+          - cloud_route_table
+          - hybrid_dns
+          - cloud_sdwan
+          # QoS
+          - qos_classify
+          - qos_dscp_mark
+          - qos_cos_remark
+          - qos_queue
+          - qos_police
+          - qos_shape
+          - qos_trust
+          # Multicast
+          - multicast_pim_sm
+          - multicast_pim_ssm
+          - igmp_snooping
+          - multicast_vrf
+          - msdp
+          # Management
+          - mgmt_ntp
+          - mgmt_dns_dhcp
+          - mgmt_snmp
+          - mgmt_syslog
+          - mgmt_netflow
+          - mgmt_telemetry
+          - mgmt_ssh
+          - mgmt_aaa_device
+          - mgmt_interface
+          - mgmt_lldp_cdp
+          - mgmt_stp_root
+          # Reachability
+          - reachability_static
+          - reachability_bgp_network
+          - reachability_floating
+          - reachability_ip_sla
+          # Service
+          - service_lb_vip
+          - service_dns
+          - service_dhcp
+          - service_nat
+          - service_proxy
+
+      version:
+        type: int
+        required: true
+        range:
+          min: 1
+
+      tenant:
+        type: str
+        required: true
+
+      change_ticket:
+        type: str
+        required: true
+        pattern: "^(CHG|INC|REQ|TASK)[0-9]{5,10}$"
+
+      description:
+        type: str
+        required: true
+        range:
+          min: 10
+          max: 500
+
+      # ── Optional universal fields ────────────────────────────────────────
+      status:
+        type: str
+        required: false
+        enum:
+          - draft
+          - validated
+          - deploying
+          - deployed
+          - failed
+          - rolled_back
+          - deprecated
+
+      # ── Connectivity / MPLS L3VPN ────────────────────────────────────────
+      source:
+        type: map
+        required: false
+        mapping:
+          group:
+            type: str
+            required: false
+          sites:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          devices:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+
+      destination:
+        type: map
+        required: false
+        mapping:
+          external:
+            type: bool
+            required: false
+          provider:
+            type: str
+            required: false
+          prefixes:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+                pattern: "^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$"
+          group:
+            type: str
+            required: false
+          sites:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+
+      policy:
+        type: map
+        required: false
+        mapping:
+          compliance:
+            type: str
+            required: false
+            enum: [PCI-DSS, HIPAA, SOC2, ISO27001, NONE]
+          encryption:
+            type: str
+            required: false
+            enum: [required, preferred, none]
+          max_latency_ms:
+            type: int
+            required: false
+          min_prefixes:
+            type: int
+            required: false
+          tenant_asn:
+            type: int
+            required: false
+          max_vrfs:
+            type: int
+            required: false
+
+      isolation:
+        type: map
+        required: false
+        mapping:
+          deny_groups:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          deny_protocols:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+                enum: [telnet, http, ftp, snmpv1, snmpv2, rsh, rlogin, tftp]
+
+      # ── Layer 2 ──────────────────────────────────────────────────────────
+      vlans:
+        type: seq
+        required: false
+        sequence:
+          - type: map
+            mapping:
+              id:
+                type: int
+                required: true
+                range:
+                  min: 1
+                  max: 4094
+              name:
+                type: str
+                required: true
+              description:
+                type: str
+                required: false
+
+      port:
+        type: map
+        required: false
+        mapping:
+          device:
+            type: str
+            required: true
+          interface:
+            type: str
+            required: true
+          mode:
+            type: str
+            required: false
+            enum: [access, trunk, hybrid]
+          vlan_id:
+            type: int
+            required: false
+          allowed_vlans:
+            type: seq
+            required: false
+            sequence:
+              - type: int
+          native_vlan:
+            type: int
+            required: false
+          description:
+            type: str
+            required: false
+          speed:
+            type: str
+            required: false
+          duplex:
+            type: str
+            required: false
+            enum: [full, half, auto]
+
+      lag:
+        type: map
+        required: false
+        mapping:
+          device:
+            type: str
+            required: true
+          members:
+            type: seq
+            required: true
+            sequence:
+              - type: str
+          mode:
+            type: str
+            required: false
+            enum: [active, passive, on]
+          min_links:
+            type: int
+            required: false
+
+      stp:
+        type: map
+        required: false
+        mapping:
+          mode:
+            type: str
+            required: false
+            enum: [pvst, rapid-pvst, mst]
+          root_vlans:
+            type: seq
+            required: false
+            sequence:
+              - type: int
+          secondary_root_vlans:
+            type: seq
+            required: false
+            sequence:
+              - type: int
+
+      # ── Layer 3 / Routing ────────────────────────────────────────────────
+      routing:
+        type: map
+        required: false
+        mapping:
+          protocol:
+            type: str
+            required: false
+            enum: [ospf, bgp, isis, eigrp, static]
+          process_id:
+            type: int
+            required: false
+          area:
+            type: str
+            required: false
+          as_number:
+            type: int
+            required: false
+          router_id:
+            type: str
+            required: false
+          neighbors:
+            type: seq
+            required: false
+            sequence:
+              - type: map
+                mapping:
+                  ip:
+                    type: str
+                    required: true
+                  remote_as:
+                    type: int
+                    required: true
+                  description:
+                    type: str
+                    required: false
+                  update_source:
+                    type: str
+                    required: false
+                  route_reflector_client:
+                    type: bool
+                    required: false
+          networks:
+            type: seq
+            required: false
+            sequence:
+              - type: map
+                mapping:
+                  prefix:
+                    type: str
+                    required: true
+                  area:
+                    type: str
+                    required: false
+
+      # ── IPSec / Tunnels ──────────────────────────────────────────────────
+      tunnel:
+        type: map
+        required: false
+        mapping:
+          local_endpoint:
+            type: str
+            required: false
+          remote_endpoint:
+            type: str
+            required: false
+          tunnel_type:
+            type: str
+            required: false
+            enum: [ipsec_s2s, gre, gre_over_ipsec, dmvpn]
+          ike_version:
+            type: int
+            required: false
+            enum: [1, 2]
+          auth_method:
+            type: str
+            required: false
+            enum: [psk, certificate]
+          encryption:
+            type: str
+            required: false
+            enum: [aes-128-gcm, aes-256-gcm, aes-256-cbc, aes-128-cbc]
+          integrity:
+            type: str
+            required: false
+            enum: [sha256, sha384, sha512, sha1]
+          dh_group:
+            type: int
+            required: false
+          lifetime_seconds:
+            type: int
+            required: false
+          pfs_group:
+            type: int
+            required: false
+
+      # ── EVPN / VXLAN ────────────────────────────────────────────────────
+      fabric:
+        type: map
+        required: false
+        mapping:
+          name:
+            type: str
+            required: true
+          spines:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          leaves:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          underlay_protocol:
+            type: str
+            required: false
+            enum: [ospf, bgp, isis]
+          overlay_asn:
+            type: int
+            required: false
+          anycast_gateway_mac:
+            type: str
+            required: false
+          replication_mode:
+            type: str
+            required: false
+            enum: [ingress, multicast]
+
+      vni:
+        type: map
+        required: false
+        mapping:
+          type:
+            type: str
+            required: true
+            enum: [l2, l3]
+          vlan_id:
+            type: int
+            required: false
+          vrf_name:
+            type: str
+            required: false
+          anycast_gateway_ip:
+            type: str
+            required: false
+
+      # ── Wireless ─────────────────────────────────────────────────────────
+      wireless:
+        type: map
+        required: false
+        mapping:
+          ssid:
+            type: str
+            required: false
+            range:
+              min: 1
+              max: 32
+          security_mode:
+            type: str
+            required: false
+            enum: [wpa2-psk, wpa2-enterprise, wpa3-psk, wpa3-enterprise, open]
+          band:
+            type: str
+            required: false
+            enum: [2.4ghz, 5ghz, 6ghz, dual, tri]
+          vlan_id:
+            type: int
+            required: false
+          hidden:
+            type: bool
+            required: false
+          client_isolation:
+            type: bool
+            required: false
+          rate_limit_down_mbps:
+            type: int
+            required: false
+          rate_limit_up_mbps:
+            type: int
+            required: false
+          captive_portal_url:
+            type: str
+            required: false
+          radius_server_group:
+            type: str
+            required: false
+          fast_roaming:
+            type: bool
+            required: false
+          band_steering:
+            type: bool
+            required: false
+          sites:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          ap_groups:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+
+      # ── Cloud ────────────────────────────────────────────────────────────
+      cloud:
+        type: map
+        required: false
+        mapping:
+          provider:
+            type: str
+            required: true
+            enum: [aws, azure, gcp, generic]
+          region:
+            type: str
+            required: true
+          account_id:
+            type: str
+            required: false
+          resource_type:
+            type: str
+            required: false
+          local_vpc_id:
+            type: str
+            required: false
+          remote_vpc_id:
+            type: str
+            required: false
+          bgp_asn:
+            type: int
+            required: false
+          bandwidth_mbps:
+            type: int
+            required: false
+          rules:
+            type: seq
+            required: false
+            sequence:
+              - type: map
+                mapping:
+                  direction:
+                    type: str
+                    required: true
+                    enum: [inbound, outbound]
+                  protocol:
+                    type: str
+                    required: true
+                  port:
+                    type: str
+                    required: false
+                  source:
+                    type: str
+                    required: false
+                  destination:
+                    type: str
+                    required: false
+                  action:
+                    type: str
+                    required: true
+                    enum: [allow, deny]
+
+      # ── QoS ─────────────────────────────────────────────────────────────
+      qos:
+        type: map
+        required: false
+        mapping:
+          classes:
+            type: seq
+            required: false
+            sequence:
+              - type: map
+                mapping:
+                  name:
+                    type: str
+                    required: true
+                  dscp:
+                    type: str
+                    required: false
+                  bandwidth_percent:
+                    type: int
+                    required: false
+                  priority:
+                    type: bool
+                    required: false
+                  police_rate_mbps:
+                    type: int
+                    required: false
+                  match:
+                    type: map
+                    required: false
+                    mapping:
+                      dscp:
+                        type: seq
+                        required: false
+                        sequence:
+                          - type: str
+                      protocol:
+                        type: seq
+                        required: false
+                        sequence:
+                          - type: str
+                      acl:
+                        type: str
+                        required: false
+
+      # ── Management ───────────────────────────────────────────────────────
+      management:
+        type: map
+        required: false
+        mapping:
+          ntp_servers:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          dns_servers:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          syslog_servers:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          snmp_version:
+            type: str
+            required: false
+            enum: [v2c, v3]
+          snmp_community:
+            type: str
+            required: false
+          snmp_trap_targets:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          telemetry_collector:
+            type: str
+            required: false
+          netflow_collector:
+            type: str
+            required: false
+          netflow_port:
+            type: int
+            required: false
+          ssh_allowed_prefixes:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+
+      # ── Scope (used by several intent types) ─────────────────────────────
+      scope:
+        type: map
+        required: false
+        mapping:
+          sites:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          devices:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          roles:
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          all_tenant_devices:
+            type: bool
+            required: false

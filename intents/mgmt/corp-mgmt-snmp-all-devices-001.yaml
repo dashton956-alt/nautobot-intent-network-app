@@ -1,0 +1,20 @@
+intent:
+  id: corp-mgmt-snmp-all-devices-001
+  type: mgmt_snmp
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012357
+  description: "SNMPv3 configuration — all network devices — trap to central collector"
+
+  scope:
+    all_tenant_devices: true
+
+  management:
+    snmp_version: v3
+    snmp_trap_targets:
+      - "10.0.1.100"
+      - "10.0.1.101"
+
+  policy:
+    compliance: NONE
+    encryption: none

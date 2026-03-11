@@ -1,0 +1,20 @@
+intent:
+  id: corp-mgmt-ntp-all-sites-001
+  type: mgmt_ntp
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012356
+  description: "NTP configuration — all network devices — primary and secondary NTP servers"
+
+  scope:
+    all_tenant_devices: true
+
+  management:
+    ntp_servers:
+      - "10.0.0.1"
+      - "10.0.0.2"
+      - "pool.ntp.org"
+
+  policy:
+    compliance: NONE
+    encryption: none

@@ -1,0 +1,32 @@
+intent:
+  id: branch-lon-dc-east-ipsec-001
+  type: ipsec_s2s
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012350
+  description: "IPSec IKEv2 site-to-site tunnel — London branch to DC East"
+
+  tunnel:
+    local_endpoint: "203.0.113.10"
+    remote_endpoint: "198.51.100.50"
+    tunnel_type: ipsec_s2s
+    ike_version: 2
+    auth_method: psk
+    encryption: aes-256-gcm
+    integrity: sha256
+    dh_group: 14
+    lifetime_seconds: 86400
+    pfs_group: 14
+
+  routing:
+    protocol: bgp
+    as_number: 65001
+    neighbors:
+      - ip: "10.200.0.2"
+        remote_as: 65001
+        description: "iBGP over IPSec tunnel"
+        update_source: Tunnel0
+
+  policy:
+    compliance: NONE
+    encryption: required

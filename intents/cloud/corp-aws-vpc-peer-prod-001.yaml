@@ -1,0 +1,19 @@
+intent:
+  id: corp-aws-vpc-peer-prod-001
+  type: cloud_vpc_peer
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0012353
+  description: "VPC peering between corp on-prem VPC and AWS production workload VPC — eu-west-1"
+
+  cloud:
+    provider: aws
+    region: eu-west-1
+    account_id: "123456789012"
+    resource_type: vpc_peering
+    local_vpc_id: "vpc-0abc123def456"
+    remote_vpc_id: "vpc-0def456abc123"
+
+  policy:
+    compliance: NONE
+    encryption: required
