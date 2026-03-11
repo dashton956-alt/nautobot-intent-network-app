@@ -349,6 +349,7 @@ class IntentDeploymentJob(Job):
 
     intent_id = StringVar(description="Intent ID to deploy", required=True)
     commit_sha = StringVar(description="Git commit SHA that triggered this", required=True)
+    commit = BooleanVar(description="Apply changes to devices (false = dry-run)", default=True)
 
     class Meta:
         """Nautobot job metadata for IntentDeploymentJob."""
@@ -370,7 +371,9 @@ class IntentDeploymentJob(Job):
             return
 
         # ── Approval gate (#2) ────────────────────────────────────────────
-        if not intent.is_approved:
+        # In lab/testing mode, allow dry-run (commit=False) without approval.
+        # Production commits still require formal approval records.
+        if not intent.is_approved and commit:
             self.logger.failure(
                 "Intent '%s' has not been approved. Deployment blocked. "
                 "An engineer with 'approve_intent' permission must approve first.",
@@ -383,6 +386,11 @@ class IntentDeploymentJob(Job):
                 detail={"blocked": True, "reason": "No approval"},
             )
             return
+        if not intent.is_approved and not commit:
+            self.logger.warning(
+                "Intent '%s' is not approved, but continuing because this is a dry-run deployment.",
+                intent_id,
+            )
 
         # ── Change window check (#9) ─────────────────────────────────────
         if intent.scheduled_deploy_at and timezone.now() < intent.scheduled_deploy_at:
@@ -404,10 +412,11 @@ class IntentDeploymentJob(Job):
             )
             return
 
-        # Update status
-        intent.status = Status.objects.get(name__iexact="Deploying")
-        intent.git_commit_sha = kwargs["commit_sha"]
-        intent.save()
+        # Update status only for real deployments, not dry-runs.
+        if commit:
+            intent.status = Status.objects.get(name__iexact="Deploying")
+            intent.git_commit_sha = kwargs["commit_sha"]
+            intent.save()
         self.logger.info("Deploying %s to %s devices", intent_id, plan.affected_devices.count())
 
         # Render configs
@@ -417,6 +426,37 @@ class IntentDeploymentJob(Job):
             self.logger.failure("Config rendering failed: %s", exc)
             self._mark_failed(intent)
             return
+
+        # Dry-run mode is UI/lab-safe: render and store configs, but do not
+        # attempt device connections or require credentials.
+        if not commit:
+            intent.rendered_configs = rendered_configs
+            # Keep the intent validated; this was only a preview, not a commit.
+            intent.save(update_fields=["rendered_configs", "last_updated"])
+            self.logger.info(
+                "Dry-run complete for %s: rendered configs for %s devices; no device changes were pushed.",
+                intent_id,
+                len(rendered_configs),
+            )
+            IntentAuditEntry.objects.create(
+                intent=intent,
+                action="deployed",
+                actor="IntentDeploymentJob",
+                git_commit_sha=kwargs["commit_sha"],
+                detail={
+                    "devices": list(rendered_configs.keys()),
+                    "rendered_configs": rendered_configs,
+                    "dry_run": True,
+                    "strategy": intent.deployment_strategy,
+                    "preview_only": True,
+                },
+            )
+            return {
+                "success": True,
+                "dry_run": True,
+                "devices": list(rendered_configs.keys()),
+                "errors": [],
+            }
 
         # ── Staged rollout (#10) ──────────────────────────────────────────
         if intent.deployment_strategy != "all_at_once" and plan.affected_devices.count() > 1:
@@ -752,6 +792,25 @@ class IntentVerificationJob(Job):
                     if not acl_present:
                         all_passed = False
 
+            # Check VLAN presence
+            if "vlan" in prim_types:
+                expected_vlans = sorted(
+                    {p.get("vlan_id") for p in device_prims if p.get("primitive_type") == "vlan" and p.get("vlan_id")}
+                )
+                device_vlans = set(device_state.get("vlans", []))
+                for vlan_id in expected_vlans:
+                    vlan_present = vlan_id in device_vlans
+                    checks.append(
+                        {
+                            "device": device.name,
+                            "check": "vlan_present",
+                            "passed": vlan_present,
+                            "detail": f"VLAN {vlan_id} {'present' if vlan_present else 'MISSING'}",
+                        }
+                    )
+                    if not vlan_present:
+                        all_passed = False
+
             # Check OSPF neighbours if ospf primitives present
             if "ospf" in prim_types or "ospfv3" in prim_types:
                 ospf_neighbors = device_state.get("ospf_neighbor_count", 0)
@@ -857,10 +916,16 @@ class IntentVerificationJob(Job):
             logging={"enabled": False},
         )
 
-        state = {"vrfs": [], "bgp_sessions": {}, "prefix_count": {}, "acls": [], "ospf_neighbor_count": 0}
+        state = {"vrfs": [], "bgp_sessions": {}, "prefix_count": {}, "acls": [], "ospf_neighbor_count": 0, "vlans": []}
+        platform = device.platform.name if device.platform else ""
+        is_arista = platform == "arista-eos"
 
         # Collect VRF list
-        vrf_result = nr.run(task=netmiko_send_command, command_string="show vrf brief", use_textfsm=True)
+        vrf_result = nr.run(
+            task=netmiko_send_command,
+            command_string="show vrf" if is_arista else "show vrf brief",
+            use_textfsm=True,
+        )
         if not vrf_result[device.name].failed:
             for row in vrf_result[device.name].result:
                 state["vrfs"].append(row.get("name", ""))
@@ -869,7 +934,11 @@ class IntentVerificationJob(Job):
         if plan.vrf_name:
             bgp_result = nr.run(
                 task=netmiko_send_command,
-                command_string=f"show bgp vpnv4 unicast vrf {plan.vrf_name} summary",
+                command_string=(
+                    f"show ip bgp vrf {plan.vrf_name} summary"
+                    if is_arista
+                    else f"show bgp vpnv4 unicast vrf {plan.vrf_name} summary"
+                ),
                 use_textfsm=True,
             )
             if not bgp_result[device.name].failed:
@@ -881,7 +950,7 @@ class IntentVerificationJob(Job):
         else:
             bgp_result = nr.run(
                 task=netmiko_send_command,
-                command_string="show bgp summary",
+                command_string="show ip bgp summary" if is_arista else "show bgp summary",
                 use_textfsm=True,
             )
             if not bgp_result[device.name].failed:
@@ -892,13 +961,28 @@ class IntentVerificationJob(Job):
                     }
 
         # Collect ACL names
-        acl_result = nr.run(task=netmiko_send_command, command_string="show access-lists", use_textfsm=True)
+        acl_result = nr.run(
+            task=netmiko_send_command,
+            command_string="show ip access-lists" if is_arista else "show access-lists",
+            use_textfsm=True,
+        )
         if not acl_result[device.name].failed:
             for acl in acl_result[device.name].result:
                 state["acls"].append(acl.get("name", ""))
 
+        vlan_result = nr.run(task=netmiko_send_command, command_string="show vlan", use_textfsm=False)
+        if not vlan_result[device.name].failed:
+            import re  # noqa: PLC0415
+
+            output = str(vlan_result[device.name].result)
+            state["vlans"] = sorted({int(match.group(1)) for match in re.finditer(r"(?m)^\s*(\d+)\s+", output)})
+
         # Collect OSPF neighbor count
-        ospf_result = nr.run(task=netmiko_send_command, command_string="show ip ospf neighbor brief", use_textfsm=True)
+        ospf_result = nr.run(
+            task=netmiko_send_command,
+            command_string="show ip ospf neighbor" if is_arista else "show ip ospf neighbor brief",
+            use_textfsm=True,
+        )
         if not ospf_result[device.name].failed:
             state["ospf_neighbor_count"] = len(ospf_result[device.name].result)
 
@@ -1042,6 +1126,7 @@ class IntentRollbackJob(Job):
             "cisco-nxos": "cisco/nxos",
             "juniper-junos": "juniper/junos",
             "aruba-aos-cx": "aruba/aos-cx",
+            "arista-eos": "arista/eos",
         }
 
         rendered_configs = {}
@@ -1191,6 +1276,7 @@ def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
         "cisco-nxos": "cisco/nxos",
         "juniper-junos": "juniper/junos",
         "aruba-aos-cx": "aruba/aos-cx",
+        "arista-eos": "arista/eos",
     }
 
     primitive_template_map = {
@@ -1287,6 +1373,10 @@ def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
         "mgmt_interface": "mgmt_interface.j2",
         "lldp_cdp": "lldp_cdp.j2",
         "stp_root": "stp_root.j2",
+        "motd": "motd.j2",
+        "netconf": "netconf.j2",
+        "dhcp_server": "dhcp_server.j2",
+        "global_config": "global_config.j2",
         # Service
         "lb_vip": "lb_vip.j2",
         "dns_record": "dns_record.j2",

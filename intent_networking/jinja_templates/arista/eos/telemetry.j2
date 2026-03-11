@@ -1,0 +1,13 @@
+{# telemetry.j2 — arista-eos #}
+! Streaming Telemetry Configuration
+! Intent: {{ intent_id }}
+!
+management api gnmi
+   transport grpc default
+      port {{ destination_port | default(6030) }}
+   provider eos-native
+!
+{% for sub in subscriptions %}
+! Subscription: {{ sub.path }}
+{% endfor %}
+!

@@ -1,0 +1,27 @@
+{# dhcp_server.j2 — arista-eos #}
+! DHCP Server Configuration
+! Intent: {{ intent_id }}
+!
+{% for pool in pools %}
+dhcp server
+   subnet {{ pool.network }}
+{% if pool.default_router %}
+      default-gateway {{ pool.default_router }}
+{% endif %}
+{% if pool.dns_server %}
+      dns server {{ pool.dns_server }}
+{% endif %}
+{% if pool.lease_time %}
+      lease {{ pool.lease_time }}
+{% endif %}
+{% if pool.domain_name %}
+      domain-name {{ pool.domain_name }}
+{% endif %}
+{% for range in pool.ranges | default([]) %}
+      range {{ range.start }} {{ range.end }}
+{% endfor %}
+{% for exclude in pool.excluded_addresses | default([]) %}
+      excluded-address {{ exclude }}
+{% endfor %}
+!
+{% endfor %}

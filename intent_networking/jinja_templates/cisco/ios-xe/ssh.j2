@@ -1,10 +1,20 @@
 {# ssh.j2 — ios-xe #}
-! Primitive: ssh
+! SSH Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for ssh on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+ip ssh version {{ version | default(2) }}
+ip ssh time-out {{ timeout | default(60) }}
+ip ssh authentication-retries {{ retries | default(3) }}
+!
+{% if allowed_networks %}
+ip access-list extended {{ acl_name | default("SSH-ACCESS") }}
+{% for net in allowed_networks %}
+ permit tcp {{ net }} any eq 22
+{% endfor %}
+ deny   tcp any any eq 22
+!
+line vty 0 15
+ access-class {{ acl_name | default("SSH-ACCESS") }} in
+ transport input ssh
+{% endif %}
 !

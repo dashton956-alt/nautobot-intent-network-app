@@ -1,0 +1,17 @@
+{# netconf.j2 — ios-xe #}
+! NETCONF / RESTCONF Configuration
+! Intent: {{ intent_id }}
+!
+netconf-yang
+{% if port %}
+netconf-yang ssh port {{ port }}
+{% endif %}
+!
+{% if enable_restconf %}
+restconf
+ip http secure-server
+{% if restconf_port %}
+ip http secure-port {{ restconf_port }}
+{% endif %}
+{% endif %}
+!

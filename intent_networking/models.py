@@ -187,6 +187,10 @@ class IntentTypeChoices(models.TextChoices):
     MGMT_INTERFACE = "mgmt_interface", "Loopback / Management Interface"
     MGMT_LLDP_CDP = "mgmt_lldp_cdp", "LLDP / CDP Policy"
     MGMT_STP_ROOT = "mgmt_stp_root", "Spanning Tree Root"
+    MGMT_MOTD = "mgmt_motd", "Banner / MOTD"
+    MGMT_NETCONF = "mgmt_netconf", "NETCONF / RESTCONF"
+    MGMT_DHCP_SERVER = "mgmt_dhcp_server", "DHCP Server"
+    MGMT_GLOBAL_CONFIG = "mgmt_global_config", "Global Config Bundle"
 
     # ── 12. Reachability (expanded) ───────────────────────────────────────
     REACHABILITY_STATIC = "reachability_static", "Static Reachability"

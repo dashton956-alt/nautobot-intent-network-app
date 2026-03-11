@@ -3848,6 +3848,147 @@ def resolve_mgmt_stp_root(intent) -> dict:
     return _empty_plan(affected, primitives)
 
 
+@transaction.atomic
+def resolve_mgmt_motd(intent) -> dict:
+    """Resolve a Message-of-the-Day / banner intent."""
+    intent_data = intent.intent_data
+    devices = _get_scope_devices(intent)
+    primitives = []
+    affected = []
+
+    for device in devices:
+        affected.append(device.name)
+        primitives.append(
+            {
+                "primitive_type": "motd",
+                "device": device.name,
+                "login_banner": intent_data.get("login_banner", ""),
+                "motd_banner": intent_data.get("motd_banner", ""),
+                "exec_banner": intent_data.get("exec_banner", ""),
+                "delimiter": intent_data.get("delimiter", "^"),
+                "intent_id": intent.intent_id,
+            }
+        )
+
+    return _empty_plan(affected, primitives)
+
+
+@transaction.atomic
+def resolve_mgmt_netconf(intent) -> dict:
+    """Resolve a NETCONF / RESTCONF enablement intent."""
+    intent_data = intent.intent_data
+    devices = _get_scope_devices(intent)
+    primitives = []
+    affected = []
+
+    for device in devices:
+        affected.append(device.name)
+        primitives.append(
+            {
+                "primitive_type": "netconf",
+                "device": device.name,
+                "netconf_enabled": intent_data.get("netconf_enabled", True),
+                "netconf_port": intent_data.get("netconf_port", 830),
+                "netconf_vrf": intent_data.get("netconf_vrf", ""),
+                "restconf_enabled": intent_data.get("restconf_enabled", False),
+                "restconf_port": intent_data.get("restconf_port", 443),
+                "gnmi_enabled": intent_data.get("gnmi_enabled", False),
+                "gnmi_port": intent_data.get("gnmi_port", 6030),
+                "intent_id": intent.intent_id,
+            }
+        )
+
+    return _empty_plan(affected, primitives)
+
+
+@transaction.atomic
+def resolve_mgmt_dhcp_server(intent) -> dict:
+    """Resolve a DHCP server / pool intent."""
+    intent_data = intent.intent_data
+    devices = _get_scope_devices(intent)
+    primitives = []
+    affected = []
+
+    pools = intent_data.get("pools", [])
+    for device in devices:
+        affected.append(device.name)
+        primitives.append(
+            {
+                "primitive_type": "dhcp_server",
+                "device": device.name,
+                "pools": pools,
+                "excluded_addresses": intent_data.get("excluded_addresses", []),
+                "lease_time": intent_data.get("lease_time", 86400),
+                "intent_id": intent.intent_id,
+            }
+        )
+
+    return _empty_plan(affected, primitives)
+
+
+@transaction.atomic
+def resolve_mgmt_global_config(intent) -> dict:
+    """Resolve a global / day-0 management config bundle intent.
+
+    This is a *composite* resolver that emits a single ``global_config``
+    primitive containing **all** management knobs so the template can
+    render a complete management section in one pass.
+    """
+    intent_data = intent.intent_data
+    devices = _get_scope_devices(intent)
+    primitives = []
+    affected = []
+
+    mgmt = intent_data.get("management", intent_data)
+
+    for device in devices:
+        affected.append(device.name)
+        primitives.append(
+            {
+                "primitive_type": "global_config",
+                "device": device.name,
+                # Hostname / domain
+                "hostname": mgmt.get("hostname", device.name),
+                "domain_name": mgmt.get("domain_name", ""),
+                # NTP
+                "ntp_servers": mgmt.get("ntp_servers", []),
+                "ntp_source_interface": mgmt.get("ntp_source_interface", ""),
+                "timezone": mgmt.get("timezone", "UTC"),
+                "timezone_offset": mgmt.get("timezone_offset", 0),
+                # DNS
+                "dns_servers": mgmt.get("dns_servers", []),
+                "dns_domain_list": mgmt.get("dns_domain_list", []),
+                # Syslog
+                "syslog_servers": mgmt.get("syslog_servers", []),
+                "syslog_source_interface": mgmt.get("syslog_source_interface", ""),
+                "syslog_trap_level": mgmt.get("syslog_trap_level", "informational"),
+                # SNMP
+                "snmp_community": mgmt.get("snmp_community", ""),
+                "snmp_location": mgmt.get("snmp_location", ""),
+                "snmp_contact": mgmt.get("snmp_contact", ""),
+                "snmp_trap_targets": mgmt.get("snmp_trap_targets", []),
+                # SSH
+                "ssh_version": mgmt.get("ssh_version", 2),
+                "ssh_timeout": mgmt.get("ssh_timeout", 60),
+                # Banners
+                "login_banner": mgmt.get("login_banner", ""),
+                "motd_banner": mgmt.get("motd_banner", ""),
+                # NETCONF / RESTCONF
+                "netconf_enabled": mgmt.get("netconf_enabled", False),
+                "netconf_port": mgmt.get("netconf_port", 830),
+                "restconf_enabled": mgmt.get("restconf_enabled", False),
+                # DHCP pools
+                "dhcp_pools": mgmt.get("dhcp_pools", []),
+                # LLDP / CDP
+                "lldp_enabled": mgmt.get("lldp_enabled", True),
+                "cdp_enabled": mgmt.get("cdp_enabled", False),
+                "intent_id": intent.intent_id,
+            }
+        )
+
+    return _empty_plan(affected, primitives)
+
+
 # =========================================================================
 # 12. REACHABILITY RESOLVERS (FIX EXISTING BROKEN STUB)
 # =========================================================================
@@ -4301,6 +4442,10 @@ RESOLVERS = {
     "mgmt_interface": resolve_mgmt_interface,
     "mgmt_lldp_cdp": resolve_mgmt_lldp_cdp,
     "mgmt_stp_root": resolve_mgmt_stp_root,
+    "mgmt_motd": resolve_mgmt_motd,
+    "mgmt_netconf": resolve_mgmt_netconf,
+    "mgmt_dhcp_server": resolve_mgmt_dhcp_server,
+    "mgmt_global_config": resolve_mgmt_global_config,
     # 12. Reachability (expanded)
     "reachability_static": resolve_reachability_static,
     "reachability_bgp_network": resolve_reachability_bgp_network,

@@ -1,0 +1,17 @@
+{# ssh.j2 — arista-eos #}
+! SSH Configuration
+! Intent: {{ intent_id }}
+!
+management ssh
+   idle-timeout {{ timeout | default(60) }}
+   authentication mode password
+   no shutdown
+!
+{% if allowed_networks %}
+ip access-list {{ acl_name | default("SSH-ACCESS") }}
+{% for net in allowed_networks %}
+   permit tcp {{ net }} any eq ssh
+{% endfor %}
+   deny tcp any any eq ssh
+!
+{% endif %}

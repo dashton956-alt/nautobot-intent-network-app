@@ -1,10 +1,21 @@
 {# netflow.j2 — ios-xe #}
-! Primitive: netflow
+! NetFlow Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for netflow on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+flow exporter {{ exporter_name | default("FLOW-EXPORT") }}
+ destination {{ collector_ip }}
+ transport udp {{ collector_port | default(9995) }}
+{% if source_interface %}
+ source {{ source_interface }}
+{% endif %}
+ export-protocol netflow-v{{ version | default(9) }}
+!
+flow monitor INTENT-MONITOR
+ exporter {{ exporter_name | default("FLOW-EXPORT") }}
+ record netflow ipv4 original-input
+!
+{% for intf in apply_interfaces %}
+interface {{ intf }}
+ ip flow monitor INTENT-MONITOR input
+{% endfor %}
 !

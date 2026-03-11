@@ -1,0 +1,21 @@
+{# netconf.j2 — junos #}
+{# NETCONF / REST API Configuration #}
+{# Intent: {{ intent_id }} #}
+
+set system services netconf ssh
+{% if port %}
+set system services netconf ssh port {{ port }}
+{% else %}
+set system services netconf ssh port 830
+{% endif %}
+{% if vrf %}
+set system services netconf ssh routing-instance {{ vrf }}
+{% endif %}
+!
+{% if enable_restconf %}
+set system services rest http
+set system services rest enable-explorer
+{% if restconf_port %}
+set system services rest http port {{ restconf_port }}
+{% endif %}
+{% endif %}

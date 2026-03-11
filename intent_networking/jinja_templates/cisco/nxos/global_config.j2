@@ -1,0 +1,133 @@
+{# global_config.j2 — nxos #}
+! ═══════════════════════════════════════════════════════════
+! Global Configuration Bundle
+! Intent: {{ intent_id }}
+! ═══════════════════════════════════════════════════════════
+!
+{% if hostname %}
+hostname {{ hostname }}
+{% endif %}
+!
+{% if domain_name %}
+ip domain-name {{ domain_name }}
+{% endif %}
+{% for server in dns_servers | default([]) %}
+ip name-server {{ server }}
+{% endfor %}
+!
+! ── NTP ───────────────────────────────────────────────────
+{% if ntp_source_interface %}
+ntp source-interface {{ ntp_source_interface }}
+{% endif %}
+{% for server in ntp_servers | default([]) %}
+{% if server == ntp_prefer %}
+ntp server {{ server }} prefer
+{% else %}
+ntp server {{ server }}
+{% endif %}
+{% endfor %}
+!
+! ── Logging / Syslog ─────────────────────────────────────
+{% if syslog_source_interface %}
+logging source-interface {{ syslog_source_interface }}
+{% endif %}
+{% for server in syslog_servers | default([]) %}
+logging server {{ server }}
+{% endfor %}
+{% if syslog_servers %}
+logging level {{ syslog_facility | default("local7") }} {{ syslog_severity | default("6") }}
+logging timestamp milliseconds
+{% endif %}
+!
+! ── SNMP ──────────────────────────────────────────────────
+{% if snmp_location %}
+snmp-server location {{ snmp_location }}
+{% endif %}
+{% if snmp_contact %}
+snmp-server contact {{ snmp_contact }}
+{% endif %}
+{% if snmp_version == "v3" %}
+{% for view in snmp_views | default([]) %}
+snmp-server view {{ view.name }} {{ view.oid }} included
+{% endfor %}
+{% for group in snmp_groups | default([]) %}
+snmp-server group {{ group.name }} v3 {{ group.security_level | default("priv") }}{% if group.read_view %} read {{ group.read_view }}{% endif %}
+
+{% endfor %}
+{% for user in snmp_users | default([]) %}
+snmp-server user {{ user.name }} {{ user.group }} v3 auth {{ user.auth_protocol | default("sha") }} {{ user.auth_password }} priv {{ user.priv_protocol | default("aes-128") }} {{ user.priv_password }}
+{% endfor %}
+{% elif snmp_community %}
+snmp-server community {{ snmp_community }} ro
+{% endif %}
+{% for target in snmp_trap_targets | default([]) %}
+snmp-server host {{ target }}{% if snmp_community %} version 2c {{ snmp_community }}{% endif %}
+
+{% endfor %}
+{% if snmp_trap_targets %}
+snmp-server enable traps
+{% endif %}
+!
+! ── Banner / MOTD ─────────────────────────────────────────
+{% if login_banner %}
+banner login @
+{{ login_banner }}
+@
+{% endif %}
+{% if motd_banner %}
+banner motd @
+{{ motd_banner }}
+@
+{% endif %}
+!
+! ── SSH ───────────────────────────────────────────────────
+{% if enable_ssh %}
+feature ssh
+ssh login-attempts {{ ssh_retries | default(3) }}
+!
+{% endif %}
+!
+! ── NETCONF ───────────────────────────────────────────────
+{% if enable_netconf %}
+feature netconf
+{% endif %}
+{% if enable_restconf %}
+feature restconf
+{% endif %}
+!
+! ── LLDP / CDP ────────────────────────────────────────────
+{% if enable_lldp is defined %}
+{% if enable_lldp %}
+feature lldp
+{% else %}
+no feature lldp
+{% endif %}
+{% endif %}
+{% if enable_cdp is defined %}
+{% if enable_cdp %}
+cdp enable
+{% else %}
+no cdp enable
+{% endif %}
+{% endif %}
+!
+! ── DHCP Server ───────────────────────────────────────────
+{% if dhcp_pools %}
+feature dhcp
+service dhcp
+{% for pool in dhcp_pools | default([]) %}
+{% for exclude in pool.excluded_addresses | default([]) %}
+ip dhcp excluded-address {{ exclude }}
+{% endfor %}
+ip dhcp pool {{ pool.name }}
+ network {{ pool.network }}
+{% if pool.default_router %}
+ default-router {{ pool.default_router }}
+{% endif %}
+{% if pool.dns_server %}
+ dns-server {{ pool.dns_server }}
+{% endif %}
+ lease 1
+!
+{% endfor %}
+{% endif %}

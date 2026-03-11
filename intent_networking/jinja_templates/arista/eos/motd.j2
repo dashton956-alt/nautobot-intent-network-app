@@ -1,0 +1,15 @@
+{# motd.j2 — arista-eos #}
+! Banner / MOTD Configuration
+! Intent: {{ intent_id }}
+!
+{% if login_banner %}
+banner login
+{{ login_banner }}
+EOF
+{% endif %}
+{% if motd_banner %}
+banner motd
+{{ motd_banner }}
+EOF
+{% endif %}
+!

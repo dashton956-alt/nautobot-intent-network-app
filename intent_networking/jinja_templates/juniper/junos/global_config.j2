@@ -1,0 +1,113 @@
+{# global_config.j2 — junos #}
+{# ═══════════════════════════════════════════════════════════ #}
+{# Global Configuration Bundle #}
+{# Intent: {{ intent_id }} #}
+{# ═══════════════════════════════════════════════════════════ #}
+
+{% if hostname %}
+set system host-name {{ hostname }}
+{% endif %}
+
+{% if domain_name %}
+set system domain-name {{ domain_name }}
+{% endif %}
+{% for server in dns_servers | default([]) %}
+set system name-server {{ server }}
+{% endfor %}
+
+{# ── NTP ─────────────────────────────────────────────── #}
+{% if ntp_source_interface %}
+set system ntp source-address {{ ntp_source_interface }}
+{% endif %}
+{% for server in ntp_servers | default([]) %}
+{% if server == ntp_prefer %}
+set system ntp server {{ server }} prefer
+{% else %}
+set system ntp server {{ server }}
+{% endif %}
+{% endfor %}
+
+{# ── Logging / Syslog ───────────────────────────────── #}
+{% if syslog_source_interface %}
+set system syslog source-address {{ syslog_source_interface }}
+{% endif %}
+{% for server in syslog_servers | default([]) %}
+set system syslog host {{ server }} any {{ syslog_severity | default("info") }}
+set system syslog host {{ server }} facility-override {{ syslog_facility | default("local7") }}
+{% endfor %}
+{% if syslog_servers %}
+set system syslog time-format millisecond
+{% endif %}
+
+{# ── SNMP ────────────────────────────────────────────── #}
+{% if snmp_location %}
+set snmp location "{{ snmp_location }}"
+{% endif %}
+{% if snmp_contact %}
+set snmp contact "{{ snmp_contact }}"
+{% endif %}
+{% if snmp_version == "v3" %}
+{% for view in snmp_views | default([]) %}
+set snmp view {{ view.name }} oid {{ view.oid }} include
+{% endfor %}
+{% for group in snmp_groups | default([]) %}
+set snmp v3 vacm security-to-group security-model usm security-name {{ group.name }} group {{ group.name }}
+{% if group.read_view %}
+set snmp v3 vacm access group {{ group.name }} default-context-prefix security-model usm security-level {{ group.security_level | default("privacy") }} read-view {{ group.read_view }}
+{% endif %}
+{% endfor %}
+{% for user in snmp_users | default([]) %}
+set snmp v3 usm local-engine user {{ user.name }} authentication-{{ user.auth_protocol | default("sha") }} authentication-key {{ user.auth_password }}
+set snmp v3 usm local-engine user {{ user.name }} privacy-{{ user.priv_protocol | default("aes128") }} privacy-key {{ user.priv_password }}
+{% endfor %}
+{% elif snmp_community %}
+set snmp community {{ snmp_community }} authorization read-only
+{% endif %}
+{% for target in snmp_trap_targets | default([]) %}
+set snmp trap-group {{ snmp_community | default("public") }} targets {{ target }}
+{% endfor %}
+
+{# ── Banner / MOTD ───────────────────────────────────── #}
+{% if login_banner %}
+set system login message "{{ login_banner }}"
+{% endif %}
+{% if motd_banner %}
+set system login announcement "{{ motd_banner }}"
+{% endif %}
+
+{# ── SSH ─────────────────────────────────────────────── #}
+{% if enable_ssh %}
+set system services ssh protocol-version v2
+set system services ssh connection-limit {{ ssh_retries | default(3) }}
+set system login retry-options tries-before-disconnect {{ ssh_retries | default(3) }}
+{% endif %}
+
+{# ── NETCONF ─────────────────────────────────────────── #}
+{% if enable_netconf %}
+set system services netconf ssh
+set system services netconf ssh port 830
+{% endif %}
+{% if enable_restconf %}
+set system services rest http
+set system services rest enable-explorer
+{% endif %}
+
+{# ── LLDP ────────────────────────────────────────────── #}
+{% if enable_lldp is defined %}
+{% if enable_lldp %}
+set protocols lldp interface all
+{% else %}
+delete protocols lldp
+{% endif %}
+{% endif %}
+
+{# ── DHCP Server ─────────────────────────────────────── #}
+{% for pool in dhcp_pools | default([]) %}
+set access address-assignment pool {{ pool.name }} family inet network {{ pool.network }}
+{% if pool.default_router %}
+set access address-assignment pool {{ pool.name }} family inet dhcp-attributes router-address {{ pool.default_router }}
+{% endif %}
+{% if pool.dns_server %}
+set access address-assignment pool {{ pool.name }} family inet dhcp-attributes name-server {{ pool.dns_server }}
+{% endif %}
+{% endfor %}

@@ -1,4 +1,4 @@
-{# snmp.j2 — ios-xe #}
+{# snmp.j2 — arista-eos #}
 ! SNMP Configuration
 ! Intent: {{ intent_id }}
 !
@@ -17,16 +17,15 @@ snmp-server group {{ group.name }} v3 {{ group.security_level | default("priv") 
 
 {% endfor %}
 {% for user in users %}
-snmp-server user {{ user.name }} {{ user.group }} v3 auth {{ user.auth_protocol | default("sha") }} {{ user.auth_password }} priv {{ user.priv_protocol | default("aes") }} 128 {{ user.priv_password }}
+snmp-server user {{ user.name }} {{ user.group }} v3 auth {{ user.auth_protocol | default("sha") }} {{ user.auth_password }} priv {{ user.priv_protocol | default("aes128") }} {{ user.priv_password }}
 {% endfor %}
-{% elif version == "v2c" %}
+{% else %}
 {% if community %}
 snmp-server community {{ community }} ro
 {% endif %}
 {% endif %}
 {% for target in trap_targets %}
-snmp-server host {{ target }}{% if version == "v3" %} version 3 priv{% elif community %} version 2c {{ community }}{% endif %}
+snmp-server host {{ target }} version {{ version | default("2c") }}{% if community %} {{ community }}{% endif %}
 
 {% endfor %}
-snmp-server enable traps
 !

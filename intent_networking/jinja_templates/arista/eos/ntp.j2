@@ -1,9 +1,9 @@
-{# ntp.j2 — ios-xe #}
+{# ntp.j2 — arista-eos #}
 ! NTP Configuration
 ! Intent: {{ intent_id }}
 !
 {% if source_interface %}
-ntp source {{ source_interface }}
+ntp local-interface {{ source_interface }}
 {% endif %}
 {% if authentication %}
 ntp authenticate

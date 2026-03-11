@@ -1,10 +1,13 @@
 {# telemetry.j2 — ios-xe #}
-! Primitive: telemetry
+! Streaming Telemetry Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for telemetry on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for sub in subscriptions %}
+telemetry ietf subscription {{ sub.id | default(loop.index + 100) }}
+ encoding encode-{{ encoding | default("kvgpb") }}
+ filter xpath {{ sub.path }}
+ stream yang-push
+ update-policy periodic {{ sub.interval | default(3000) }}
+ receiver ip address {{ destination_ip }} {{ destination_port | default(57000) }} protocol {{ protocol | default("grpc-tcp") }}
 !
+{% endfor %}

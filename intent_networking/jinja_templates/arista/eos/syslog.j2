@@ -1,4 +1,4 @@
-{# syslog.j2 — ios-xe #}
+{# syslog.j2 — arista-eos #}
 ! Syslog Configuration
 ! Intent: {{ intent_id }}
 !
@@ -11,5 +11,4 @@ logging trap {{ severity | default("informational") }}
 logging host {{ server }}
 {% endfor %}
 logging on
-service timestamps log datetime msec localtime show-timezone
 !

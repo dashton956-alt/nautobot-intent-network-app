@@ -1,0 +1,19 @@
+{# netflow.j2 — arista-eos #}
+! NetFlow / sFlow Configuration
+! Intent: {{ intent_id }}
+!
+sflow sample {{ sampler_rate | default(1024) }}
+{% if collector_ip %}
+sflow destination {{ collector_ip }}{% if collector_port %} {{ collector_port }}{% endif %}
+
+{% endif %}
+{% if source_interface %}
+sflow source-interface {{ source_interface }}
+{% endif %}
+sflow run
+{% for intf in apply_interfaces %}
+!
+interface {{ intf }}
+   sflow enable
+{% endfor %}
+!
