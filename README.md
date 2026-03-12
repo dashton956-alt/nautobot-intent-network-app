@@ -45,11 +45,12 @@ Git Repository (YAML intents)
 ### Key Features
 
 - **Native Nautobot Git integration** — configure a GitRepository with the "intent definitions" content type; Nautobot auto-syncs intent YAML files on every pull (no CI scripts needed)
-- **[129 intent types](models/intent.md#intent-type-categories)** across 14 network domains — L2/L3, MPLS, EVPN/VXLAN, Security, WAN, Wireless, Cloud, QoS, Multicast, and more
+- **[133 intent types](models/intent.md#intent-type-categories)** across 14 network domains — L2/L3, MPLS, EVPN/VXLAN, Security, WAN, Wireless, Cloud, QoS, Multicast, and more
 - **YAML-first intent authoring** — engineers write what they want, not how to configure it
 - **Atomic resource allocation** — route distinguishers and route targets allocated from pools using `select_for_update()`, preventing duplicates even under concurrent deployments
 - **Multi-vendor rendering** — Jinja2 templates per platform (Cisco IOS-XE, IOS-XR, Juniper JunOS, Aruba AOS-CX); swap the router, keep the intent
 - **Policy enforcement** — OPA Rego policies checked at PR time and again before each deployment; PCI-DSS, HIPAA, SOC2 compliance built in
+- **Dry-run deployment** — `IntentDeploymentJob` accepts a `commit=False` flag to render and store device configs without pushing to devices; useful for lab testing and pre-change review
 - **Batfish pre-deployment simulation** — reachability and isolation proven mathematically before any device is touched
 - **Full lifecycle tracking** — intent status (draft → validated → deploying → deployed → failed → rolled_back → deprecated), every verification result, and all resource allocations stored in Nautobot's database
 - **Real-time topology viewer** — vis.js network graph with:
@@ -416,7 +417,7 @@ For full development environment setup including Docker Compose, see the [develo
 
 | Model | Purpose |
 |-------|---------|
-| `Intent` | Central record for a network intent — one row per YAML file. Stores intent data, lifecycle status, Git provenance, and links to its GitRepository |
+| `Intent` | Central record for a network intent — one row per YAML file. Stores intent data, lifecycle status, Git provenance, rendered configs (dry-run output), and links to its GitRepository |
 | `ResolutionPlan` | Resolved vendor-neutral primitives for a specific intent version, with affected device list |
 | `VerificationResult` | Result of each verification/reconciliation check, including per-device checks, SLA measurements, drift details, and GitHub issue URL |
 | *Nautobot `ipam.VRF`* | VRF with auto-generated RD — replaces custom RD pools (native model) |
@@ -429,7 +430,7 @@ For full development environment setup including Docker Compose, see the [develo
 
 - **[App Overview](user/app_overview.md)** — Architecture, models, and design decisions
 - **[Getting Started](user/app_getting_started.md)** — Installation and first steps
-- **[Intent Types Reference](models/intent.md#intent-type-categories)** — All 129 supported intent types across 14 domains
+- **[Intent Types Reference](models/intent.md#intent-type-categories)** — All 133 supported intent types across 14 domains
 - **[Use Cases](user/app_use_cases.md)** — Real-world examples for each domain
 - **[Extending the App](dev/extending.md)** — Add custom intent types, adapters, templates, and policies
 - **[Developer Guide](dev/dev_environment.md)** — Local development environment setup
@@ -501,7 +502,7 @@ Before submitting a PR:
 ```bash
 invoke ruff --fix   # Must pass
 invoke pylint       # Must pass
-invoke tests        # Must pass (253 tests)
+invoke tests        # Must pass
 ```
 
 ---
