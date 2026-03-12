@@ -135,7 +135,9 @@ class IntentUIViewSet(NautobotUIViewSet):
         """Add resolution plans, verifications, approvals and audit trail to detail view."""
         context = super().get_extra_context(request, instance)
         if instance:
-            context["resolution_plans"] = instance.resolution_plans.prefetch_related("affected_devices").order_by("-resolved_at")[:5]
+            context["resolution_plans"] = instance.resolution_plans.prefetch_related("affected_devices").order_by(
+                "-resolved_at"
+            )[:5]
             context["verifications"] = instance.verifications.order_by("-verified_at")[:10]
             context["approvals"] = instance.approvals.order_by("-decided_at")[:10]
             context["audit_entries"] = instance.audit_trail.order_by("-timestamp")[:20]
