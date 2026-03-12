@@ -370,36 +370,7 @@ class IntentDeploymentJob(Job):
             self.logger.failure("Intent '%s' not found.", intent_id)
             return
 
-        # ── Approval gate (#2) ────────────────────────────────────────────
-        # In lab/testing mode, allow dry-run (commit=False) without approval.
-        # Production commits still require formal approval records.
-        if not intent.is_approved and commit:
-            self.logger.failure(
-                "Intent '%s' has not been approved. Deployment blocked. "
-                "An engineer with 'approve_intent' permission must approve first.",
-                intent_id,
-            )
-            IntentAuditEntry.objects.create(
-                intent=intent,
-                action="deployed",
-                actor="IntentDeploymentJob",
-                detail={"blocked": True, "reason": "No approval"},
-            )
-            return
-        if not intent.is_approved and not commit:
-            self.logger.warning(
-                "Intent '%s' is not approved, but continuing because this is a dry-run deployment.",
-                intent_id,
-            )
-
-        # ── Change window check (#9) ─────────────────────────────────────
-        if intent.scheduled_deploy_at and timezone.now() < intent.scheduled_deploy_at:
-            self.logger.failure(
-                "Intent '%s' is scheduled for deployment at %s. Current time: %s. Too early.",
-                intent_id,
-                intent.scheduled_deploy_at,
-                timezone.now(),
-            )
+        if not self._pre_deploy_checks(intent, commit):
             return
 
         try:
@@ -430,33 +401,7 @@ class IntentDeploymentJob(Job):
         # Dry-run mode is UI/lab-safe: render and store configs, but do not
         # attempt device connections or require credentials.
         if not commit:
-            intent.rendered_configs = rendered_configs
-            # Keep the intent validated; this was only a preview, not a commit.
-            intent.save(update_fields=["rendered_configs", "last_updated"])
-            self.logger.info(
-                "Dry-run complete for %s: rendered configs for %s devices; no device changes were pushed.",
-                intent_id,
-                len(rendered_configs),
-            )
-            IntentAuditEntry.objects.create(
-                intent=intent,
-                action="deployed",
-                actor="IntentDeploymentJob",
-                git_commit_sha=kwargs["commit_sha"],
-                detail={
-                    "devices": list(rendered_configs.keys()),
-                    "rendered_configs": rendered_configs,
-                    "dry_run": True,
-                    "strategy": intent.deployment_strategy,
-                    "preview_only": True,
-                },
-            )
-            return {
-                "success": True,
-                "dry_run": True,
-                "devices": list(rendered_configs.keys()),
-                "errors": [],
-            }
+            return self._handle_dry_run(intent, rendered_configs, kwargs["commit_sha"])
 
         # ── Staged rollout (#10) ──────────────────────────────────────────
         if intent.deployment_strategy != "all_at_once" and plan.affected_devices.count() > 1:
@@ -494,6 +439,79 @@ class IntentDeploymentJob(Job):
             self._trigger_rollback(intent, commit)
 
         return push_results
+
+    def _pre_deploy_checks(self, intent, commit):
+        """Run approval and change-window checks before deployment.
+
+        Returns True if deployment may proceed, False otherwise.
+        """
+        # ── Approval gate (#2) ────────────────────────────────────────────
+        # In lab/testing mode, allow dry-run (commit=False) without approval.
+        # Production commits still require formal approval records.
+        if not intent.is_approved and commit:
+            self.logger.failure(
+                "Intent '%s' has not been approved. Deployment blocked. "
+                "An engineer with 'approve_intent' permission must approve first.",
+                intent.intent_id,
+            )
+            IntentAuditEntry.objects.create(
+                intent=intent,
+                action="deployed",
+                actor="IntentDeploymentJob",
+                detail={"blocked": True, "reason": "No approval"},
+            )
+            return False
+        if not intent.is_approved and not commit:
+            self.logger.warning(
+                "Intent '%s' is not approved, but continuing because this is a dry-run deployment.",
+                intent.intent_id,
+            )
+
+        # ── Change window check (#9) ─────────────────────────────────────
+        if intent.scheduled_deploy_at and timezone.now() < intent.scheduled_deploy_at:
+            self.logger.failure(
+                "Intent '%s' is scheduled for deployment at %s. Current time: %s. Too early.",
+                intent.intent_id,
+                intent.scheduled_deploy_at,
+                timezone.now(),
+            )
+            return False
+
+        return True
+
+    def _handle_dry_run(self, intent, rendered_configs, commit_sha):
+        """Handle dry-run deployment: store rendered configs without pushing to devices.
+
+        Dry-run mode is UI/lab-safe: render and store configs, but do not
+        attempt device connections or require credentials.
+        """
+        intent.rendered_configs = rendered_configs
+        # Keep the intent validated; this was only a preview, not a commit.
+        intent.save(update_fields=["rendered_configs", "last_updated"])
+        self.logger.info(
+            "Dry-run complete for %s: rendered configs for %s devices; no device changes were pushed.",
+            intent.intent_id,
+            len(rendered_configs),
+        )
+        IntentAuditEntry.objects.create(
+            intent=intent,
+            action="deployed",
+            actor="IntentDeploymentJob",
+            git_commit_sha=commit_sha,
+            detail={
+                "devices": list(rendered_configs.keys()),
+                "rendered_configs": rendered_configs,
+                "dry_run": True,
+                "strategy": intent.deployment_strategy,
+                "preview_only": True,
+            },
+        )
+        return {
+            "success": True,
+            "dry_run": True,
+            "devices": list(rendered_configs.keys()),
+            "errors": [],
+        }
 
     def _staged_deploy(self, intent, plan, rendered_configs, commit):
         """Deploy in stages: canary first, then remaining sites sequentially.
