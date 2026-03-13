@@ -106,6 +106,7 @@ class JinjaTemplateDirectoryTest(SimpleTestCase):
         "cisco/nxos",
         "juniper/junos",
         "aruba/aos-cx",
+        "arista/eos",
     ]
 
     def test_templates_base_dir_exists(self):
