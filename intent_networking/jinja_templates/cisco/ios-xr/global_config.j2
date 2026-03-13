@@ -1,0 +1,135 @@
+{# global_config.j2 — ios-xr #}
+!! ═══════════════════════════════════════════════════════════
+!! Global Configuration Bundle
+!! Intent: {{ intent_id }}
+!! ═══════════════════════════════════════════════════════════
+!!
+{% if hostname %}
+hostname {{ hostname }}
+{% endif %}
+!
+{% if domain_name %}
+domain name {{ domain_name }}
+{% endif %}
+{% for server in dns_servers | default([]) %}
+domain name-server {{ server }}
+{% endfor %}
+!
+!! ── NTP ───────────────────────────────────────────────────
+{% if ntp_source_interface %}
+ntp source {{ ntp_source_interface }}
+{% endif %}
+{% for server in ntp_servers | default([]) %}
+{% if server == ntp_prefer %}
+ntp server {{ server }} prefer
+{% else %}
+ntp server {{ server }}
+{% endif %}
+{% endfor %}
+!
+!! ── Logging / Syslog ─────────────────────────────────────
+{% if syslog_source_interface %}
+logging source-interface {{ syslog_source_interface }}
+{% endif %}
+{% for server in syslog_servers | default([]) %}
+logging {{ server }}
+{% endfor %}
+{% if syslog_servers %}
+logging facility {{ syslog_facility | default("local7") }}
+logging trap {{ syslog_severity | default("informational") }}
+{% endif %}
+!
+!! ── SNMP ──────────────────────────────────────────────────
+{% if snmp_location %}
+snmp-server location {{ snmp_location }}
+{% endif %}
+{% if snmp_contact %}
+snmp-server contact {{ snmp_contact }}
+{% endif %}
+{% if snmp_version == "v3" %}
+{% for view in snmp_views | default([]) %}
+snmp-server view {{ view.name }} {{ view.oid }} included
+{% endfor %}
+{% for group in snmp_groups | default([]) %}
+snmp-server group {{ group.name }} v3 {{ group.security_level | default("priv") }}{% if group.read_view %} read {{ group.read_view }}{% endif %}
+
+{% endfor %}
+{% for user in snmp_users | default([]) %}
+snmp-server user {{ user.name }} {{ user.group }} v3 auth {{ user.auth_protocol | default("sha") }} {{ user.auth_password }} priv {{ user.priv_protocol | default("aes") }} 128 {{ user.priv_password }}
+{% endfor %}
+{% elif snmp_community %}
+snmp-server community {{ snmp_community }}
+{% endif %}
+{% for target in snmp_trap_targets | default([]) %}
+snmp-server host {{ target }}{% if snmp_community %} traps version 2c {{ snmp_community }}{% endif %}
+
+{% endfor %}
+{% if snmp_trap_targets %}
+snmp-server traps
+{% endif %}
+!
+!! ── Banner / MOTD ─────────────────────────────────────────
+{% if login_banner %}
+banner login delimiter !
+{{ login_banner }}
+!
+{% endif %}
+{% if motd_banner %}
+banner motd delimiter !
+{{ motd_banner }}
+!
+{% endif %}
+!
+!! ── SSH ───────────────────────────────────────────────────
+{% if enable_ssh %}
+ssh server v2
+ssh server rate-limit {{ ssh_retries | default(3) }}
+ssh timeout {{ ssh_timeout | default(60) }}
+!
+{% endif %}
+!
+!! ── NETCONF ───────────────────────────────────────────────
+{% if enable_netconf %}
+netconf-yang agent
+ ssh
+!
+ssh server netconf port 830
+{% endif %}
+{% if enable_restconf %}
+grpc
+ port 57400
+ no-tls
+!
+{% endif %}
+!
+!! ── LLDP ──────────────────────────────────────────────────
+{% if enable_lldp is defined %}
+{% if enable_lldp %}
+lldp
+!
+{% else %}
+no lldp
+!
+{% endif %}
+{% endif %}
+!
+!! ── DHCP Server ───────────────────────────────────────────
+{% if dhcp_pools %}
+dhcp ipv4
+{% for pool in dhcp_pools | default([]) %}
+ profile {{ pool.name }} server
+{% if pool.default_router %}
+  default-router {{ pool.default_router }}
+{% endif %}
+{% if pool.dns_server %}
+  dns-server {{ pool.dns_server }}
+{% endif %}
+  lease 1 0 0
+ !
+ pool {{ pool.name }}
+  network {{ pool.network }}
+ !
+{% endfor %}
+!
+{% endif %}
+!!

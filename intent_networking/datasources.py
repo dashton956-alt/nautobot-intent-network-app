@@ -85,7 +85,12 @@ def _sync_repo_intents(repository_record, job_result):
     msg = f"Found {len(yaml_files)} intent file(s) in '{repository_record.name}'"
     job_result.log(msg, grouping="intent definitions")
 
-    draft_status = Status.objects.get(name__iexact="Draft")
+    try:
+        draft_status = Status.objects.get(name__iexact="Draft")
+    except Status.DoesNotExist:
+        draft_status = Status.objects.first()
+        logger.warning("'Draft' status not found in Nautobot; falling back to '%s'", draft_status)
+
     synced_intent_ids = set()
     stats = {"created": 0, "updated": 0, "errors": 0}
 
@@ -98,41 +103,48 @@ def _sync_repo_intents(repository_record, job_result):
             if not isinstance(intent_yaml, dict):
                 raise ValueError("File must contain a YAML mapping (dict)")  # noqa: TRY301
 
+            # Unwrap top-level "intent:" key if present (e.g. `intent: { id: ... }`)
+            if "intent" in intent_yaml and isinstance(intent_yaml["intent"], dict):
+                intent_yaml = intent_yaml["intent"]
+
             intent_id = intent_yaml.get("id")
             if not intent_id:
                 raise ValueError("Intent file must have an 'id' field")  # noqa: TRY301
 
-            # Resolve tenant
+            # Resolve tenant — case-insensitive match so "acme-corp" == "Acme-Corp"
             tenant_name = intent_yaml.get("tenant")
             if not tenant_name:
                 raise ValueError("Intent file must have a 'tenant' field")  # noqa: TRY301
 
             try:
-                tenant = Tenant.objects.get(name=tenant_name)
+                tenant = Tenant.objects.get(name__iexact=tenant_name)
             except Tenant.DoesNotExist as exc:
                 raise ValueError(  # noqa: TRY301
                     f"Tenant '{tenant_name}' not found in Nautobot. Create the tenant before syncing intents."
                 ) from exc
 
+            # Build update fields; include status only for new records so that
+            # existing intents keep whatever status they already have.
+            update_fields = {
+                "version": intent_yaml.get("version", 1),
+                "intent_type": intent_yaml.get("type", "connectivity"),
+                "tenant": tenant,
+                "intent_data": intent_yaml,
+                "change_ticket": intent_yaml.get("change_ticket", ""),
+                "git_commit_sha": repository_record.current_head or "",
+                "git_branch": repository_record.branch or "",
+                "git_repository": repository_record,
+            }
+            is_new = not Intent.objects.filter(intent_id=intent_id).exists()
+            if is_new:
+                update_fields["status"] = draft_status
+
             intent, created = Intent.objects.update_or_create(
                 intent_id=intent_id,
-                defaults={
-                    "version": intent_yaml.get("version", 1),
-                    "intent_type": intent_yaml.get("type", "connectivity"),
-                    "tenant": tenant,
-                    "intent_data": intent_yaml,
-                    "change_ticket": intent_yaml.get("change_ticket", ""),
-                    "git_commit_sha": repository_record.current_head or "",
-                    "git_branch": repository_record.branch or "",
-                    "git_repository": repository_record,
-                },
+                defaults=update_fields,
             )
-            # New intents get Draft status; existing intents keep their status
-            # unless the YAML explicitly specifies one.
-            if created:
-                intent.status = draft_status
-                intent.save()
-            elif "status" in intent_yaml:
+            # Allow the YAML to explicitly override status on existing intents.
+            if "status" in intent_yaml and not created:
                 status_name = intent_yaml["status"]
                 try:
                     new_status = Status.objects.get(name__iexact=status_name)

@@ -1,0 +1,32 @@
+{# dhcp_server.j2 — aos-cx #}
+! DHCP Server Configuration
+! Intent: {{ intent_id }}
+!
+{% for pool in pools %}
+dhcp-server pool {{ pool.name }}
+{% for range in pool.ranges | default([]) %}
+ range {{ range.start }} {{ range.end }}
+{% endfor %}
+{% if pool.network %}
+ network {{ pool.network }}
+{% endif %}
+{% if pool.default_router %}
+ default-router {{ pool.default_router }}
+{% endif %}
+{% if pool.dns_server %}
+ dns-server {{ pool.dns_server }}
+{% endif %}
+{% if pool.domain_name %}
+ domain-name {{ pool.domain_name }}
+{% endif %}
+{% if pool.lease_time %}
+ lease {{ pool.lease_time // 86400 }} {{ (pool.lease_time % 86400) // 3600 }} {{ (pool.lease_time % 3600) // 60 }}
+{% else %}
+ lease 1 0 0
+{% endif %}
+{% for exclude in pool.excluded_addresses | default([]) %}
+ excluded-address {{ exclude }}
+{% endfor %}
+ exit
+!
+{% endfor %}

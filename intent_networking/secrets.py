@@ -68,6 +68,13 @@ def get_device_credentials():
     password = os.environ.get("DEVICE_PASSWORD", "")
 
     if not username or not password:
+        if settings.DEBUG:
+            logger.warning(
+                "No device credentials configured; using debug fallback credentials (admin/admin). "
+                "Set DEVICE_USERNAME/DEVICE_PASSWORD or configure device_secrets_group for non-lab usage."
+            )
+            return ("admin", "admin")
+
         raise RuntimeError(
             "No device credentials available. Either:\n"
             "  1. Configure 'device_secrets_group' in PLUGINS_CONFIG to use Nautobot Secrets, or\n"

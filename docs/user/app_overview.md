@@ -17,7 +17,7 @@ Git YAML → Sync → Validate (OPA) → Resolve → Deploy (Nornir) → Verify 
 
 Key capabilities:
 
-- **129 intent types** across 14 network domains (L2/L3, MPLS, EVPN/VXLAN, Security, WAN, Wireless, Cloud, QoS, and more)
+- **133 intent types** across 14 network domains (L2/L3, MPLS, EVPN/VXLAN, Security, WAN, Wireless, Cloud, QoS, and more)
 - **Git-native workflow** — intents are synced from a Git repository via Nautobot's native `GitRepository` integration
 - **Policy enforcement** — optional OPA (Open Policy Agent) integration for pre-deployment policy checks
 - **Resource allocation** — automatic VRF, Route Target, VNI, Tunnel ID, Loopback IP, and VLAN allocation using Nautobot's native IPAM models
@@ -63,7 +63,7 @@ The app registers seven Nautobot Jobs:
 | `IntentSyncFromGitJob` | Creates/updates Intent records from parsed YAML (CI fallback) |
 | `IntentResolutionJob` | Resolves an intent into a vendor-neutral deployment plan |
 | `IntentConfigPreviewJob` | Generates a config diff preview without deploying |
-| `IntentDeploymentJob` | Deploys the resolved plan to devices via Nornir |
+| `IntentDeploymentJob` | Deploys the resolved plan to devices via Nornir; supports `commit=False` dry-run mode to render configs without device changes |
 | `IntentVerificationJob` | Verifies the intent is satisfied post-deployment |
 | `IntentRollbackJob` | Rolls back a failed deployment to the previous good state |
 | `IntentReconciliationJob` | Scheduled: checks all deployed intents for configuration drift |

@@ -1,0 +1,5 @@
+! VLAN Configuration
+vlan {{ vlan_id }}
+   name {{ vlan_name }}
+{% if description %}   description {{ description }}
+{% endif %}!

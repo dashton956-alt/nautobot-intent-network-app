@@ -1,0 +1,25 @@
+{# netconf.j2 — arista-eos #}
+! NETCONF / RESTCONF Configuration
+! Intent: {{ intent_id }}
+!
+management api netconf
+   transport ssh default
+{% if vrf %}
+      vrf {{ vrf }}
+{% endif %}
+{% if port %}
+      port {{ port }}
+{% endif %}
+!
+{% if enable_restconf %}
+management api http-commands
+   protocol https
+{% if restconf_port %}
+   port {{ restconf_port }}
+{% endif %}
+   no shutdown
+{% if restconf_vrf %}
+   vrf {{ restconf_vrf }}
+{% endif %}
+{% endif %}
+!

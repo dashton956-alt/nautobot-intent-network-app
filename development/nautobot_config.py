@@ -137,7 +137,7 @@ PLUGINS_CONFIG = {
         "slack_webhook_url": "",
         # GitHub integration for raising drift issues (leave empty to disable)
         "github_token": "",
-        "github_repo": "",
+        "github_repo": "your-org/your-repo",
         # Git integration — the preferred approach is to create a GitRepository
         # in the Nautobot UI (Extensibility → Git Repositories) with the
         # "intent definitions" content type. Nautobot will auto-discover and

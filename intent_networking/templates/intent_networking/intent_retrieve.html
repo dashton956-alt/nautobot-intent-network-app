@@ -208,6 +208,8 @@
           <tr>
             <th>Version</th>
             <th>VRF</th>
+            <th>Devices</th>
+            <th>Affected Devices</th>
             <th>Primitives</th>
             <th>Resolved At</th>
           </tr>
@@ -217,6 +219,8 @@
             <tr>
               <td>v{{ plan.intent_version }}</td>
               <td>{{ plan.vrf_name|default:"&mdash;" }}</td>
+              <td>{{ plan.affected_devices.count }}</td>
+              <td>{{ plan.affected_device_names|join:", "|default:"&mdash;" }}</td>
               <td>{{ plan.primitive_count }}</td>
               <td>{{ plan.resolved_at }}</td>
             </tr>

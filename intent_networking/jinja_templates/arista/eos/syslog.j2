@@ -1,0 +1,14 @@
+{# syslog.j2 — arista-eos #}
+! Syslog Configuration
+! Intent: {{ intent_id }}
+!
+{% if source_interface %}
+logging source-interface {{ source_interface }}
+{% endif %}
+logging facility {{ facility | default("local7") }}
+logging trap {{ severity | default("informational") }}
+{% for server in servers %}
+logging host {{ server }}
+{% endfor %}
+logging on
+!

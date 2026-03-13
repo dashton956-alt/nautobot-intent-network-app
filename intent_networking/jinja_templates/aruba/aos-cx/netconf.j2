@@ -1,0 +1,18 @@
+{# netconf.j2 — aos-cx #}
+! NETCONF / REST API Configuration
+! Intent: {{ intent_id }}
+!
+{# AOS-CX has limited NETCONF support; primary programmability is via REST API #}
+{% if enable_restconf %}
+https-server rest access-mode read-write
+https-server vrf {{ restconf_vrf | default("default") }}
+{% if restconf_port %}
+https-server rest port {{ restconf_port }}
+{% endif %}
+{% endif %}
+!
+{% if port %}
+{# Enable NETCONF-over-SSH if supported by platform version #}
+netconf ssh port {{ port }}
+{% endif %}
+!

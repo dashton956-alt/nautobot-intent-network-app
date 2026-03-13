@@ -1,0 +1,30 @@
+{# dhcp_server.j2 — ios-xr #}
+!! DHCP Server Configuration
+!! Intent: {{ intent_id }}
+!!
+dhcp ipv4
+{% for pool in pools %}
+ profile {{ pool.name }} server
+  lease {{ pool.lease_time // 86400 if pool.lease_time else 1 }} 0 0
+{% if pool.default_router %}
+  default-router {{ pool.default_router }}
+{% endif %}
+{% if pool.dns_server %}
+  dns-server {{ pool.dns_server }}
+{% endif %}
+{% if pool.domain_name %}
+  domain-name {{ pool.domain_name }}
+{% endif %}
+ !
+ pool {{ pool.name }}
+  network {{ pool.network }}
+{% for range in pool.ranges | default([]) %}
+  address-range {{ range.start }} {{ range.end }}
+{% endfor %}
+{% for exclude in pool.excluded_addresses | default([]) %}
+  excluded-address {{ exclude }} {{ exclude }}
+{% endfor %}
+ !
+{% endfor %}
+!
+!!

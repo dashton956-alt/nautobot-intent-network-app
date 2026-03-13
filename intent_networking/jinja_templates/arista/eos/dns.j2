@@ -1,0 +1,14 @@
+{# dns.j2 — arista-eos #}
+! DNS Configuration
+! Intent: {{ intent_id }}
+!
+{% if domain_name %}
+dns domain {{ domain_name }}
+{% endif %}
+{% for domain in domain_list %}
+dns domain {{ domain }}
+{% endfor %}
+{% for server in servers %}
+name-server {{ server }}
+{% endfor %}
+!

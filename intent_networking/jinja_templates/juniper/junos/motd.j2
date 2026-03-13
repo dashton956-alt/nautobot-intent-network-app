@@ -1,0 +1,10 @@
+{# motd.j2 — junos #}
+{# Banner / MOTD Configuration #}
+{# Intent: {{ intent_id }} #}
+
+{% if login_banner %}
+set system login message "{{ login_banner }}"
+{% endif %}
+{% if motd_banner %}
+set system login announcement "{{ motd_banner }}"
+{% endif %}

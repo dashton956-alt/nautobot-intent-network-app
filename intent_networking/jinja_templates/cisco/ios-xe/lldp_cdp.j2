@@ -1,10 +1,21 @@
 {# lldp_cdp.j2 — ios-xe #}
-! Primitive: lldp_cdp
+! LLDP / CDP Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for lldp_cdp on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if lldp_global %}
+lldp run
+{% else %}
+no lldp run
+{% endif %}
+{% if cdp_global %}
+cdp run
+{% else %}
+no cdp run
+{% endif %}
+{% for intf in disable_on %}
+interface {{ intf }}
+ no lldp transmit
+ no lldp receive
+ no cdp enable
+{% endfor %}
 !

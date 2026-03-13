@@ -1,0 +1,27 @@
+{# netconf.j2 — ios-xr #}
+!! NETCONF / gRPC Configuration
+!! Intent: {{ intent_id }}
+!!
+netconf-yang agent
+ ssh
+!
+{% if port %}
+ssh server netconf port {{ port }}
+{% else %}
+ssh server netconf port 830
+{% endif %}
+{% if vrf %}
+ssh server netconf vrf {{ vrf }}
+{% endif %}
+!
+{% if enable_restconf %}
+grpc
+{% if restconf_port %}
+ port {{ restconf_port }}
+{% else %}
+ port 57400
+{% endif %}
+ no-tls
+!
+{% endif %}
+!!

@@ -157,6 +157,10 @@ INTENT_REQUIRED_FIELDS: dict[str, list[str]] = {
     "mgmt_interface": [],
     "mgmt_lldp_cdp": [],
     "mgmt_stp_root": [],
+    "mgmt_motd": [],
+    "mgmt_netconf": [],
+    "mgmt_dhcp_server": [],
+    "mgmt_global_config": [],
     # Reachability sub-types
     "reachability_static": ["routes"],
     "reachability_bgp_network": ["local_asn", "networks"],

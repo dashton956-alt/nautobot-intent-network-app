@@ -1,0 +1,18 @@
+{# ntp.j2 — arista-eos #}
+! NTP Configuration
+! Intent: {{ intent_id }}
+!
+{% if source_interface %}
+ntp local-interface {{ source_interface }}
+{% endif %}
+{% if authentication %}
+ntp authenticate
+{% endif %}
+{% for server in servers %}
+{% if server == prefer %}
+ntp server {{ server }} prefer
+{% else %}
+ntp server {{ server }}
+{% endif %}
+{% endfor %}
+!

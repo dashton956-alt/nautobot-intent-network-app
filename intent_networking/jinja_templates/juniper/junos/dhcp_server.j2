@@ -1,0 +1,28 @@
+{# dhcp_server.j2 — junos #}
+{# DHCP Server Configuration #}
+{# Intent: {{ intent_id }} #}
+
+{% for pool in pools %}
+set access address-assignment pool {{ pool.name }} family inet network {{ pool.network }}
+{% for range in pool.ranges | default([]) %}
+set access address-assignment pool {{ pool.name }} family inet range {{ pool.name }}-range low {{ range.start }}
+set access address-assignment pool {{ pool.name }} family inet range {{ pool.name }}-range high {{ range.end }}
+{% endfor %}
+{% if pool.default_router %}
+set access address-assignment pool {{ pool.name }} family inet dhcp-attributes router-address {{ pool.default_router }}
+{% endif %}
+{% if pool.dns_server %}
+set access address-assignment pool {{ pool.name }} family inet dhcp-attributes name-server {{ pool.dns_server }}
+{% endif %}
+{% if pool.domain_name %}
+set access address-assignment pool {{ pool.name }} family inet dhcp-attributes domain-name {{ pool.domain_name }}
+{% endif %}
+{% if pool.lease_time %}
+set access address-assignment pool {{ pool.name }} family inet dhcp-attributes maximum-lease-time {{ pool.lease_time }}
+{% endif %}
+{% for exclude in pool.excluded_addresses | default([]) %}
+set access address-assignment pool {{ pool.name }} family inet excluded-address {{ exclude }}
+{% endfor %}
+
+{% endfor %}
+set system services dhcp-local-server group {{ pools[0].name }}-group interface irb.0

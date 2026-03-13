@@ -1,10 +1,15 @@
 {# syslog.j2 — ios-xe #}
-! Primitive: syslog
+! Syslog Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for syslog on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if source_interface %}
+logging source-interface {{ source_interface }}
+{% endif %}
+logging facility {{ facility | default("local7") }}
+logging trap {{ severity | default("informational") }}
+{% for server in servers %}
+logging host {{ server }}
+{% endfor %}
+logging on
+service timestamps log datetime msec localtime show-timezone
 !

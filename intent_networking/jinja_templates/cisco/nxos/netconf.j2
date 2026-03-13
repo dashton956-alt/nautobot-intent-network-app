@@ -1,0 +1,16 @@
+{# netconf.j2 — nxos #}
+! NETCONF / RESTCONF Configuration
+! Intent: {{ intent_id }}
+!
+feature netconf
+{% if port %}
+netconf listen-port {{ port }}
+{% endif %}
+!
+{% if enable_restconf %}
+feature restconf
+{% if restconf_port %}
+restconf listen-port {{ restconf_port }}
+{% endif %}
+{% endif %}
+!

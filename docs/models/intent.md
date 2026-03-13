@@ -10,10 +10,11 @@ Each `Intent` corresponds to one YAML file in the repo. It is created or updated
 |---|---|---|
 | `intent_id` | string | Unique identifier — matches the `id` field in the YAML file, e.g. `fin-pci-connectivity-001` |
 | `version` | integer | Version number, incremented each time the YAML changes |
-| `intent_type` | choice | One of 129 supported types (see below) |
+| `intent_type` | choice | One of 133 supported types (see below) |
 | `tenant` | FK → Tenant | Business owner of the intent |
 | `status` | StatusField | Current lifecycle status: `Draft → Validated → Deploying → Deployed → Failed → Rolled Back → Deprecated` |
 | `intent_data` | JSON | Full parsed YAML stored as JSON — the single source of truth |
+| `rendered_configs` | JSON | Per-device rendered Jinja2 configuration output, populated during dry-run or live deployments |
 | `change_ticket` | string | Change management ticket reference, e.g. `CHG0012345` |
 | `approved_by` | string | GitHub username of the PR approver |
 | `git_commit_sha` | string | Commit SHA that triggered the most recent deployment |
@@ -33,7 +34,7 @@ Each `Intent` corresponds to one YAML file in the repo. It is created or updated
 
 ## Intent Type Categories
 
-The 129 intent types are organised into 14 domains:
+The 133 intent types are organised into 14 domains:
 
 | Domain | Example Types |
 |--------|--------------|
@@ -47,7 +48,7 @@ The 129 intent types are organised into 14 domains:
 | Cloud / Hybrid | `cloud_interconnect`, `cloud_vpn_gw`, `cloud_vnet_peering`, `hybrid_dns` |
 | QoS | `qos_policy`, `traffic_shaping`, `dscp_marking`, `ecn`, `wred` |
 | Multicast | `igmp`, `pim_sparse`, `pim_ssm`, `msdp`, `multicast_boundary` |
-| Management | `snmp`, `syslog`, `ntp`, `aaa_radius`, `aaa_tacacs`, `netflow` |
+| Management | `snmp`, `syslog`, `ntp`, `aaa_radius`, `aaa_tacacs`, `netflow`, `mgmt_motd`, `mgmt_netconf`, `mgmt_dhcp_server`, `mgmt_global_config` |
 | Reachability | `reachability` |
 | Service | `service` |
 | Legacy | `connectivity`, `security` |

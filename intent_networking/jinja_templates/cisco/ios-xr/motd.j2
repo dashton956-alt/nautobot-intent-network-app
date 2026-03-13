@@ -1,0 +1,15 @@
+{# motd.j2 — ios-xr #}
+!! Banner / MOTD Configuration
+!! Intent: {{ intent_id }}
+!!
+{% if login_banner %}
+banner login delimiter !
+{{ login_banner }}
+!
+{% endif %}
+{% if motd_banner %}
+banner motd delimiter !
+{{ motd_banner }}
+!
+{% endif %}
+!!

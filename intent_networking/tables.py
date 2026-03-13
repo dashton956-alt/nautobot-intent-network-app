@@ -61,14 +61,33 @@ class ResolutionPlanTable(BaseTable):
 
     intent_version = tables.Column(verbose_name="Version")
     vrf_name = tables.Column(verbose_name="VRF")
+    device_count = tables.Column(verbose_name="Devices", empty_values=())
+    affected_devices = tables.Column(verbose_name="Affected Devices", empty_values=(), orderable=False)
     primitive_count = tables.Column(verbose_name="Primitives")
     resolved_at = tables.DateTimeColumn(verbose_name="Resolved")
+
+    def render_device_count(self, record):
+        """Render the number of affected devices."""
+        return record.affected_devices.count()
+
+    def render_affected_devices(self, record):
+        """Render a comma-separated list of affected device names."""
+        return ", ".join(record.affected_device_names) or "—"
 
     class Meta(BaseTable.Meta):
         """Meta options for ResolutionPlanTable."""
 
         model = ResolutionPlan
-        fields = ["intent", "intent_version", "vrf_name", "primitive_count", "resolved_at", "resolved_by"]
+        fields = [
+            "intent",
+            "intent_version",
+            "vrf_name",
+            "device_count",
+            "affected_devices",
+            "primitive_count",
+            "resolved_at",
+            "resolved_by",
+        ]
 
 
 class VerificationResultTable(BaseTable):
