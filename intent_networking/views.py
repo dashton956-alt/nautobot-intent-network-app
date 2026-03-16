@@ -162,7 +162,7 @@ class ResolutionPlanListView(ObjectListView):
     """Read-only list view for resolution plans."""
 
     queryset = ResolutionPlan.objects.all().select_related("intent").prefetch_related("affected_devices")
-    table_class = ResolutionPlanTable
+    table = ResolutionPlanTable
     action_buttons = ("export",)
 
 
@@ -182,7 +182,7 @@ class VerificationResultListView(ObjectListView):
     """Read-only list view for verification results."""
 
     queryset = VerificationResult.objects.all().select_related("intent")
-    table_class = VerificationResultTable
+    table = VerificationResultTable
     action_buttons = ("export",)
 
 
@@ -202,8 +202,8 @@ class AuditTrailListView(ObjectListView):
     """Read-only list view for all audit entries across all intents."""
 
     queryset = IntentAuditEntry.objects.all().select_related("intent")
-    table_class = IntentAuditEntryTable
-    filterset_class = IntentAuditEntryFilterSet
+    table = IntentAuditEntryTable
+    filterset = IntentAuditEntryFilterSet
     action_buttons = ("export",)
 
 

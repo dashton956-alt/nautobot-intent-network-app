@@ -500,10 +500,14 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
             from nautobot.extras.models import ApprovalWorkflow  # pylint: disable=import-outside-toplevel
 
             ct = ContentType.objects.get_for_model(self)
-            wf = ApprovalWorkflow.objects.filter(
-                object_under_review_content_type=ct,
-                object_under_review_object_id=self.pk,
-            ).order_by("-decision_date").first()
+            wf = (
+                ApprovalWorkflow.objects.filter(
+                    object_under_review_content_type=ct,
+                    object_under_review_object_id=self.pk,
+                )
+                .order_by("-decision_date")
+                .first()
+            )
             if wf and wf.user_id:
                 return wf.user_id
         except (ImportError, Exception):  # pylint: disable=broad-exception-caught
@@ -517,10 +521,14 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
             from nautobot.extras.models import ApprovalWorkflow  # pylint: disable=import-outside-toplevel
 
             ct = ContentType.objects.get_for_model(self)
-            wf = ApprovalWorkflow.objects.filter(
-                object_under_review_content_type=ct,
-                object_under_review_object_id=self.pk,
-            ).order_by("-decision_date").first()
+            wf = (
+                ApprovalWorkflow.objects.filter(
+                    object_under_review_content_type=ct,
+                    object_under_review_object_id=self.pk,
+                )
+                .order_by("-decision_date")
+                .first()
+            )
             if wf and wf.user:
                 return wf.user.username
         except (ImportError, Exception):  # pylint: disable=broad-exception-caught

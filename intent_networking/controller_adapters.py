@@ -524,8 +524,7 @@ class FirewallControllerAdapter(ControllerAdapter):
     def _dispatch_push(self, ptype: str, prim: dict, intent_id: str) -> dict:  # pylint: disable=unused-argument
         """Vendor-specific push logic — override in concrete subclass."""
         logger.warning(
-            "FirewallControllerAdapter._dispatch_push not overridden; "
-            "primitive '%s' for intent '%s' was NOT pushed.",
+            "FirewallControllerAdapter._dispatch_push not overridden; primitive '%s' for intent '%s' was NOT pushed.",
             ptype,
             intent_id,
         )
