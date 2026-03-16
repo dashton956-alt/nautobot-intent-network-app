@@ -8,7 +8,7 @@ An intent is a declarative description of desired network state, expressed as a 
 
 ### How many intent types are supported?
 
-The app supports **129 intent types** across 14 network domains: Layer 2, Layer 3, MPLS/SP, DC/EVPN/VXLAN, Security, WAN/SD-WAN, Wireless, Cloud/Hybrid, QoS, Multicast, Management, Reachability, Service, and legacy types.
+The app supports **134 intent types** across 14 network domains: Layer 2, Layer 3, MPLS/SP, DC/EVPN/VXLAN, Security, WAN/SD-WAN, Wireless, Cloud/Hybrid, QoS, Multicast, Management, Reachability, Service, and legacy types.
 
 ### Where are intents stored?
 

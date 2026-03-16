@@ -122,6 +122,7 @@ class IntentTypeChoices(models.TextChoices):
     AAA = "aaa", "RADIUS / TACACS AAA"
     RA_GUARD = "ra_guard", "RA Guard (IPv6)"
     SSL_INSPECTION = "ssl_inspection", "SSL/TLS Inspection"
+    FW_RULE = "fw_rule", "Firewall Rule"
 
     # ── 6. WAN & SD-WAN ──────────────────────────────────────────────────
     WAN_UPLINK = "wan_uplink", "WAN Uplink / Dual ISP"
@@ -250,7 +251,7 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
 
     # ── Lifecycle ─────────────────────────────────────────────────────────
     # Statuses managed in Nautobot admin:
-    # draft → validated → deploying → deployed → failed → rolled_back → deprecated
+    # draft → validated → deploying → deployed → failed → rolled_back → deprecated / retired
     status = StatusField()
 
     # ── Raw intent data ───────────────────────────────────────────────────
@@ -327,13 +328,14 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
 
     # Maps current status (lower-case) → set of allowed next statuses.
     VALID_STATUS_TRANSITIONS = {
-        "draft": {"validated", "deprecated"},
-        "validated": {"deploying", "deprecated"},
+        "draft": {"validated", "deprecated", "retired"},
+        "validated": {"deploying", "deprecated", "retired"},
         "deploying": {"deployed", "failed"},
-        "deployed": {"validated", "failed", "rolled back", "deprecated"},
-        "failed": {"validated", "rolled back", "deprecated"},
-        "rolled back": {"validated", "deploying", "deprecated"},
+        "deployed": {"validated", "failed", "rolled back", "deprecated", "retired"},
+        "failed": {"validated", "rolled back", "deprecated", "retired"},
+        "rolled back": {"validated", "deploying", "deprecated", "retired"},
         "deprecated": set(),  # terminal state
+        "retired": {"draft"},  # can only return to draft
     }
 
     def clean(self):
@@ -375,6 +377,11 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
     def is_deployed(self):
         """Return True if intent status name is 'deployed'."""
         return self.status and self.status.name.lower() == "deployed"
+
+    @property
+    def is_retired(self):
+        """Return True if intent status name is 'retired'."""
+        return self.status and self.status.name.lower() == "retired"
 
     @property
     def latest_plan(self):

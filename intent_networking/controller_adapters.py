@@ -444,6 +444,113 @@ class CloudAdapter(ControllerAdapter):
 
 
 # ---------------------------------------------------------------------------
+# Firewall Controller Adapter
+# ---------------------------------------------------------------------------
+
+
+class FirewallControllerAdapter(ControllerAdapter):
+    """Adapter for centrally-managed firewall appliances.
+
+    Supports Palo Alto Panorama, Fortinet FortiManager, and a generic
+    REST-based firewall manager.
+
+    Plugin config keys used:
+        ``firewall_controller_url``   — e.g. ``https://panorama.example.com``
+        ``firewall_controller_type``  — ``paloalto_panorama`` | ``fortinet_fortimanager`` | ``generic``
+        ``firewall_controller_creds`` — dict with ``username`` / ``password`` / ``api_key``
+    """
+
+    PRIMITIVE_TYPES = frozenset(
+        {
+            "fw_rule",
+        }
+    )
+
+    def push(self, primitives: list[dict], intent_id: str) -> dict:
+        """Push firewall rule primitives to the controller."""
+        results = []
+        for prim in primitives:
+            ptype = prim.get("primitive_type", "")
+            if ptype not in self.PRIMITIVE_TYPES:
+                logger.warning("Skipping non-firewall primitive '%s'", ptype)
+                continue
+
+            logger.info(
+                "[%s] Pushing %s to %s (intent=%s)",
+                self.__class__.__name__,
+                ptype,
+                self.controller_url,
+                intent_id,
+            )
+
+            result = self._dispatch_push(ptype, prim, intent_id)
+            results.append(result)
+
+        success = all(r.get("ok") for r in results)
+        return {
+            "success": success,
+            "details": results,
+        }
+
+    def verify(self, primitives: list[dict], intent_id: str) -> dict:
+        """Verify firewall rules are present on the controller."""
+        drift: list[str] = []
+        for prim in primitives:
+            ptype = prim.get("primitive_type", "")
+            if ptype not in self.PRIMITIVE_TYPES:
+                continue
+            if not self._check_present(ptype, prim, intent_id):
+                drift.append(f"{ptype} policy '{prim.get('policy_name', '')}' missing for intent {intent_id}")
+        return {
+            "verified": len(drift) == 0,
+            "drift": drift,
+            "details": f"Checked {len(primitives)} primitives",
+        }
+
+    def rollback(self, primitives: list[dict], intent_id: str) -> dict:
+        """Roll back firewall rules on the controller."""
+        results = []
+        for prim in primitives:
+            ptype = prim.get("primitive_type", "")
+            if ptype not in self.PRIMITIVE_TYPES:
+                continue
+            result = self._dispatch_rollback(ptype, prim, intent_id)
+            results.append(result)
+        return {
+            "success": all(r.get("ok") for r in results),
+            "details": results,
+        }
+
+    def _dispatch_push(self, ptype: str, prim: dict, intent_id: str) -> dict:  # pylint: disable=unused-argument
+        """Vendor-specific push logic — override in concrete subclass."""
+        logger.warning(
+            "FirewallControllerAdapter._dispatch_push not overridden; "
+            "primitive '%s' for intent '%s' was NOT pushed.",
+            ptype,
+            intent_id,
+        )
+        return {"ok": False, "reason": "no vendor implementation"}
+
+    def _check_present(self, ptype: str, prim: dict, intent_id: str) -> bool:  # pylint: disable=unused-argument
+        """Vendor-specific verify — override in concrete subclass."""
+        logger.warning(
+            "FirewallControllerAdapter._check_present not overridden; returning False for '%s'.",
+            ptype,
+        )
+        return False
+
+    def _dispatch_rollback(self, ptype: str, prim: dict, intent_id: str) -> dict:  # pylint: disable=unused-argument
+        """Vendor-specific rollback — override in concrete subclass."""
+        logger.warning(
+            "FirewallControllerAdapter._dispatch_rollback not overridden; "
+            "primitive '%s' for intent '%s' was NOT rolled back.",
+            ptype,
+            intent_id,
+        )
+        return {"ok": False, "reason": "no vendor implementation"}
+
+
+# ---------------------------------------------------------------------------
 # Adapter Factory
 # ---------------------------------------------------------------------------
 
@@ -452,6 +559,7 @@ ADAPTER_REGISTRY: dict[str, type[ControllerAdapter]] = {
     "wireless": WirelessControllerAdapter,
     "sdwan": SdWanControllerAdapter,
     "cloud": CloudAdapter,
+    "firewall": FirewallControllerAdapter,
 }
 
 
@@ -504,6 +612,7 @@ def classify_primitives(primitives: list[dict]) -> dict[str, list[dict]]:
         "wireless": [],
         "sdwan": [],
         "cloud": [],
+        "firewall": [],
     }
 
     for prim in primitives:
@@ -514,6 +623,8 @@ def classify_primitives(primitives: list[dict]) -> dict[str, list[dict]]:
             buckets["sdwan"].append(prim)
         elif ptype in CloudAdapter.PRIMITIVE_TYPES:
             buckets["cloud"].append(prim)
+        elif ptype in FirewallControllerAdapter.PRIMITIVE_TYPES:
+            buckets["firewall"].append(prim)
         else:
             # Default: device-level config pushed via Nornir/Netmiko
             buckets["nornir"].append(prim)

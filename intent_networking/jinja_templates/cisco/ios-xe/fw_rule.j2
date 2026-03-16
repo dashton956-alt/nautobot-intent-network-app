@@ -1,0 +1,40 @@
+! Firewall Policy — {{ policy_name }}
+! Intent: {{ intent_id }} v{{ intent_version }}
+! Type: {{ firewall_type }} | Default action: {{ default_action }}
+!
+ip access-list extended {{ policy_name }}
+{% for rule in rules %}
+{% if rule.description is defined and rule.description %}
+ remark {{ rule.description }}
+{% endif %}
+{% if rule.port is defined and rule.port %}
+ {{ rule.action }} {{ rule.protocol }} {{ rule.source }} {{ rule.destination }} eq {{ rule.port }}{% if rule.log is defined and rule.log %} log{% endif %}
+
+{% elif rule.source_port is defined and rule.source_port %}
+ {{ rule.action }} {{ rule.protocol }} {{ rule.source }} eq {{ rule.source_port }} {{ rule.destination }}{% if rule.log is defined and rule.log %} log{% endif %}
+
+{% else %}
+ {{ rule.action }} {{ rule.protocol }} {{ rule.source }} {{ rule.destination }}{% if rule.log is defined and rule.log %} log{% endif %}
+
+{% endif %}
+{% endfor %}
+{% if default_action == "deny" %}
+ deny ip any any log
+{% endif %}
+!
+{% if firewall_type == "stateful" %}
+ip inspect name {{ policy_name }}-inspect {{ rules[0].protocol | default("tcp") }}
+{% endif %}
+{% for iface in apply_interfaces %}
+interface {{ iface }}
+{% if direction == "in" or direction == "both" %}
+ ip access-group {{ policy_name }} in
+{% endif %}
+{% if direction == "out" or direction == "both" %}
+ ip access-group {{ policy_name }} out
+{% endif %}
+{% if firewall_type == "stateful" %}
+ ip inspect {{ policy_name }}-inspect {{ direction | default("in") }}
+{% endif %}
+!
+{% endfor %}

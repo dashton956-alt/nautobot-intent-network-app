@@ -45,7 +45,8 @@ Git Repository (YAML intents)
 ### Key Features
 
 - **Native Nautobot Git integration** — configure a GitRepository with the "intent definitions" content type; Nautobot auto-syncs intent YAML files on every pull (no CI scripts needed)
-- **[133 intent types](models/intent.md#intent-type-categories)** across 14 network domains — L2/L3, MPLS, EVPN/VXLAN, Security, WAN, Wireless, Cloud, QoS, Multicast, and more
+- **Firewall rule intents** — declarative firewall policies that render to device ACLs and can be pushed to centralized firewall controllers (Panorama, FortiManager, generic REST)
+- **[134 intent types](models/intent.md#intent-type-categories)** across 14 network domains — L2/L3, MPLS, EVPN/VXLAN, Security, WAN, Wireless, Cloud, QoS, Multicast, and more
 - **YAML-first intent authoring** — engineers write what they want, not how to configure it
 - **Atomic resource allocation** — route distinguishers and route targets allocated from pools using `select_for_update()`, preventing duplicates even under concurrent deployments
 - **Multi-vendor rendering** — Jinja2 templates per platform (Cisco IOS-XE, IOS-XR, Juniper JunOS, Aruba AOS-CX); swap the router, keep the intent
@@ -430,7 +431,7 @@ For full development environment setup including Docker Compose, see the [develo
 
 - **[App Overview](user/app_overview.md)** — Architecture, models, and design decisions
 - **[Getting Started](user/app_getting_started.md)** — Installation and first steps
-- **[Intent Types Reference](models/intent.md#intent-type-categories)** — All 133 supported intent types across 14 domains
+- **[Intent Types Reference](models/intent.md#intent-type-categories)** — All 134 supported intent types across 14 domains
 - **[Use Cases](user/app_use_cases.md)** — Real-world examples for each domain
 - **[Extending the App](dev/extending.md)** — Add custom intent types, adapters, templates, and policies
 - **[Developer Guide](dev/dev_environment.md)** — Local development environment setup

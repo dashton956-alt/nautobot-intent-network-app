@@ -1,0 +1,33 @@
+! Firewall Policy — {{ policy_name }} (NX-OS)
+! Intent: {{ intent_id }} v{{ intent_version }}
+! Type: {{ firewall_type }} | Default action: {{ default_action }}
+!
+ip access-list {{ policy_name }}
+{% set seq = namespace(n=10) %}
+{% for rule in rules %}
+{% if rule.description is defined and rule.description %}
+  remark {{ rule.description }}
+{% endif %}
+{% if rule.port is defined and rule.port %}
+  {{ seq.n }} {{ rule.action }} {{ rule.protocol }} {{ rule.source }} {{ rule.destination }} eq {{ rule.port }}{% if rule.log is defined and rule.log %} log{% endif %}
+
+{% else %}
+  {{ seq.n }} {{ rule.action }} {{ rule.protocol }} {{ rule.source }} {{ rule.destination }}{% if rule.log is defined and rule.log %} log{% endif %}
+
+{% endif %}
+{% set seq.n = seq.n + 10 %}
+{% endfor %}
+{% if default_action == "deny" %}
+  {{ seq.n }} deny ip any any log
+{% endif %}
+!
+{% for iface in apply_interfaces %}
+interface {{ iface }}
+{% if direction == "in" or direction == "both" %}
+  ip access-group {{ policy_name }} in
+{% endif %}
+{% if direction == "out" or direction == "both" %}
+  ip access-group {{ policy_name }} out
+{% endif %}
+!
+{% endfor %}

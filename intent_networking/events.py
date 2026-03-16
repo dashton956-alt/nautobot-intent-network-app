@@ -32,6 +32,7 @@ EVENT_INTENT_DRIFT = "intent.drift_detected"
 EVENT_INTENT_ROLLED_BACK = "intent.rolled_back"
 EVENT_INTENT_CONFLICT = "intent.conflict_detected"
 EVENT_INTENT_SCHEDULED = "intent.scheduled"
+EVENT_INTENT_RETIRED = "intent.retired"
 
 ALL_EVENTS = [
     EVENT_INTENT_CREATED,
@@ -45,6 +46,7 @@ ALL_EVENTS = [
     EVENT_INTENT_ROLLED_BACK,
     EVENT_INTENT_CONFLICT,
     EVENT_INTENT_SCHEDULED,
+    EVENT_INTENT_RETIRED,
 ]
 
 

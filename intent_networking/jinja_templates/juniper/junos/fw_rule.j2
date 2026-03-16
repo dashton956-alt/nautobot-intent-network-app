@@ -1,0 +1,51 @@
+{# Firewall Filter — {{ policy_name }} (Junos) #}
+{# Intent: {{ intent_id }} v{{ intent_version }} #}
+{# Type: {{ firewall_type }} | Default: {{ default_action }} #}
+{% set counter = namespace(term=10) %}
+{% for rule in rules %}
+{% if rule.description is defined and rule.description %}
+set firewall family inet filter {{ policy_name }} term RULE-{{ counter.term }} description "{{ rule.description }}"
+{% endif %}
+{% if rule.source is defined and rule.source != "any" %}
+set firewall family inet filter {{ policy_name }} term RULE-{{ counter.term }} from source-address {{ rule.source }}
+{% endif %}
+{% if rule.destination is defined and rule.destination != "any" %}
+set firewall family inet filter {{ policy_name }} term RULE-{{ counter.term }} from destination-address {{ rule.destination }}
+{% endif %}
+{% if rule.protocol is defined and rule.protocol != "ip" %}
+set firewall family inet filter {{ policy_name }} term RULE-{{ counter.term }} from protocol {{ rule.protocol }}
+{% endif %}
+{% if rule.port is defined and rule.port %}
+set firewall family inet filter {{ policy_name }} term RULE-{{ counter.term }} from destination-port {{ rule.port }}
+{% endif %}
+{% if rule.source_port is defined and rule.source_port %}
+set firewall family inet filter {{ policy_name }} term RULE-{{ counter.term }} from source-port {{ rule.source_port }}
+{% endif %}
+{% if rule.action == "permit" %}
+set firewall family inet filter {{ policy_name }} term RULE-{{ counter.term }} then accept
+{% elif rule.action == "reject" %}
+set firewall family inet filter {{ policy_name }} term RULE-{{ counter.term }} then reject
+{% else %}
+set firewall family inet filter {{ policy_name }} term RULE-{{ counter.term }} then discard
+{% endif %}
+{% if rule.log is defined and rule.log %}
+set firewall family inet filter {{ policy_name }} term RULE-{{ counter.term }} then log
+set firewall family inet filter {{ policy_name }} term RULE-{{ counter.term }} then syslog
+{% endif %}
+{% set counter.term = counter.term + 10 %}
+{% endfor %}
+{# Default action term #}
+{% if default_action == "deny" %}
+set firewall family inet filter {{ policy_name }} term DEFAULT then discard
+set firewall family inet filter {{ policy_name }} term DEFAULT then log
+{% else %}
+set firewall family inet filter {{ policy_name }} term DEFAULT then accept
+{% endif %}
+{% for iface in apply_interfaces %}
+{% if direction == "in" or direction == "both" %}
+set interfaces {{ iface }} unit 0 family inet filter input {{ policy_name }}
+{% endif %}
+{% if direction == "out" or direction == "both" %}
+set interfaces {{ iface }} unit 0 family inet filter output {{ policy_name }}
+{% endif %}
+{% endfor %}

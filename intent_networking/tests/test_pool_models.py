@@ -45,7 +45,17 @@ class PoolModelTestMixin:
         intent_ct = ContentType.objects.get_for_model(Intent)
         device_ct = ContentType.objects.get_for_model(Device)
         location_ct = ContentType.objects.get_for_model(Location)
-        for sname in ("Draft", "Active", "Validated", "Deploying", "Deployed", "Failed", "Rolled Back", "Deprecated"):
+        for sname in (
+            "Draft",
+            "Active",
+            "Validated",
+            "Deploying",
+            "Deployed",
+            "Failed",
+            "Rolled Back",
+            "Deprecated",
+            "Retired",
+        ):
             st, _ = Status.objects.get_or_create(name=sname)
             st.content_types.add(intent_ct, device_ct, location_ct)
 
@@ -272,6 +282,32 @@ class IntentStatusTransitionTest(PoolModelTestMixin, TestCase):
         with self.assertRaises(ValidationError):
             intent.full_clean()
 
+    def test_deployed_to_retired_allowed(self):
+        """Deployed → Retired is allowed."""
+        intent = self._create_intent("Deployed")
+        intent.status = Status.objects.get(name="Retired")
+        intent.full_clean()
+
+    def test_retired_to_draft_allowed(self):
+        """Retired → Draft is the only allowed transition out of Retired."""
+        intent = self._create_intent("Retired")
+        intent.status = Status.objects.get(name="Draft")
+        intent.full_clean()
+
+    def test_retired_to_deployed_not_allowed(self):
+        """Retired → Deployed should raise ValidationError."""
+        intent = self._create_intent("Retired")
+        intent.status = Status.objects.get(name="Deployed")
+        with self.assertRaises(ValidationError):
+            intent.full_clean()
+
+    def test_retired_to_validated_not_allowed(self):
+        """Retired → Validated should raise ValidationError."""
+        intent = self._create_intent("Retired")
+        intent.status = Status.objects.get(name="Validated")
+        with self.assertRaises(ValidationError):
+            intent.full_clean()
+
 
 class IntentPropertiesTest(PoolModelTestMixin, TestCase):
     """Test Intent model computed properties."""
@@ -291,6 +327,22 @@ class IntentPropertiesTest(PoolModelTestMixin, TestCase):
     def test_is_deployed_false(self):
         """is_deployed returns False when status is not 'Deployed'."""
         self.assertFalse(self.intent.is_deployed)
+
+    def test_is_retired_true(self):
+        """is_retired returns True when status is 'Retired'."""
+        intent = Intent.objects.create(
+            intent_id="prop-retired",
+            version=1,
+            intent_type=IntentTypeChoices.CONNECTIVITY,
+            tenant=self.tenant,
+            status=Status.objects.get(name="Retired"),
+            intent_data={"type": "connectivity", "source": "Gi0/1"},
+        )
+        self.assertTrue(intent.is_retired)
+
+    def test_is_retired_false(self):
+        """is_retired returns False when status is not 'Retired'."""
+        self.assertFalse(self.intent.is_retired)
 
     def test_str_representation(self):
         """Intent __str__ includes intent_id and version."""
