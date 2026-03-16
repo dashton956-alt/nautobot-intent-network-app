@@ -4008,6 +4008,7 @@ def resolve_mgmt_global_config(intent) -> dict:
                 "domain_name": mgmt.get("domain_name", ""),
                 # NTP
                 "ntp_servers": mgmt.get("ntp_servers", []),
+                "ntp_prefer": mgmt.get("ntp_prefer", ""),
                 "ntp_source_interface": mgmt.get("ntp_source_interface", ""),
                 "timezone": mgmt.get("timezone", "UTC"),
                 "timezone_offset": mgmt.get("timezone_offset", 0),
