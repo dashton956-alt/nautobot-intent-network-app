@@ -2044,6 +2044,62 @@ def resolve_dc_mlag(intent) -> dict:
 
 
 @transaction.atomic
+def resolve_fw_rule(intent) -> dict:
+    """Resolve a firewall rule intent into vendor-neutral primitives.
+
+    Expected intent_data keys:
+        policy_name (str):  Name of the firewall policy / rule-set.
+        rules (list[dict]): Ordered list of firewall rule dicts, each with:
+            - name (str):          Rule/entry name.
+            - action (str):        "permit" | "deny" | "drop" | "reject".
+            - source (str):        Source address / CIDR / object-group / "any".
+            - destination (str):   Destination address / CIDR / object-group / "any".
+            - protocol (str):      "tcp" | "udp" | "icmp" | "ip" | …
+            - port (int|str):      Destination port or port-range (optional).
+            - source_port (int|str): Source port (optional).
+            - log (bool):          Enable logging (default False).
+            - description (str):   Human-readable rule description (optional).
+        default_action (str): Policy default action: "deny" | "permit" (default "deny").
+        address_family (str): "ipv4" | "ipv6" | "dual" (default "ipv4").
+        apply_interfaces (list): Interfaces to bind the policy to (optional).
+        direction (str):  "in" | "out" | "both" (default "in").
+        firewall_type (str): "stateful" | "stateless" (default "stateful").
+    """
+    intent_data = intent.intent_data
+    policy_name = intent_data.get("policy_name")
+    if not policy_name:
+        raise ValueError(f"Intent {intent.intent_id}: 'policy_name' required for fw_rule.")
+
+    rules = intent_data.get("rules", [])
+    if not rules:
+        raise ValueError(f"Intent {intent.intent_id}: 'rules' list required for fw_rule (got empty/missing).")
+
+    devices = _get_scope_devices(intent)
+    primitives = []
+    affected = []
+
+    for device in devices:
+        affected.append(device.name)
+        primitives.append(
+            {
+                "primitive_type": "fw_rule",
+                "device": device.name,
+                "policy_name": policy_name,
+                "rules": rules,
+                "default_action": intent_data.get("default_action", "deny"),
+                "address_family": intent_data.get("address_family", "ipv4"),
+                "apply_interfaces": intent_data.get("apply_interfaces", []),
+                "direction": intent_data.get("direction", "in"),
+                "firewall_type": intent_data.get("firewall_type", "stateful"),
+                "intent_id": intent.intent_id,
+                "intent_version": intent.version,
+            }
+        )
+
+    return _empty_plan(affected, primitives)
+
+
+@transaction.atomic
 def resolve_acl(intent) -> dict:
     """Resolve an ACL intent (extended, with IPv6 and object-group support)."""
     intent_data = intent.intent_data
@@ -4371,6 +4427,7 @@ RESOLVERS = {
     # 5. Security & Firewalling
     "acl": resolve_acl,
     "zbf": resolve_zbf,
+    "fw_rule": resolve_fw_rule,
     "ipsec_s2s": resolve_ipsec_s2s,
     "ipsec_ikev2": resolve_ipsec_ikev2,
     "gre_tunnel": resolve_gre_tunnel,

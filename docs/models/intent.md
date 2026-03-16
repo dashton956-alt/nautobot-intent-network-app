@@ -42,7 +42,7 @@ The 133 intent types are organised into 14 domains:
 | Layer 3 / Routing | `static_route`, `ospf`, `bgp_ebgp`, `bgp_ibgp`, `isis`, `vrf_basic`, `bfd`, `fhrp` |
 | MPLS & Service Provider | `mpls_l3vpn`, `mpls_l2vpn`, `evpn_mpls`, `sr_mpls`, `srv6`, `rsvp_te` |
 | Data Centre / EVPN/VXLAN | `evpn_vxlan_fabric`, `vxlan_l2_vni`, `vxlan_l3_vni`, `vtep`, `dc_dci_interconnect` |
-| Security | `acl_ipv4`, `acl_ipv6`, `zone_based_firewall`, `ipsec_tunnel`, `nac_802_1x` |
+| Security | `acl_ipv4`, `acl_ipv6`, `zone_based_firewall`, `fw_rule`, `ipsec_tunnel`, `nac_802_1x` |
 | WAN / SD-WAN | `dmvpn_hub`, `dmvpn_spoke`, `sdwan_edge`, `sdwan_policy`, `wan_optimisation` |
 | Wireless | `wireless_ssid`, `wireless_rf_profile`, `wireless_roaming`, `wireless_mesh` |
 | Cloud / Hybrid | `cloud_interconnect`, `cloud_vpn_gw`, `cloud_vnet_peering`, `hybrid_dns` |

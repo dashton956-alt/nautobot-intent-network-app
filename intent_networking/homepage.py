@@ -28,7 +28,7 @@ def _get_intent_summary(request):
         "total_intents": qs.count(),
         "deployed": status_counts.get("deployed", 0),
         "failed": status_counts.get("failed", 0),
-        "pending": (qs.filter(approved_by="").exclude(status__name__in=["Deprecated", "Draft"]).count()),
+        "pending": (qs.filter(approved_by="").exclude(status__name__in=["Deprecated", "Draft", "Retired"]).count()),
         "verification_pct": int(passed / total_verifications * 100) if total_verifications else 0,
     }
 

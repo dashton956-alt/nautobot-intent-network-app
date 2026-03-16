@@ -172,6 +172,8 @@ INTENT_REQUIRED_FIELDS: dict[str, list[str]] = {
     "service_dhcp": ["pools"],
     "service_nat": ["static_mappings"],
     "service_proxy": [],
+    # Firewall
+    "fw_rule": ["policy_name", "rules"],
 }
 
 

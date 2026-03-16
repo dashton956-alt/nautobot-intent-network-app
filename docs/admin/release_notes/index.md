@@ -5,6 +5,7 @@ All published release notes are listed below. Patch releases are included within
 | Version | Date | Highlights |
 |---------|------|------------|
 | [v1.1](version_1.1.md) | 2026-03-12 | 4 new global-config management intent types, dry-run deployment, extended platform templates |
+| [v1.1.1](version_1.1.1.md) | 2026-03-16 | Firewall rule intent type, firewall controller adapter, expanded vendor templates |
 | [v1.0](version_1.0.md) | 2025-06-01 | Stable release — comprehensive docs, 253 tests, production-ready |
 | [v0.5](version_0.5.md) | 2025-05-01 | Native IPAM refactor — RD/RT via Nautobot VRF/RouteTarget/Namespace |
 | [v0.4](version_0.4.md) | 2025-03-15 | 129 intent types, event-driven notifications, dashboard redesign |

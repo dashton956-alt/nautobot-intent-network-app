@@ -4,910 +4,910 @@
 {% block title %}Intent Topology Viewer{% endblock title %}
 {% block content %}
 
-<style>
+    <style>
 /* ── Reset & base ────────────────────────────────────────────────────────── */
-*,*::before,*::after{box-sizing:border-box}
-:root{
-  --bg:        #0a0e1a;
-  --surface:   #111827;
-  --surface2:  #1a2236;
-  --border:    #1e2d45;
-  --text:      #e2e8f0;
-  --muted:     #64748b;
-  --accent:    #38bdf8;
-  --green:     #4ade80;
-  --amber:     #fbbf24;
-  --red:       #f87171;
-  --purple:    #a78bfa;
-  --teal:      #2dd4bf;
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-}
+        *,*::before,*::after{box-sizing:border-box}
+        :root{
+            --bg:        #0a0e1a;
+            --surface:   #111827;
+            --surface2:  #1a2236;
+            --border:    #1e2d45;
+            --text:      #e2e8f0;
+            --muted:     #64748b;
+            --accent:    #38bdf8;
+            --green:     #4ade80;
+            --amber:     #fbbf24;
+            --red:       #f87171;
+            --purple:    #a78bfa;
+            --teal:      #2dd4bf;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+        }
 
 /* Override Nautobot's base inside our content area */
-#topology-root{
-  position:fixed;
-  inset:0;
-  display:grid;
-  grid-template-columns:260px 1fr 380px;
-  grid-template-rows:52px 1fr;
-  background:var(--bg);
-  color:var(--text);
-  font-family:'Sora','Segoe UI',sans-serif;
-  z-index:10;
-}
+        #topology-root{
+            position:fixed;
+            inset:0;
+            display:grid;
+            grid-template-columns:260px 1fr 380px;
+            grid-template-rows:52px 1fr;
+            background:var(--bg);
+            color:var(--text);
+            font-family:'Sora','Segoe UI',sans-serif;
+            z-index:10;
+        }
 
 /* ── Top bar ─────────────────────────────────────────────────────────────── */
-#topbar{
-  grid-column:1/-1;
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-  display:flex;
-  align-items:center;
-  gap:16px;
-  padding:0 20px;
-}
-#topbar h1{
-  font-size:.9rem;
-  font-weight:700;
-  letter-spacing:.04em;
-  text-transform:uppercase;
-  color:var(--accent);
-  white-space:nowrap;
-  margin:0;
-}
-.tb-sep{width:1px;height:24px;background:var(--border);flex-shrink:0}
-.tb-select{
-  background:var(--surface2);
-  border:1px solid var(--border);
-  color:var(--text);
-  border-radius:6px;
-  padding:4px 10px;
-  font-size:.75rem;
-  cursor:pointer;
-  outline:none;
-}
-.tb-select:focus{border-color:var(--accent)}
-.tb-btn{
-  background:var(--surface2);
-  border:1px solid var(--border);
-  color:var(--text);
-  border-radius:6px;
-  padding:4px 12px;
-  font-size:.75rem;
-  cursor:pointer;
-  transition:background .15s,border-color .15s;
-  white-space:nowrap;
-}
-.tb-btn:hover{background:var(--border);border-color:var(--accent)}
-.tb-btn.active{background:rgba(56,189,248,.15);border-color:var(--accent);color:var(--accent)}
-#tb-status{
-  margin-left:auto;
-  font-size:.7rem;
-  color:var(--muted);
-  font-family:var(--font-mono);
-}
-#loading-bar{
-  position:absolute;
-  top:52px;left:0;right:0;
-  height:2px;
-  background:linear-gradient(90deg,transparent,var(--accent),transparent);
-  background-size:200% 100%;
-  animation:shimmer 1.2s infinite;
-  display:none;
-}
-#loading-bar.active{display:block}
-@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+        #topbar{
+            grid-column:1/-1;
+            background:var(--surface);
+            border-bottom:1px solid var(--border);
+            display:flex;
+            align-items:center;
+            gap:16px;
+            padding:0 20px;
+        }
+        #topbar h1{
+            font-size:.9rem;
+            font-weight:700;
+            letter-spacing:.04em;
+            text-transform:uppercase;
+            color:var(--accent);
+            white-space:nowrap;
+            margin:0;
+        }
+        .tb-sep{width:1px;height:24px;background:var(--border);flex-shrink:0}
+        .tb-select{
+            background:var(--surface2);
+            border:1px solid var(--border);
+            color:var(--text);
+            border-radius:6px;
+            padding:4px 10px;
+            font-size:.75rem;
+            cursor:pointer;
+            outline:none;
+        }
+        .tb-select:focus{border-color:var(--accent)}
+        .tb-btn{
+            background:var(--surface2);
+            border:1px solid var(--border);
+            color:var(--text);
+            border-radius:6px;
+            padding:4px 12px;
+            font-size:.75rem;
+            cursor:pointer;
+            transition:background .15s,border-color .15s;
+            white-space:nowrap;
+        }
+        .tb-btn:hover{background:var(--border);border-color:var(--accent)}
+        .tb-btn.active{background:rgba(56,189,248,.15);border-color:var(--accent);color:var(--accent)}
+        #tb-status{
+            margin-left:auto;
+            font-size:.7rem;
+            color:var(--muted);
+            font-family:var(--font-mono);
+        }
+        #loading-bar{
+            position:absolute;
+            top:52px;left:0;right:0;
+            height:2px;
+            background:linear-gradient(90deg,transparent,var(--accent),transparent);
+            background-size:200% 100%;
+            animation:shimmer 1.2s infinite;
+            display:none;
+        }
+        #loading-bar.active{display:block}
+        @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 
 /* ── Left sidebar — filters + intent list ───────────────────────────────── */
-#left-panel{
-  background:var(--surface);
-  border-right:1px solid var(--border);
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-}
-.panel-section{
-  padding:12px 14px;
-  border-bottom:1px solid var(--border);
-}
-.panel-section h3{
-  font-size:.65rem;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  color:var(--muted);
-  margin:0 0 10px;
-}
-.filter-row{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  margin-bottom:8px;
-}
-.filter-label{
-  font-size:.7rem;
-  color:var(--muted);
-}
-.filter-select{
-  background:var(--surface2);
-  border:1px solid var(--border);
-  color:var(--text);
-  border-radius:6px;
-  padding:5px 8px;
-  font-size:.75rem;
-  width:100%;
-  outline:none;
-}
-.filter-select:focus{border-color:var(--accent)}
+        #left-panel{
+            background:var(--surface);
+            border-right:1px solid var(--border);
+            display:flex;
+            flex-direction:column;
+            overflow:hidden;
+        }
+        .panel-section{
+            padding:12px 14px;
+            border-bottom:1px solid var(--border);
+        }
+        .panel-section h3{
+            font-size:.65rem;
+            text-transform:uppercase;
+            letter-spacing:.08em;
+            color:var(--muted);
+            margin:0 0 10px;
+        }
+        .filter-row{
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+            margin-bottom:8px;
+        }
+        .filter-label{
+            font-size:.7rem;
+            color:var(--muted);
+        }
+        .filter-select{
+            background:var(--surface2);
+            border:1px solid var(--border);
+            color:var(--text);
+            border-radius:6px;
+            padding:5px 8px;
+            font-size:.75rem;
+            width:100%;
+            outline:none;
+        }
+        .filter-select:focus{border-color:var(--accent)}
 
 /* Legend */
-.legend-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:5px;
-}
-.legend-item{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  font-size:.68rem;
-  color:var(--muted);
-}
-.legend-dot{
-  width:10px;height:10px;
-  border-radius:50%;
-  flex-shrink:0;
-}
-.legend-sq{
-  width:10px;height:10px;
-  border-radius:2px;
-  flex-shrink:0;
-}
+        .legend-grid{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:5px;
+        }
+        .legend-item{
+            display:flex;
+            align-items:center;
+            gap:6px;
+            font-size:.68rem;
+            color:var(--muted);
+        }
+        .legend-dot{
+            width:10px;height:10px;
+            border-radius:50%;
+            flex-shrink:0;
+        }
+        .legend-sq{
+            width:10px;height:10px;
+            border-radius:2px;
+            flex-shrink:0;
+        }
 
 /* Intent list */
-#intent-list{
-  flex:1;
-  overflow-y:auto;
-  padding:8px 0;
-}
-#intent-list::-webkit-scrollbar{width:4px}
-#intent-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-.intent-item{
-  padding:8px 14px;
-  cursor:pointer;
-  border-left:3px solid transparent;
-  transition:background .15s, border-color .15s;
-}
-.intent-item:hover{background:rgba(255,255,255,.04);border-left-color:var(--accent)}
-.intent-item.selected{background:rgba(56,189,248,.08);border-left-color:var(--accent)}
-.intent-item-id{
-  font-size:.75rem;
-  font-weight:600;
-  color:var(--text);
-  font-family:var(--font-mono);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.intent-item-meta{
-  font-size:.65rem;
-  color:var(--muted);
-  margin-top:2px;
-}
-.intent-badge{
-  display:inline-flex;
-  align-items:center;
-  font-size:.6rem;
-  padding:1px 6px;
-  border-radius:3px;
-  font-weight:600;
-  margin-right:4px;
-}
-.badge-deployed{background:rgba(74,222,128,.15);color:var(--green)}
-.badge-deploying{background:rgba(251,191,36,.15);color:var(--amber)}
-.badge-failed{background:rgba(248,113,113,.15);color:var(--red)}
-.badge-validated{background:rgba(167,139,250,.15);color:var(--purple)}
-.badge-draft{background:rgba(100,116,139,.15);color:var(--muted)}
+        #intent-list{
+            flex:1;
+            overflow-y:auto;
+            padding:8px 0;
+        }
+        #intent-list::-webkit-scrollbar{width:4px}
+        #intent-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+        .intent-item{
+            padding:8px 14px;
+            cursor:pointer;
+            border-left:3px solid transparent;
+            transition:background .15s, border-color .15s;
+        }
+        .intent-item:hover{background:rgba(255,255,255,.04);border-left-color:var(--accent)}
+        .intent-item.selected{background:rgba(56,189,248,.08);border-left-color:var(--accent)}
+        .intent-item-id{
+            font-size:.75rem;
+            font-weight:600;
+            color:var(--text);
+            font-family:var(--font-mono);
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+        .intent-item-meta{
+            font-size:.65rem;
+            color:var(--muted);
+            margin-top:2px;
+        }
+        .intent-badge{
+            display:inline-flex;
+            align-items:center;
+            font-size:.6rem;
+            padding:1px 6px;
+            border-radius:3px;
+            font-weight:600;
+            margin-right:4px;
+        }
+        .badge-deployed{background:rgba(74,222,128,.15);color:var(--green)}
+        .badge-deploying{background:rgba(251,191,36,.15);color:var(--amber)}
+        .badge-failed{background:rgba(248,113,113,.15);color:var(--red)}
+        .badge-validated{background:rgba(167,139,250,.15);color:var(--purple)}
+        .badge-draft{background:rgba(100,116,139,.15);color:var(--muted)}
 
 /* ── Canvas ──────────────────────────────────────────────────────────────── */
-#canvas-wrap{
-  position:relative;
-  overflow:hidden;
-  background:var(--bg);
-}
-#topology-canvas{
-  width:100%;
-  height:100%;
-}
-#canvas-wrap::before{
-  content:'';
-  position:absolute;
-  inset:0;
-  background:
-    radial-gradient(ellipse at 20% 20%, rgba(56,189,248,.03) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 80%, rgba(167,139,250,.03) 0%, transparent 60%);
-  pointer-events:none;
-}
-.canvas-placeholder{
-  position:absolute;
-  inset:0;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  color:var(--muted);
-  font-size:.85rem;
-  gap:8px;
-  pointer-events:none;
-}
-.canvas-placeholder svg{opacity:.3;margin-bottom:8px}
+        #canvas-wrap{
+            position:relative;
+            overflow:hidden;
+            background:var(--bg);
+        }
+        #topology-canvas{
+            width:100%;
+            height:100%;
+        }
+        #canvas-wrap::before{
+            content:'';
+            position:absolute;
+            inset:0;
+            background:
+            radial-gradient(ellipse at 20% 20%, rgba(56,189,248,.03) 0%, transparent 60%),
+            radial-gradient(ellipse at 80% 80%, rgba(167,139,250,.03) 0%, transparent 60%);
+            pointer-events:none;
+        }
+        .canvas-placeholder{
+            position:absolute;
+            inset:0;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            color:var(--muted);
+            font-size:.85rem;
+            gap:8px;
+            pointer-events:none;
+        }
+        .canvas-placeholder svg{opacity:.3;margin-bottom:8px}
 
 /* Zoom controls */
-#zoom-controls{
-  position:absolute;
-  bottom:20px;
-  left:50%;
-  transform:translateX(-50%);
-  display:flex;
-  gap:6px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:6px;
-}
-.zoom-btn{
-  width:30px;height:30px;
-  background:var(--surface2);
-  border:1px solid var(--border);
-  border-radius:6px;
-  color:var(--text);
-  font-size:1rem;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  transition:background .15s;
-}
-.zoom-btn:hover{background:var(--border)}
+        #zoom-controls{
+            position:absolute;
+            bottom:20px;
+            left:50%;
+            transform:translateX(-50%);
+            display:flex;
+            gap:6px;
+            background:var(--surface);
+            border:1px solid var(--border);
+            border-radius:8px;
+            padding:6px;
+        }
+        .zoom-btn{
+            width:30px;height:30px;
+            background:var(--surface2);
+            border:1px solid var(--border);
+            border-radius:6px;
+            color:var(--text);
+            font-size:1rem;
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            transition:background .15s;
+        }
+        .zoom-btn:hover{background:var(--border)}
 
 /* ── Right panel — device hover detail ──────────────────────────────────── */
-#right-panel{
-  background:var(--surface);
-  border-left:1px solid var(--border);
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  transition:transform .25s ease;
-}
-#right-panel.empty #detail-content{opacity:.3;pointer-events:none}
+        #right-panel{
+            background:var(--surface);
+            border-left:1px solid var(--border);
+            display:flex;
+            flex-direction:column;
+            overflow:hidden;
+            transition:transform .25s ease;
+        }
+        #right-panel.empty #detail-content{opacity:.3;pointer-events:none}
 
-#detail-header{
-  padding:14px 16px 10px;
-  border-bottom:1px solid var(--border);
-  flex-shrink:0;
-}
-#detail-device-name{
-  font-size:1rem;
-  font-weight:700;
-  color:var(--text);
-  margin:0 0 4px;
-}
-#detail-meta{
-  font-size:.7rem;
-  color:var(--muted);
-  font-family:var(--font-mono);
-}
-#detail-status-dot{
-  display:inline-block;
-  width:8px;height:8px;
-  border-radius:50%;
-  margin-right:5px;
-  vertical-align:middle;
-}
+        #detail-header{
+            padding:14px 16px 10px;
+            border-bottom:1px solid var(--border);
+            flex-shrink:0;
+        }
+        #detail-device-name{
+            font-size:1rem;
+            font-weight:700;
+            color:var(--text);
+            margin:0 0 4px;
+        }
+        #detail-meta{
+            font-size:.7rem;
+            color:var(--muted);
+            font-family:var(--font-mono);
+        }
+        #detail-status-dot{
+            display:inline-block;
+            width:8px;height:8px;
+            border-radius:50%;
+            margin-right:5px;
+            vertical-align:middle;
+        }
 
 /* Tab strip */
-#detail-tabs{
-  display:flex;
-  border-bottom:1px solid var(--border);
-  flex-shrink:0;
-}
-.detail-tab{
-  flex:1;
-  padding:8px 4px;
-  font-size:.68rem;
-  text-align:center;
-  cursor:pointer;
-  color:var(--muted);
-  border-bottom:2px solid transparent;
-  transition:color .15s,border-color .15s;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-}
-.detail-tab:hover{color:var(--text)}
-.detail-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+        #detail-tabs{
+            display:flex;
+            border-bottom:1px solid var(--border);
+            flex-shrink:0;
+        }
+        .detail-tab{
+            flex:1;
+            padding:8px 4px;
+            font-size:.68rem;
+            text-align:center;
+            cursor:pointer;
+            color:var(--muted);
+            border-bottom:2px solid transparent;
+            transition:color .15s,border-color .15s;
+            text-transform:uppercase;
+            letter-spacing:.06em;
+        }
+        .detail-tab:hover{color:var(--text)}
+        .detail-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 
 /* Tab content */
-#detail-content{
-  flex:1;
-  overflow:hidden;
-  position:relative;
-}
-.tab-pane{
-  position:absolute;
-  inset:0;
-  overflow-y:auto;
-  padding:12px;
-  display:none;
-}
-.tab-pane.active{display:block}
-.tab-pane::-webkit-scrollbar{width:4px}
-.tab-pane::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+        #detail-content{
+            flex:1;
+            overflow:hidden;
+            position:relative;
+        }
+        .tab-pane{
+            position:absolute;
+            inset:0;
+            overflow-y:auto;
+            padding:12px;
+            display:none;
+        }
+        .tab-pane.active{display:block}
+        .tab-pane::-webkit-scrollbar{width:4px}
+        .tab-pane::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
 /* Tables inside panes */
-.data-table{
-  width:100%;
-  border-collapse:collapse;
-  font-size:.7rem;
-  font-family:var(--font-mono);
-}
-.data-table th{
-  text-align:left;
-  padding:5px 6px;
-  color:var(--muted);
-  font-weight:600;
-  font-size:.62rem;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-  border-bottom:1px solid var(--border);
-  position:sticky;
-  top:0;
-  background:var(--surface);
-  z-index:1;
-}
-.data-table td{
-  padding:4px 6px;
-  border-bottom:1px solid rgba(255,255,255,.04);
-  color:var(--text);
-  vertical-align:top;
-  word-break:break-all;
-}
-.data-table tr:hover td{background:rgba(255,255,255,.03)}
+        .data-table{
+            width:100%;
+            border-collapse:collapse;
+            font-size:.7rem;
+            font-family:var(--font-mono);
+        }
+        .data-table th{
+            text-align:left;
+            padding:5px 6px;
+            color:var(--muted);
+            font-weight:600;
+            font-size:.62rem;
+            text-transform:uppercase;
+            letter-spacing:.06em;
+            border-bottom:1px solid var(--border);
+            position:sticky;
+            top:0;
+            background:var(--surface);
+            z-index:1;
+        }
+        .data-table td{
+            padding:4px 6px;
+            border-bottom:1px solid rgba(255,255,255,.04);
+            color:var(--text);
+            vertical-align:top;
+            word-break:break-all;
+        }
+        .data-table tr:hover td{background:rgba(255,255,255,.03)}
 
 /* Intent card in right panel */
-.intent-card{
-  background:var(--surface2);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:10px 12px;
-  margin-bottom:8px;
-  transition:border-color .15s;
-  cursor:pointer;
-}
-.intent-card:hover{border-color:var(--accent)}
-.intent-card-id{
-  font-size:.75rem;
-  font-weight:700;
-  font-family:var(--font-mono);
-  color:var(--accent);
-  margin-bottom:5px;
-}
-.intent-card-row{
-  display:flex;
-  justify-content:space-between;
-  font-size:.67rem;
-  color:var(--muted);
-  margin-top:3px;
-}
-.intent-card-row span:last-child{color:var(--text)}
+        .intent-card{
+            background:var(--surface2);
+            border:1px solid var(--border);
+            border-radius:8px;
+            padding:10px 12px;
+            margin-bottom:8px;
+            transition:border-color .15s;
+            cursor:pointer;
+        }
+        .intent-card:hover{border-color:var(--accent)}
+        .intent-card-id{
+            font-size:.75rem;
+            font-weight:700;
+            font-family:var(--font-mono);
+            color:var(--accent);
+            margin-bottom:5px;
+        }
+        .intent-card-row{
+            display:flex;
+            justify-content:space-between;
+            font-size:.67rem;
+            color:var(--muted);
+            margin-top:3px;
+        }
+        .intent-card-row span:last-child{color:var(--text)}
 
 /* Interface cards */
-.iface-summary{
-  display:flex;gap:10px;align-items:center;
-  padding:6px 0 8px;margin-bottom:4px;
-  border-bottom:1px solid var(--border);
-  font-size:.7rem;color:var(--muted);
-}
-.iface-summary-up{color:var(--green)}
-.iface-summary-down{color:var(--red)}
+        .iface-summary{
+            display:flex;gap:10px;align-items:center;
+            padding:6px 0 8px;margin-bottom:4px;
+            border-bottom:1px solid var(--border);
+            font-size:.7rem;color:var(--muted);
+        }
+        .iface-summary-up{color:var(--green)}
+        .iface-summary-down{color:var(--red)}
 
-.iface-card{
-  border:1px solid var(--border);
-  border-radius:6px;
-  margin-bottom:4px;
-  overflow:hidden;
-  transition:border-color .15s;
-}
-.iface-card:hover{border-color:var(--accent)}
+        .iface-card{
+            border:1px solid var(--border);
+            border-radius:6px;
+            margin-bottom:4px;
+            overflow:hidden;
+            transition:border-color .15s;
+        }
+        .iface-card:hover{border-color:var(--accent)}
 
-.iface-header{
-  display:flex;align-items:center;gap:6px;
-  padding:6px 8px;cursor:pointer;
-  font-size:.7rem;font-family:var(--font-mono);
-  transition:background .15s;
-}
-.iface-header:hover{background:rgba(255,255,255,.03)}
+        .iface-header{
+            display:flex;align-items:center;gap:6px;
+            padding:6px 8px;cursor:pointer;
+            font-size:.7rem;font-family:var(--font-mono);
+            transition:background .15s;
+        }
+        .iface-header:hover{background:rgba(255,255,255,.03)}
 
-.iface-dot{
-  width:7px;height:7px;
-  border-radius:50%;
-  flex-shrink:0;
-}
-.iface-dot.up{background:var(--green)}
-.iface-dot.down{background:var(--red)}
-.iface-name{color:var(--text);white-space:nowrap;font-weight:600}
-.iface-type-label{color:var(--muted);font-size:.6rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.iface-ips{color:var(--accent);font-size:.6rem;white-space:nowrap}
+        .iface-dot{
+            width:7px;height:7px;
+            border-radius:50%;
+            flex-shrink:0;
+        }
+        .iface-dot.up{background:var(--green)}
+        .iface-dot.down{background:var(--red)}
+        .iface-name{color:var(--text);white-space:nowrap;font-weight:600}
+        .iface-type-label{color:var(--muted);font-size:.6rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .iface-ips{color:var(--accent);font-size:.6rem;white-space:nowrap}
 
-.iface-chevron{
-  font-size:.6rem;color:var(--muted);
-  transition:transform .2s;
-  flex-shrink:0;
-}
-.iface-chevron.open{transform:rotate(180deg)}
+        .iface-chevron{
+            font-size:.6rem;color:var(--muted);
+            transition:transform .2s;
+            flex-shrink:0;
+        }
+        .iface-chevron.open{transform:rotate(180deg)}
 
-.iface-badge{
-  font-size:.5rem;padding:1px 4px;
-  border-radius:3px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.3px;
-}
-.iface-badge.mgmt{background:rgba(102,126,234,.25);color:var(--accent)}
+        .iface-badge{
+            font-size:.5rem;padding:1px 4px;
+            border-radius:3px;font-weight:700;
+            text-transform:uppercase;letter-spacing:.3px;
+        }
+        .iface-badge.mgmt{background:rgba(102,126,234,.25);color:var(--accent)}
 
-.iface-detail{
-  padding:6px 10px 10px;
-  background:rgba(0,0,0,.15);
-  border-top:1px solid var(--border);
-}
-.iface-detail-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:6px 14px;
-}
-.iface-detail-grid .full-width{grid-column:1/-1}
+        .iface-detail{
+            padding:6px 10px 10px;
+            background:rgba(0,0,0,.15);
+            border-top:1px solid var(--border);
+        }
+        .iface-detail-grid{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:6px 14px;
+        }
+        .iface-detail-grid .full-width{grid-column:1/-1}
 
-.iface-field{display:flex;flex-direction:column;gap:1px}
-.iface-label{font-size:.55rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600}
-.iface-value{font-size:.68rem;color:var(--text);word-break:break-all}
-.iface-mono{font-family:var(--font-mono)}
+        .iface-field{display:flex;flex-direction:column;gap:1px}
+        .iface-label{font-size:.55rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600}
+        .iface-value{font-size:.68rem;color:var(--text);word-break:break-all}
+        .iface-mono{font-family:var(--font-mono)}
 
 /* Spinner */
-.spinner{
-  width:20px;height:20px;
-  border:2px solid var(--border);
-  border-top-color:var(--accent);
-  border-radius:50%;
-  animation:spin .8s linear infinite;
-  margin:20px auto;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
+        .spinner{
+            width:20px;height:20px;
+            border:2px solid var(--border);
+            border-top-color:var(--accent);
+            border-radius:50%;
+            animation:spin .8s linear infinite;
+            margin:20px auto;
+        }
+        @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ── Legend ──────────────────────────────────────────────────────────────── */
-#topo-legend{
-  position:absolute;
-  bottom:12px;
-  left:12px;
-  z-index:10;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:10px 14px;
-  font-size:.68rem;
-  color:var(--text);
-  min-width:180px;
-  box-shadow:0 4px 20px rgba(0,0,0,.4);
-}
-.legend-section{
-  font-size:.58rem;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-  color:var(--muted);
-  font-weight:600;
-  margin-bottom:3px;
-}
-.legend-row{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  padding:2px 0;
-  font-family:var(--font-mono);
-  font-size:.65rem;
-}
-.legend-dot{
-  width:10px;
-  height:10px;
-  border-radius:50%;
-  flex-shrink:0;
-}
-.legend-shape{
-  width:10px;
-  height:10px;
-  background:var(--text);
-  flex-shrink:0;
-}
-.legend-line{
-  width:18px;
-  height:2px;
-  flex-shrink:0;
-  border-radius:1px;
-}
+        #topo-legend{
+            position:absolute;
+            bottom:12px;
+            left:12px;
+            z-index:10;
+            background:var(--surface);
+            border:1px solid var(--border);
+            border-radius:8px;
+            padding:10px 14px;
+            font-size:.68rem;
+            color:var(--text);
+            min-width:180px;
+            box-shadow:0 4px 20px rgba(0,0,0,.4);
+        }
+        .legend-section{
+            font-size:.58rem;
+            text-transform:uppercase;
+            letter-spacing:.06em;
+            color:var(--muted);
+            font-weight:600;
+            margin-bottom:3px;
+        }
+        .legend-row{
+            display:flex;
+            align-items:center;
+            gap:7px;
+            padding:2px 0;
+            font-family:var(--font-mono);
+            font-size:.65rem;
+        }
+        .legend-dot{
+            width:10px;
+            height:10px;
+            border-radius:50%;
+            flex-shrink:0;
+        }
+        .legend-shape{
+            width:10px;
+            height:10px;
+            background:var(--text);
+            flex-shrink:0;
+        }
+        .legend-line{
+            width:18px;
+            height:2px;
+            flex-shrink:0;
+            border-radius:1px;
+        }
 
-.empty-msg{
-  text-align:center;
-  color:var(--muted);
-  font-size:.75rem;
-  padding:20px 0;
-  font-family:var(--font-mono);
-}
-.error-msg{
-  color:var(--red);
-  font-size:.72rem;
-  font-family:var(--font-mono);
-  padding:10px;
-  background:rgba(248,113,113,.08);
-  border:1px solid rgba(248,113,113,.2);
-  border-radius:6px;
-  margin:8px 0;
-}
+        .empty-msg{
+            text-align:center;
+            color:var(--muted);
+            font-size:.75rem;
+            padding:20px 0;
+            font-family:var(--font-mono);
+        }
+        .error-msg{
+            color:var(--red);
+            font-size:.72rem;
+            font-family:var(--font-mono);
+            padding:10px;
+            background:rgba(248,113,113,.08);
+            border:1px solid rgba(248,113,113,.2);
+            border-radius:6px;
+            margin:8px 0;
+        }
 
 /* Search on topology */
-#search-wrap{
-  position:absolute;
-  top:12px;
-  right:12px;
-  z-index:10;
-}
-#topo-search{
-  background:var(--surface);
-  border:1px solid var(--border);
-  color:var(--text);
-  border-radius:8px;
-  padding:7px 12px;
-  font-size:.75rem;
-  width:200px;
-  outline:none;
-  transition:border-color .15s,width .2s;
-}
-#topo-search:focus{border-color:var(--accent);width:260px}
-#topo-search::placeholder{color:var(--muted)}
+        #search-wrap{
+            position:absolute;
+            top:12px;
+            right:12px;
+            z-index:10;
+        }
+        #topo-search{
+            background:var(--surface);
+            border:1px solid var(--border);
+            color:var(--text);
+            border-radius:8px;
+            padding:7px 12px;
+            font-size:.75rem;
+            width:200px;
+            outline:none;
+            transition:border-color .15s,width .2s;
+        }
+        #topo-search:focus{border-color:var(--accent);width:260px}
+        #topo-search::placeholder{color:var(--muted)}
 
 /* Tooltip / mini popup on canvas */
-#canvas-tooltip{
-  position:fixed;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:8px 12px;
-  font-size:.72rem;
-  pointer-events:none;
-  z-index:100;
-  max-width:220px;
-  box-shadow:0 8px 30px rgba(0,0,0,.5);
-  display:none;
-}
-#canvas-tooltip.visible{display:block}
-</style>
+        #canvas-tooltip{
+            position:fixed;
+            background:var(--surface);
+            border:1px solid var(--border);
+            border-radius:8px;
+            padding:8px 12px;
+            font-size:.72rem;
+            pointer-events:none;
+            z-index:100;
+            max-width:220px;
+            box-shadow:0 8px 30px rgba(0,0,0,.5);
+            display:none;
+        }
+        #canvas-tooltip.visible{display:block}
+    </style>
 
-<div id="topology-root">
+    <div id="topology-root">
 
   <!-- ── Top bar ── -->
-  <div id="topbar">
-    <h1>🌐 Intent Topology</h1>
-    <div class="tb-sep"></div>
-    <select id="filter-tenant" class="tb-select" onchange="applyFilters()">
-      <option value="">All Tenants</option>
-    </select>
-    <select id="filter-site" class="tb-select" onchange="applyFilters()">
-      <option value="">All Sites</option>
-    </select>
-    <div class="tb-sep"></div>
-    <button class="tb-btn active" id="btn-physics" onclick="togglePhysics()">⚡ Physics</button>
-    <button class="tb-btn" id="btn-cluster" onclick="toggleClusters()">⬡ Cluster Sites</button>
-    <button class="tb-btn" onclick="fitGraph()">⊕ Fit</button>
-    <button class="tb-btn" onclick="refreshGraph()">↺ Refresh</button>
-    <div id="tb-status">loading...</div>
-    <div id="loading-bar"></div>
-  </div>
+        <div id="topbar">
+            <h1>🌐 Intent Topology</h1>
+            <div class="tb-sep"></div>
+            <select id="filter-tenant" class="tb-select" onchange="applyFilters()">
+                <option value="">All Tenants</option>
+            </select>
+            <select id="filter-site" class="tb-select" onchange="applyFilters()">
+                <option value="">All Sites</option>
+            </select>
+            <div class="tb-sep"></div>
+            <button class="tb-btn active" id="btn-physics" onclick="togglePhysics()">⚡ Physics</button>
+            <button class="tb-btn" id="btn-cluster" onclick="toggleClusters()">⬡ Cluster Sites</button>
+            <button class="tb-btn" onclick="fitGraph()">⊕ Fit</button>
+            <button class="tb-btn" onclick="refreshGraph()">↺ Refresh</button>
+            <div id="tb-status">loading...</div>
+            <div id="loading-bar"></div>
+        </div>
 
   <!-- ── Left panel ── -->
-  <div id="left-panel">
+        <div id="left-panel">
 
     <!-- Legend -->
-    <div class="panel-section">
-      <h3>Device Status</h3>
-      <div class="legend-grid">
-        <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div>All deployed</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div>In-progress</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div>Failed</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>No intents</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#64748b"></div>Maintenance</div>
-      </div>
-      <div style="margin-top:10px">
-        <div class="legend-grid">
-          <div class="legend-item"><div class="legend-dot" style="background:#e2e8f0"></div>Router/PE/CE</div>
-          <div class="legend-item"><div class="legend-sq" style="background:#e2e8f0"></div>Switch</div>
-        </div>
-      </div>
-    </div>
+            <div class="panel-section">
+                <h3>Device Status</h3>
+                <div class="legend-grid">
+                    <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div>All deployed</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div>In-progress</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div>Failed</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>No intents</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#64748b"></div>Maintenance</div>
+                </div>
+                <div style="margin-top:10px">
+                    <div class="legend-grid">
+                        <div class="legend-item"><div class="legend-dot" style="background:#e2e8f0"></div>Router/PE/CE</div>
+                        <div class="legend-item"><div class="legend-sq" style="background:#e2e8f0"></div>Switch</div>
+                    </div>
+                </div>
+            </div>
 
     <!-- Intent list -->
-    <div class="panel-section" style="border-bottom:none;padding-bottom:6px">
-      <h3>Deployed Intents <span id="intent-count" style="color:var(--text)">—</span></h3>
-    </div>
-    <div id="intent-list"><div class="empty-msg">Loading intents...</div></div>
+            <div class="panel-section" style="border-bottom:none;padding-bottom:6px">
+                <h3>Deployed Intents <span id="intent-count" style="color:var(--text)">—</span></h3>
+            </div>
+            <div id="intent-list"><div class="empty-msg">Loading intents...</div></div>
 
-  </div>
+        </div>
 
   <!-- ── Canvas ── -->
-  <div id="canvas-wrap">
-    <div class="canvas-placeholder" id="canvas-placeholder">
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-        <circle cx="24" cy="24" r="20" stroke="#38bdf8" stroke-width="1.5"/>
-        <circle cx="24" cy="24" r="4" fill="#38bdf8"/>
-        <line x1="24" y1="4" x2="24" y2="44" stroke="#38bdf8" stroke-width="1"/>
-        <line x1="4" y1="24" x2="44" y2="24" stroke="#38bdf8" stroke-width="1"/>
-      </svg>
-      <span>Loading topology...</span>
-    </div>
-    <div id="topology-canvas"></div>
-    <div id="search-wrap">
-      <input id="topo-search" type="text" placeholder="Search devices..." oninput="searchDevice(this.value)">
-    </div>
-    <div id="zoom-controls">
-      <button class="zoom-btn" onclick="zoomIn()" title="Zoom in">+</button>
-      <button class="zoom-btn" onclick="zoomFit()" title="Fit">⊕</button>
-      <button class="zoom-btn" onclick="zoomOut()" title="Zoom out">−</button>
-    </div>
+        <div id="canvas-wrap">
+            <div class="canvas-placeholder" id="canvas-placeholder">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <circle cx="24" cy="24" r="20" stroke="#38bdf8" stroke-width="1.5"/>
+                    <circle cx="24" cy="24" r="4" fill="#38bdf8"/>
+                    <line x1="24" y1="4" x2="24" y2="44" stroke="#38bdf8" stroke-width="1"/>
+                    <line x1="4" y1="24" x2="44" y2="24" stroke="#38bdf8" stroke-width="1"/>
+                </svg>
+                <span>Loading topology...</span>
+            </div>
+            <div id="topology-canvas"></div>
+            <div id="search-wrap">
+                <input id="topo-search" type="text" placeholder="Search devices..." oninput="searchDevice(this.value)">
+            </div>
+            <div id="zoom-controls">
+                <button class="zoom-btn" onclick="zoomIn()" title="Zoom in">+</button>
+                <button class="zoom-btn" onclick="zoomFit()" title="Fit">⊕</button>
+                <button class="zoom-btn" onclick="zoomOut()" title="Zoom out">−</button>
+            </div>
     <!-- Legend -->
-    <div id="topo-legend">
-      <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;font-weight:700">Legend</div>
-      <div class="legend-section">Node Colour (Intent Status)</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#4ade80"></span> All Deployed &amp; Verified</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#fbbf24"></span> Deploying / Validating</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#f87171"></span> Failed / Rolled Back</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#38bdf8"></span> No Intents</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#64748b"></span> Maintenance</div>
-      <div class="legend-section" style="margin-top:8px">Node Shape (Role)</div>
-      <div class="legend-row"><span class="legend-shape" style="border-radius:50%"></span> Router / PE / CE</div>
-      <div class="legend-row"><span class="legend-shape" style="border-radius:2px"></span> Switch / Leaf / Spine</div>
-      <div class="legend-row"><span class="legend-shape" style="clip-path:polygon(50% 0%,100% 100%,0% 100%)"></span> Firewall</div>
-      <div class="legend-row"><span class="legend-shape" style="clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%)"></span> Server</div>
-      <div class="legend-section" style="margin-top:8px">Edges</div>
-      <div class="legend-row"><span class="legend-line" style="background:#38bdf8"></span> Intent Link (logical)</div>
-      <div class="legend-row"><span class="legend-line" style="background:#1e2d45"></span> Physical Cable</div>
-    </div>
-  </div>
+            <div id="topo-legend">
+                <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;font-weight:700">Legend</div>
+                <div class="legend-section">Node Colour (Intent Status)</div>
+                <div class="legend-row"><span class="legend-dot" style="background:#4ade80"></span> All Deployed &amp; Verified</div>
+                <div class="legend-row"><span class="legend-dot" style="background:#fbbf24"></span> Deploying / Validating</div>
+                <div class="legend-row"><span class="legend-dot" style="background:#f87171"></span> Failed / Rolled Back</div>
+                <div class="legend-row"><span class="legend-dot" style="background:#38bdf8"></span> No Intents</div>
+                <div class="legend-row"><span class="legend-dot" style="background:#64748b"></span> Maintenance</div>
+                <div class="legend-section" style="margin-top:8px">Node Shape (Role)</div>
+                <div class="legend-row"><span class="legend-shape" style="border-radius:50%"></span> Router / PE / CE</div>
+                <div class="legend-row"><span class="legend-shape" style="border-radius:2px"></span> Switch / Leaf / Spine</div>
+                <div class="legend-row"><span class="legend-shape" style="clip-path:polygon(50% 0%,100% 100%,0% 100%)"></span> Firewall</div>
+                <div class="legend-row"><span class="legend-shape" style="clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%)"></span> Server</div>
+                <div class="legend-section" style="margin-top:8px">Edges</div>
+                <div class="legend-row"><span class="legend-line" style="background:#38bdf8"></span> Intent Link (logical)</div>
+                <div class="legend-row"><span class="legend-line" style="background:#1e2d45"></span> Physical Cable</div>
+            </div>
+        </div>
 
   <!-- ── Right panel ── -->
-  <div id="right-panel" class="empty">
-    <div id="detail-header">
-      <div style="display:flex;align-items:center;gap:6px">
-        <span id="detail-status-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted)"></span>
-        <span id="detail-device-name" style="color:var(--muted)">Select a device</span>
-      </div>
-      <div id="detail-meta">Hover or click any node to inspect</div>
-    </div>
+        <div id="right-panel" class="empty">
+            <div id="detail-header">
+                <div style="display:flex;align-items:center;gap:6px">
+                    <span id="detail-status-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted)"></span>
+                    <span id="detail-device-name" style="color:var(--muted)">Select a device</span>
+                </div>
+                <div id="detail-meta">Hover or click any node to inspect</div>
+            </div>
 
-    <div id="detail-tabs">
-      <div class="detail-tab active" data-tab="intents"   onclick="switchTab('intents')">Intents</div>
-      <div class="detail-tab"        data-tab="arp"        onclick="switchTab('arp')">ARP</div>
-      <div class="detail-tab"        data-tab="routing"    onclick="switchTab('routing')">Routes</div>
-      <div class="detail-tab"        data-tab="bgp"        onclick="switchTab('bgp')">BGP</div>
-      <div class="detail-tab"        data-tab="ifaces"     onclick="switchTab('ifaces')">Interfaces</div>
-    </div>
+            <div id="detail-tabs">
+                <div class="detail-tab active" data-tab="intents"   onclick="switchTab('intents')">Intents</div>
+                <div class="detail-tab"        data-tab="arp"        onclick="switchTab('arp')">ARP</div>
+                <div class="detail-tab"        data-tab="routing"    onclick="switchTab('routing')">Routes</div>
+                <div class="detail-tab"        data-tab="bgp"        onclick="switchTab('bgp')">BGP</div>
+                <div class="detail-tab"        data-tab="ifaces"     onclick="switchTab('ifaces')">Interfaces</div>
+            </div>
 
-    <div id="detail-content">
-      <div id="tab-intents" class="tab-pane active">
-        <div class="empty-msg">Select a device to view deployed intents</div>
-      </div>
-      <div id="tab-arp" class="tab-pane">
-        <div class="empty-msg">Select a device to load ARP table</div>
-      </div>
-      <div id="tab-routing" class="tab-pane">
-        <div class="empty-msg">Select a device to load routing table</div>
-      </div>
-      <div id="tab-bgp" class="tab-pane">
-        <div class="empty-msg">Select a device to load BGP neighbors</div>
-      </div>
-      <div id="tab-ifaces" class="tab-pane">
-        <div class="empty-msg">Select a device to view interfaces</div>
-      </div>
-    </div>
-  </div>
+            <div id="detail-content">
+                <div id="tab-intents" class="tab-pane active">
+                    <div class="empty-msg">Select a device to view deployed intents</div>
+                </div>
+                <div id="tab-arp" class="tab-pane">
+                    <div class="empty-msg">Select a device to load ARP table</div>
+                </div>
+                <div id="tab-routing" class="tab-pane">
+                    <div class="empty-msg">Select a device to load routing table</div>
+                </div>
+                <div id="tab-bgp" class="tab-pane">
+                    <div class="empty-msg">Select a device to load BGP neighbors</div>
+                </div>
+                <div id="tab-ifaces" class="tab-pane">
+                    <div class="empty-msg">Select a device to view interfaces</div>
+                </div>
+            </div>
+        </div>
 
-</div>
+    </div>
 
 <!-- Canvas tooltip -->
-<div id="canvas-tooltip"></div>
+    <div id="canvas-tooltip"></div>
 
 <!-- vis.js Network -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/standalone/umd/vis-network.min.js"></script>
 
-<script>
+    <script>
 // ── State ────────────────────────────────────────────────────────────────────
-const API = '/api/plugins/intent-networking';
-const HEADERS = {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'};
+        const API = '/api/plugins/intent-networking';
+        const HEADERS = {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'};
 
-let network         = null;
-let nodesDS         = null;
-let edgesDS         = null;
-let graphData       = null;
-let selectedDevice  = null;
-let selectedIntent  = null;
-let physicsEnabled  = true;
-let clustersActive  = false;
-let liveCache       = {};   // device_name → {data, ts}
-const LIVE_TTL      = 60000; // ms
+        let network         = null;
+        let nodesDS         = null;
+        let edgesDS         = null;
+        let graphData       = null;
+        let selectedDevice  = null;
+        let selectedIntent  = null;
+        let physicsEnabled  = true;
+        let clustersActive  = false;
+        let liveCache       = {};   // device_name → {data, ts}
+        const LIVE_TTL      = 60000; // ms
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', async () => {
-  await loadFilters();
-  await loadGraph();
-});
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadFilters();
+            await loadGraph();
+        });
 
 // ── Load filter options ───────────────────────────────────────────────────────
-async function loadFilters() {
-  try {
-    const res  = await fetch(`${API}/topology/filters/`, {headers: HEADERS});
-    const data = await res.json();
+        async function loadFilters() {
+            try {
+                const res  = await fetch(`${API}/topology/filters/`, {headers: HEADERS});
+                const data = await res.json();
 
-    const tenantSel = document.getElementById('filter-tenant');
-    data.tenants.forEach(t => {
-      const o = document.createElement('option');
-      o.value = t.name; o.textContent = t.name;
-      tenantSel.appendChild(o);
-    });
+                const tenantSel = document.getElementById('filter-tenant');
+                data.tenants.forEach(t => {
+                    const o = document.createElement('option');
+                    o.value = t.name; o.textContent = t.name;
+                    tenantSel.appendChild(o);
+                });
 
-    const siteSel = document.getElementById('filter-site');
-    data.sites.forEach(s => {
-      const o = document.createElement('option');
-      o.value = s.name; o.textContent = s.name;
-      siteSel.appendChild(o);
-    });
+                const siteSel = document.getElementById('filter-site');
+                data.sites.forEach(s => {
+                    const o = document.createElement('option');
+                    o.value = s.name; o.textContent = s.name;
+                    siteSel.appendChild(o);
+                });
 
-    renderIntentList(data.intents);
-  } catch(e) { console.error('Filter load failed', e); }
-}
+                renderIntentList(data.intents);
+            } catch(e) { console.error('Filter load failed', e); }
+        }
 
 // ── Load and render graph ─────────────────────────────────────────────────────
-async function loadGraph() {
-  setLoading(true);
-  setStatus('Fetching topology...');
+        async function loadGraph() {
+            setLoading(true);
+            setStatus('Fetching topology...');
 
-  const tenant = document.getElementById('filter-tenant').value;
-  const site   = document.getElementById('filter-site').value;
-  const params = new URLSearchParams();
-  if (tenant) params.set('tenant', tenant);
-  if (site)   params.set('site', site);
+            const tenant = document.getElementById('filter-tenant').value;
+            const site   = document.getElementById('filter-site').value;
+            const params = new URLSearchParams();
+            if (tenant) params.set('tenant', tenant);
+            if (site)   params.set('site', site);
 
-  try {
-    const res  = await fetch(`${API}/topology/?${params}`, {headers: HEADERS});
-    graphData  = await res.json();
+            try {
+                const res  = await fetch(`${API}/topology/?${params}`, {headers: HEADERS});
+                graphData  = await res.json();
 
-    renderGraph(graphData);
-    setStatus(`${graphData.device_count} devices · ${graphData.edge_count} links`);
-    document.getElementById('canvas-placeholder').style.display = 'none';
-  } catch(e) {
-    setStatus('Load failed');
-    document.getElementById('canvas-placeholder').querySelector('span').textContent =
-      'Failed to load topology. Check console.';
-    console.error(e);
-  }
-  setLoading(false);
-}
+                renderGraph(graphData);
+                setStatus(`${graphData.device_count} devices · ${graphData.edge_count} links`);
+                document.getElementById('canvas-placeholder').style.display = 'none';
+            } catch(e) {
+                setStatus('Load failed');
+                document.getElementById('canvas-placeholder').querySelector('span').textContent =
+                    'Failed to load topology. Check console.';
+                console.error(e);
+            }
+            setLoading(false);
+        }
 
 // ── Build vis.js graph ────────────────────────────────────────────────────────
-function renderGraph(data) {
-  const container = document.getElementById('topology-canvas');
+        function renderGraph(data) {
+            const container = document.getElementById('topology-canvas');
 
-  nodesDS = new vis.DataSet(data.nodes);
-  edgesDS = new vis.DataSet(data.edges);
+            nodesDS = new vis.DataSet(data.nodes);
+            edgesDS = new vis.DataSet(data.edges);
 
-  const options = {
-    autoResize: true,
-    height: '100%',
-    width:  '100%',
+            const options = {
+                autoResize: true,
+                height: '100%',
+                width:  '100%',
 
-    nodes: {
-      borderWidth: 2,
-      borderWidthSelected: 3,
-      size: 18,
-      font: { color: '#e2e8f0', size: 13, face: 'Sora, sans-serif' },
-      shadow: { enabled: true, size: 8, color: 'rgba(0,0,0,0.5)' },
-    },
+                nodes: {
+                    borderWidth: 2,
+                    borderWidthSelected: 3,
+                    size: 18,
+                    font: { color: '#e2e8f0', size: 13, face: 'Sora, sans-serif' },
+                    shadow: { enabled: true, size: 8, color: 'rgba(0,0,0,0.5)' },
+                },
 
-    edges: {
-      width: 1.5,
-      selectionWidth: 3,
-      smooth: { type: 'curvedCW', roundness: 0.1 },
-      font: {
-        color: '#64748b', size: 10,
-        background: 'rgba(17,24,39,0.8)',
-        strokeWidth: 0,
-      },
-      arrows: { to: { enabled: false } },
-    },
+                edges: {
+                    width: 1.5,
+                    selectionWidth: 3,
+                    smooth: { type: 'curvedCW', roundness: 0.1 },
+                    font: {
+                        color: '#64748b', size: 10,
+                        background: 'rgba(17,24,39,0.8)',
+                        strokeWidth: 0,
+                    },
+                    arrows: { to: { enabled: false } },
+                },
 
-    physics: {
-      enabled: physicsEnabled,
-      solver: 'forceAtlas2Based',
-      forceAtlas2Based: {
-        gravitationalConstant: -200,
-        centralGravity: 0.003,
-        springLength: 260,
-        springConstant: 0.04,
-        damping: 0.5,
-        avoidOverlap: 1.0,
-      },
-      stabilization: { iterations: 300, updateInterval: 20 },
-    },
+                physics: {
+                    enabled: physicsEnabled,
+                    solver: 'forceAtlas2Based',
+                    forceAtlas2Based: {
+                        gravitationalConstant: -200,
+                        centralGravity: 0.003,
+                        springLength: 260,
+                        springConstant: 0.04,
+                        damping: 0.5,
+                        avoidOverlap: 1.0,
+                    },
+                    stabilization: { iterations: 300, updateInterval: 20 },
+                },
 
-    interaction: {
-      hover: true,
-      tooltipDelay: 0,
-      hideEdgesOnDrag: false,
-      multiselect: false,
-      zoomView: true,
-      dragView: true,
-    },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 0,
+                    hideEdgesOnDrag: false,
+                    multiselect: false,
+                    zoomView: true,
+                    dragView: true,
+                },
 
-    groups: buildSiteGroups(data.sites),
-  };
+                groups: buildSiteGroups(data.sites),
+            };
 
-  network = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, options);
+            network = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, options);
 
   // ── Events ──────────────────────────────────────────────────────────────
-  network.on('click', params => {
-    if (params.nodes.length > 0) {
-      selectDevice(params.nodes[0]);
-    } else {
-      clearHighlight();
-    }
-  });
+            network.on('click', params => {
+                if (params.nodes.length > 0) {
+                    selectDevice(params.nodes[0]);
+                } else {
+                    clearHighlight();
+                }
+            });
 
-  network.on('hoverNode', params => {
-    const node = nodesDS.get(params.node);
-    showCanvasTooltip(node, params.event);
-  });
+            network.on('hoverNode', params => {
+                const node = nodesDS.get(params.node);
+                showCanvasTooltip(node, params.event);
+            });
 
-  network.on('blurNode', () => {
-    document.getElementById('canvas-tooltip').classList.remove('visible');
-  });
+            network.on('blurNode', () => {
+                document.getElementById('canvas-tooltip').classList.remove('visible');
+            });
 
-  network.on('hoverEdge', params => {
-    const edge = edgesDS.get(params.edge);
-    showEdgeTooltip(edge, params.event);
-  });
+            network.on('hoverEdge', params => {
+                const edge = edgesDS.get(params.edge);
+                showEdgeTooltip(edge, params.event);
+            });
 
-  network.on('blurEdge', () => {
-    document.getElementById('canvas-tooltip').classList.remove('visible');
-  });
+            network.on('blurEdge', () => {
+                document.getElementById('canvas-tooltip').classList.remove('visible');
+            });
 
-  network.once('stabilizationIterationsDone', () => {
-    network.setOptions({ physics: { enabled: false } });
-    physicsEnabled = false;
-    document.getElementById('btn-physics').classList.remove('active');
-    network.fit({ animation: { duration: 600, easingFunction: 'easeInOutCubic' } });
-  });
-}
+            network.once('stabilizationIterationsDone', () => {
+                network.setOptions({ physics: { enabled: false } });
+                physicsEnabled = false;
+                document.getElementById('btn-physics').classList.remove('active');
+                network.fit({ animation: { duration: 600, easingFunction: 'easeInOutCubic' } });
+            });
+        }
 
-function buildSiteGroups(sites) {
-  const siteColours = [
-    '#38bdf8','#4ade80','#a78bfa','#fbbf24','#f87171','#2dd4bf','#fb923c'
-  ];
-  const groups = {};
-  sites.forEach((s, i) => {
-    groups[s.name] = {
-      color: { border: siteColours[i % siteColours.length] + '66' },
-    };
-  });
-  return groups;
-}
+        function buildSiteGroups(sites) {
+            const siteColours = [
+                '#38bdf8','#4ade80','#a78bfa','#fbbf24','#f87171','#2dd4bf','#fb923c'
+            ];
+            const groups = {};
+            sites.forEach((s, i) => {
+                groups[s.name] = {
+                    color: { border: siteColours[i % siteColours.length] + '66' },
+                };
+            });
+            return groups;
+        }
 
 // ── Tooltip (quick info, no live data) ───────────────────────────────────────
-function showCanvasTooltip(node, event) {
-  const m = node.meta || {};
-  const tip = document.getElementById('canvas-tooltip');
-  const ic  = m.intent_count || 0;
+        function showCanvasTooltip(node, event) {
+            const m = node.meta || {};
+            const tip = document.getElementById('canvas-tooltip');
+            const ic  = m.intent_count || 0;
 
-  tip.innerHTML = `
+            tip.innerHTML = `
     <div style="font-weight:700;color:var(--text);margin-bottom:5px">${node.label}</div>
     <div style="font-size:.65rem;color:var(--muted);font-family:var(--font-mono)">
       ${m.platform || 'unknown platform'}<br>
@@ -915,16 +915,16 @@ function showCanvasTooltip(node, event) {
       ${ic} deployed intent${ic !== 1 ? 's' : ''}
     </div>`;
 
-  positionTooltip(tip, event);
-  tip.classList.add('visible');
-}
+            positionTooltip(tip, event);
+            tip.classList.add('visible');
+        }
 
-function showEdgeTooltip(edge, event) {
-  if (!edge) return;
-  const m = edge.meta || {};
-  const tip = document.getElementById('canvas-tooltip');
+        function showEdgeTooltip(edge, event) {
+            if (!edge) return;
+            const m = edge.meta || {};
+            const tip = document.getElementById('canvas-tooltip');
 
-  tip.innerHTML = `
+            tip.innerHTML = `
     <div style="font-weight:600;color:var(--text);margin-bottom:4px">
       ${m.iface_a || '?'} ↔ ${m.iface_b || '?'}
     </div>
@@ -935,81 +935,81 @@ function showEdgeTooltip(edge, event) {
         : 'No shared intents'}
     </div>`;
 
-  positionTooltip(tip, event);
-  tip.classList.add('visible');
-}
+            positionTooltip(tip, event);
+            tip.classList.add('visible');
+        }
 
-function positionTooltip(el, event) {
-  const x = event.clientX || (event.center && event.center.x) || 0;
-  const y = event.clientY || (event.center && event.center.y) || 0;
-  el.style.left = (x + 14) + 'px';
-  el.style.top  = (y - 10) + 'px';
-}
+        function positionTooltip(el, event) {
+            const x = event.clientX || (event.center && event.center.x) || 0;
+            const y = event.clientY || (event.center && event.center.y) || 0;
+            el.style.left = (x + 14) + 'px';
+            el.style.top  = (y - 10) + 'px';
+        }
 
 // ── Select device — loads right panel ────────────────────────────────────────
-async function selectDevice(deviceName) {
-  selectedDevice = deviceName;
-  document.getElementById('right-panel').classList.remove('empty');
+        async function selectDevice(deviceName) {
+            selectedDevice = deviceName;
+            document.getElementById('right-panel').classList.remove('empty');
 
-  const node = nodesDS.get(deviceName);
-  const m    = node.meta || {};
+            const node = nodesDS.get(deviceName);
+            const m    = node.meta || {};
 
   // Update header
-  document.getElementById('detail-device-name').textContent = deviceName;
-  document.getElementById('detail-status-dot').style.background = node.color.background;
-  document.getElementById('detail-meta').innerHTML =
-    `<span id="detail-status-dot" style="display:inline-block;width:7px;height:7px;
+            document.getElementById('detail-device-name').textContent = deviceName;
+            document.getElementById('detail-status-dot').style.background = node.color.background;
+            document.getElementById('detail-meta').innerHTML =
+                `<span id="detail-status-dot" style="display:inline-block;width:7px;height:7px;
      border-radius:50%;background:${node.color.background};margin-right:4px;vertical-align:middle">
     </span>
     ${m.platform || 'unknown'} · ${m.site || '—'} · ${m.mgmt_ip || 'no mgmt IP'}`;
 
   // Highlight node
-  highlightDeviceOnGraph(deviceName);
+            highlightDeviceOnGraph(deviceName);
 
   // Populate intents tab immediately (from graph data, no network call needed)
-  renderIntentsTab(m.intents || []);
+            renderIntentsTab(m.intents || []);
 
   // Show spinner in live tabs
-  ['arp','routing','bgp','ifaces'].forEach(t => {
-    document.getElementById(`tab-${t}`).innerHTML = '<div class="spinner"></div>';
-  });
+            ['arp','routing','bgp','ifaces'].forEach(t => {
+                document.getElementById(`tab-${t}`).innerHTML = '<div class="spinner"></div>';
+            });
 
   // Load live data (cached or fresh)
-  await loadDeviceLiveData(deviceName);
-}
+            await loadDeviceLiveData(deviceName);
+        }
 
-async function loadDeviceLiveData(deviceName) {
-  const now    = Date.now();
-  const cached = liveCache[deviceName];
+        async function loadDeviceLiveData(deviceName) {
+            const now    = Date.now();
+            const cached = liveCache[deviceName];
 
-  if (cached && (now - cached.ts) < LIVE_TTL) {
-    populateLiveTabs(cached.data);
-    return;
-  }
+            if (cached && (now - cached.ts) < LIVE_TTL) {
+                populateLiveTabs(cached.data);
+                return;
+            }
 
-  try {
-    const res  = await fetch(`${API}/topology/device/${encodeURIComponent(deviceName)}/live/`,
-                             {headers: HEADERS});
-    const data = await res.json();
-    liveCache[deviceName] = { data, ts: now };
-    populateLiveTabs(data);
-  } catch(e) {
-    ['arp','routing','bgp','ifaces'].forEach(t => {
-      document.getElementById(`tab-${t}`).innerHTML =
-        `<div class="error-msg">Failed to load live data: ${e.message}</div>`;
-    });
-  }
-}
+            try {
+                const res  = await fetch(`${API}/topology/device/${encodeURIComponent(deviceName)}/live/`,
+                    {headers: HEADERS});
+                const data = await res.json();
+                liveCache[deviceName] = { data, ts: now };
+                populateLiveTabs(data);
+            } catch(e) {
+                ['arp','routing','bgp','ifaces'].forEach(t => {
+                    document.getElementById(`tab-${t}`).innerHTML =
+                        `<div class="error-msg">Failed to load live data: ${e.message}</div>`;
+                });
+            }
+        }
 
 // ── Render tabs ───────────────────────────────────────────────────────────────
-function renderIntentsTab(intents) {
-  const el = document.getElementById('tab-intents');
-  if (!intents.length) {
-    el.innerHTML = '<div class="empty-msg">No intents deployed to this device</div>';
-    return;
-  }
+        function renderIntentsTab(intents) {
+            const el = document.getElementById('tab-intents');
+            if (!intents.length) {
+                el.innerHTML = '<div class="empty-msg">No intents deployed to this device</div>';
+                return;
+            }
 
-  el.innerHTML = intents.map(i => `
+            el.innerHTML = intents.map(i => `
     <div class="intent-card" onclick="highlightIntent('${i.intent_id}')">
       <div class="intent-card-id">${i.intent_id}</div>
       <div style="margin-bottom:4px">
@@ -1035,62 +1035,62 @@ function renderIntentsTab(intents) {
         : ''}
       ${i.verified_ok !== null && i.verified_ok !== undefined
         ? `<div class="intent-card-row">
-            <span>Verified</span>
-            <span style="color:${i.verified_ok ? 'var(--green)' : 'var(--red)'}">
-              ${i.verified_ok ? '✅ Pass' : '❌ Fail'}
-            </span>
-           </div>`
+                <span>Verified</span>
+                <span style="color:${i.verified_ok ? 'var(--green)' : 'var(--red)'}">
+                ${i.verified_ok ? '✅ Pass' : '❌ Fail'}
+                </span>
+                </div>`
         : ''}
     </div>
   `).join('');
-}
+        }
 
-function populateLiveTabs(data) {
-  if (data.collection_error) {
-    ['arp','routing','bgp'].forEach(t => {
-      document.getElementById(`tab-${t}`).innerHTML =
-        `<div class="error-msg">⚠ Live collection: ${data.collection_error}</div>`;
-    });
-  } else {
-    renderArpTab(data.arp_table || []);
-    renderRoutingTab(data.routing_table || []);
-    renderBgpTab(data.bgp_neighbors || []);
-  }
-  renderIfacesTab(data.interfaces || []);
-}
+        function populateLiveTabs(data) {
+            if (data.collection_error) {
+                ['arp','routing','bgp'].forEach(t => {
+                    document.getElementById(`tab-${t}`).innerHTML =
+                        `<div class="error-msg">⚠ Live collection: ${data.collection_error}</div>`;
+                });
+            } else {
+                renderArpTab(data.arp_table || []);
+                renderRoutingTab(data.routing_table || []);
+                renderBgpTab(data.bgp_neighbors || []);
+            }
+            renderIfacesTab(data.interfaces || []);
+        }
 
-function renderArpTab(rows) {
-  const el = document.getElementById('tab-arp');
-  if (!rows.length) { el.innerHTML = '<div class="empty-msg">ARP table empty or unavailable</div>'; return; }
-  el.innerHTML = `
+        function renderArpTab(rows) {
+            const el = document.getElementById('tab-arp');
+            if (!rows.length) { el.innerHTML = '<div class="empty-msg">ARP table empty or unavailable</div>'; return; }
+            el.innerHTML = `
     <table class="data-table">
       <thead><tr>
         <th>IP</th><th>MAC</th><th>Interface</th><th>Age</th>
       </tr></thead>
       <tbody>
         ${rows.map(r => `<tr>
-          <td>${r.ip}</td>
-          <td>${r.mac}</td>
-          <td>${r.interface}</td>
-          <td style="color:var(--muted)">${r.age}</td>
-        </tr>`).join('')}
+            <td>${r.ip}</td>
+            <td>${r.mac}</td>
+            <td>${r.interface}</td>
+            <td style="color:var(--muted)">${r.age}</td>
+            </tr>`).join('')}
       </tbody>
     </table>`;
-}
+        }
 
-function renderRoutingTab(rows) {
-  const el = document.getElementById('tab-routing');
-  if (!rows.length) { el.innerHTML = '<div class="empty-msg">Routing table empty or unavailable</div>'; return; }
+        function renderRoutingTab(rows) {
+            const el = document.getElementById('tab-routing');
+            if (!rows.length) { el.innerHTML = '<div class="empty-msg">Routing table empty or unavailable</div>'; return; }
 
   // Group by VRF
-  const byVrf = {};
-  rows.forEach(r => {
-    const v = r.vrf || 'default';
-    if (!byVrf[v]) byVrf[v] = [];
-    byVrf[v].push(r);
-  });
+            const byVrf = {};
+            rows.forEach(r => {
+                const v = r.vrf || 'default';
+                if (!byVrf[v]) byVrf[v] = [];
+                byVrf[v].push(r);
+            });
 
-  el.innerHTML = Object.entries(byVrf).map(([vrf, routes]) => `
+            el.innerHTML = Object.entries(byVrf).map(([vrf, routes]) => `
     <div style="margin-bottom:4px;padding:4px 0;border-bottom:1px solid var(--border)">
       <span style="font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;
                    color:var(--muted)">VRF: </span>
@@ -1103,20 +1103,20 @@ function renderRoutingTab(rows) {
       </tr></thead>
       <tbody>
         ${routes.map(r => `<tr>
-          <td>${r.network}${r.mask ? '/'+r.mask : ''}</td>
-          <td>${r.nexthop}</td>
-          <td style="color:var(--purple)">${r.protocol}</td>
-          <td style="color:var(--muted)">${r.interface}</td>
-        </tr>`).join('')}
+                <td>${r.network}${r.mask ? '/'+r.mask : ''}</td>
+                <td>${r.nexthop}</td>
+                <td style="color:var(--purple)">${r.protocol}</td>
+                <td style="color:var(--muted)">${r.interface}</td>
+                </tr>`).join('')}
       </tbody>
     </table>
   `).join('');
-}
+        }
 
-function renderBgpTab(rows) {
-  const el = document.getElementById('tab-bgp');
-  if (!rows.length) { el.innerHTML = '<div class="empty-msg">No BGP neighbors or unavailable</div>'; return; }
-  el.innerHTML = `
+        function renderBgpTab(rows) {
+            const el = document.getElementById('tab-bgp');
+            if (!rows.length) { el.innerHTML = '<div class="empty-msg">No BGP neighbors or unavailable</div>'; return; }
+            el.innerHTML = `
     <table class="data-table">
       <thead><tr>
         <th>Neighbor</th><th>AS</th><th>State</th><th>VRF</th><th>↓Pfx</th>
@@ -1129,45 +1129,45 @@ function renderBgpTab(rows) {
             <td>${r.neighbor}</td>
             <td style="color:var(--muted)">${r.as}</td>
             <td style="color:${up ? 'var(--green)' : 'var(--red)'}">
-              ${up ? '▲' : '▼'} ${r.state}
+            ${up ? '▲' : '▼'} ${r.state}
             </td>
             <td style="color:var(--accent);font-size:.65rem">${r.vrf}</td>
             <td style="color:var(--muted)">${r.prefixes_rx}</td>
-          </tr>`;
+            </tr>`;
         }).join('')}
       </tbody>
     </table>`;
-}
+        }
 
-function renderIfacesTab(ifaces) {
-  const el = document.getElementById('tab-ifaces');
-  if (!ifaces.length) { el.innerHTML = '<div class="empty-msg">No interface data</div>'; return; }
+        function renderIfacesTab(ifaces) {
+            const el = document.getElementById('tab-ifaces');
+            if (!ifaces.length) { el.innerHTML = '<div class="empty-msg">No interface data</div>'; return; }
 
   // Summary counts
-  const up = ifaces.filter(i => i.enabled).length;
-  const down = ifaces.length - up;
+            const up = ifaces.filter(i => i.enabled).length;
+            const down = ifaces.length - up;
 
-  el.innerHTML = `
+            el.innerHTML = `
     <div class="iface-summary">
       <span>${ifaces.length} interfaces</span>
       <span class="iface-summary-up">${up} up</span>
       <span class="iface-summary-down">${down} down</span>
     </div>
   ` + ifaces.map((i, idx) => {
-    const typeLabel = (i.type || '').replace(/_/g, ' ').replace(/-/g, ' ');
-    const mtuStr = i.mtu ? `${i.mtu}` : '—';
-    const macStr = i.mac_address || '—';
-    const descStr = i.description || '—';
-    const statusStr = i.status || 'Unknown';
-    const modeStr = i.mode ? i.mode.replace(/_/g, ' ') : '—';
-    const speedStr = i.speed ? `${(i.speed / 1000).toFixed(i.speed >= 1000 ? 0 : 1)} Gbps` : '—';
-    const duplexStr = i.duplex || '—';
-    const vrfStr = i.vrf || '—';
-    const lagStr = i.lag || '—';
-    const peerStr = i.cable_peer || '—';
-    const mgmtBadge = i.mgmt_only ? '<span class="iface-badge mgmt">MGMT</span>' : '';
+                const typeLabel = (i.type || '').replace(/_/g, ' ').replace(/-/g, ' ');
+                const mtuStr = i.mtu ? `${i.mtu}` : '—';
+                const macStr = i.mac_address || '—';
+                const descStr = i.description || '—';
+                const statusStr = i.status || 'Unknown';
+                const modeStr = i.mode ? i.mode.replace(/_/g, ' ') : '—';
+                const speedStr = i.speed ? `${(i.speed / 1000).toFixed(i.speed >= 1000 ? 0 : 1)} Gbps` : '—';
+                const duplexStr = i.duplex || '—';
+                const vrfStr = i.vrf || '—';
+                const lagStr = i.lag || '—';
+                const peerStr = i.cable_peer || '—';
+                const mgmtBadge = i.mgmt_only ? '<span class="iface-badge mgmt">MGMT</span>' : '';
 
-    return `
+                return `
     <div class="iface-card" data-idx="${idx}">
       <div class="iface-header" onclick="toggleIface(this)">
         <div class="iface-dot ${i.enabled ? 'up' : 'down'}"></div>
@@ -1194,27 +1194,27 @@ function renderIfacesTab(ifaces) {
         </div>
       </div>
     </div>`;
-  }).join('');
-}
+            }).join('');
+        }
 
-function toggleIface(headerEl) {
-  const card = headerEl.closest('.iface-card');
-  const detail = card.querySelector('.iface-detail');
-  const chevron = card.querySelector('.iface-chevron');
-  const isOpen = detail.style.display !== 'none';
-  detail.style.display = isOpen ? 'none' : 'block';
-  chevron.classList.toggle('open', !isOpen);
-}
+        function toggleIface(headerEl) {
+            const card = headerEl.closest('.iface-card');
+            const detail = card.querySelector('.iface-detail');
+            const chevron = card.querySelector('.iface-chevron');
+            const isOpen = detail.style.display !== 'none';
+            detail.style.display = isOpen ? 'none' : 'block';
+            chevron.classList.toggle('open', !isOpen);
+        }
 
 // ── Intent list (left panel) ──────────────────────────────────────────────────
-function renderIntentList(intents) {
-  const el = document.getElementById('intent-list');
-  document.getElementById('intent-count').textContent = intents.length;
-  if (!intents.length) {
-    el.innerHTML = '<div class="empty-msg">No deployed intents</div>';
-    return;
-  }
-  el.innerHTML = intents.map(i => `
+        function renderIntentList(intents) {
+            const el = document.getElementById('intent-list');
+            document.getElementById('intent-count').textContent = intents.length;
+            if (!intents.length) {
+                el.innerHTML = '<div class="empty-msg">No deployed intents</div>';
+                return;
+            }
+            el.innerHTML = intents.map(i => `
     <div class="intent-item" id="il-${i.intent_id}"
          onclick="highlightIntent('${i.intent_id}')">
       <div class="intent-item-id">${i.intent_id}</div>
@@ -1224,193 +1224,193 @@ function renderIntentList(intents) {
       </div>
     </div>
   `).join('');
-}
+        }
 
 // ── Intent highlight ──────────────────────────────────────────────────────────
-async function highlightIntent(intentId) {
+        async function highlightIntent(intentId) {
   // Toggle off if clicking same intent
-  if (selectedIntent === intentId) {
-    selectedIntent = null;
-    clearHighlight();
-    document.querySelectorAll('.intent-item').forEach(el => el.classList.remove('selected'));
-    return;
-  }
+            if (selectedIntent === intentId) {
+                selectedIntent = null;
+                clearHighlight();
+                document.querySelectorAll('.intent-item').forEach(el => el.classList.remove('selected'));
+                return;
+            }
 
-  selectedIntent = intentId;
-  document.querySelectorAll('.intent-item').forEach(el => el.classList.remove('selected'));
-  const listItem = document.getElementById(`il-${intentId}`);
-  if (listItem) listItem.classList.add('selected');
+            selectedIntent = intentId;
+            document.querySelectorAll('.intent-item').forEach(el => el.classList.remove('selected'));
+            const listItem = document.getElementById(`il-${intentId}`);
+            if (listItem) listItem.classList.add('selected');
 
-  try {
-    setLoading(true);
-    const res  = await fetch(`${API}/topology/intent/${encodeURIComponent(intentId)}/highlight/`,
-                             {headers: HEADERS});
-    const data = await res.json();
+            try {
+                setLoading(true);
+                const res  = await fetch(`${API}/topology/intent/${encodeURIComponent(intentId)}/highlight/`,
+                    {headers: HEADERS});
+                const data = await res.json();
 
     // Dim everything not in this intent
-    const intentDevices = new Set(data.device_names);
-    const intentEdges   = new Set(data.highlighted_edges);
+                const intentDevices = new Set(data.device_names);
+                const intentEdges   = new Set(data.highlighted_edges);
 
-    nodesDS.forEach(node => {
-      nodesDS.update({
-        id:   node.id,
-        opacity: intentDevices.has(node.id) ? 1.0 : 0.15,
-      });
-    });
-    edgesDS.forEach(edge => {
-      edgesDS.update({
-        id:    edge.id,
-        color: {
-          color: intentEdges.has(edge.id) ? '#38bdf8' : 'rgba(30,45,69,0.3)',
-          opacity: intentEdges.has(edge.id) ? 1.0 : 0.2,
-        },
-        width: intentEdges.has(edge.id) ? 3 : 1,
-      });
-    });
+                nodesDS.forEach(node => {
+                    nodesDS.update({
+                        id:   node.id,
+                        opacity: intentDevices.has(node.id) ? 1.0 : 0.15,
+                    });
+                });
+                edgesDS.forEach(edge => {
+                    edgesDS.update({
+                        id:    edge.id,
+                        color: {
+                            color: intentEdges.has(edge.id) ? '#38bdf8' : 'rgba(30,45,69,0.3)',
+                            opacity: intentEdges.has(edge.id) ? 1.0 : 0.2,
+                        },
+                        width: intentEdges.has(edge.id) ? 3 : 1,
+                    });
+                });
 
     // Focus on intent nodes
-    if (data.device_names.length) {
-      network.fit({
-        nodes: data.device_names,
-        animation: { duration: 600, easingFunction: 'easeInOutCubic' },
-      });
-    }
+                if (data.device_names.length) {
+                    network.fit({
+                        nodes: data.device_names,
+                        animation: { duration: 600, easingFunction: 'easeInOutCubic' },
+                    });
+                }
 
-    setStatus(`Intent: ${intentId} · ${data.device_names.length} devices`);
-  } catch(e) {
-    console.error('Intent highlight failed', e);
-  }
-  setLoading(false);
-}
+                setStatus(`Intent: ${intentId} · ${data.device_names.length} devices`);
+            } catch(e) {
+                console.error('Intent highlight failed', e);
+            }
+            setLoading(false);
+        }
 
-function highlightDeviceOnGraph(deviceName) {
-  if (!network) return;
-  network.selectNodes([deviceName]);
-  network.focus(deviceName, {
-    scale: 1.2,
-    animation: { duration: 400, easingFunction: 'easeInOutCubic' },
-  });
-}
+        function highlightDeviceOnGraph(deviceName) {
+            if (!network) return;
+            network.selectNodes([deviceName]);
+            network.focus(deviceName, {
+                scale: 1.2,
+                animation: { duration: 400, easingFunction: 'easeInOutCubic' },
+            });
+        }
 
-function clearHighlight() {
-  if (!nodesDS || !edgesDS || !graphData) return;
+        function clearHighlight() {
+            if (!nodesDS || !edgesDS || !graphData) return;
   // Restore original colours from graph data
-  graphData.nodes.forEach(n => {
-    nodesDS.update({ id: n.id, color: n.color, opacity: 1.0 });
-  });
-  graphData.edges.forEach(e => {
-    edgesDS.update({ id: e.id, color: e.color, width: e.width });
-  });
-  if (network) network.unselectAll();
-  selectedIntent = null;
-  document.querySelectorAll('.intent-item').forEach(el => el.classList.remove('selected'));
-  setStatus(`${graphData.device_count} devices · ${graphData.edge_count} links`);
-}
+            graphData.nodes.forEach(n => {
+                nodesDS.update({ id: n.id, color: n.color, opacity: 1.0 });
+            });
+            graphData.edges.forEach(e => {
+                edgesDS.update({ id: e.id, color: e.color, width: e.width });
+            });
+            if (network) network.unselectAll();
+            selectedIntent = null;
+            document.querySelectorAll('.intent-item').forEach(el => el.classList.remove('selected'));
+            setStatus(`${graphData.device_count} devices · ${graphData.edge_count} links`);
+        }
 
 // ── Search ────────────────────────────────────────────────────────────────────
-function searchDevice(query) {
-  if (!nodesDS) return;
-  const q = query.toLowerCase().trim();
-  if (!q) { clearHighlight(); return; }
+        function searchDevice(query) {
+            if (!nodesDS) return;
+            const q = query.toLowerCase().trim();
+            if (!q) { clearHighlight(); return; }
 
-  const matches = [];
-  nodesDS.forEach(node => {
-    const hit = node.id.toLowerCase().includes(q);
-    nodesDS.update({
-      id:      node.id,
-      opacity: hit ? 1.0 : 0.15,
-    });
-    if (hit) matches.push(node.id);
-  });
+            const matches = [];
+            nodesDS.forEach(node => {
+                const hit = node.id.toLowerCase().includes(q);
+                nodesDS.update({
+                    id:      node.id,
+                    opacity: hit ? 1.0 : 0.15,
+                });
+                if (hit) matches.push(node.id);
+            });
 
-  if (matches.length === 1) {
-    network.focus(matches[0], { scale: 1.4,
-      animation: {duration: 400, easingFunction: 'easeInOutCubic'} });
-  } else if (matches.length > 1) {
-    network.fit({ nodes: matches,
-      animation: {duration: 500, easingFunction: 'easeInOutCubic'} });
-  }
-}
+            if (matches.length === 1) {
+                network.focus(matches[0], { scale: 1.4,
+                    animation: {duration: 400, easingFunction: 'easeInOutCubic'} });
+            } else if (matches.length > 1) {
+                network.fit({ nodes: matches,
+                    animation: {duration: 500, easingFunction: 'easeInOutCubic'} });
+            }
+        }
 
 // ── Controls ──────────────────────────────────────────────────────────────────
-function togglePhysics() {
-  physicsEnabled = !physicsEnabled;
-  if (network) network.setOptions({ physics: { enabled: physicsEnabled } });
-  document.getElementById('btn-physics').classList.toggle('active', physicsEnabled);
-}
+        function togglePhysics() {
+            physicsEnabled = !physicsEnabled;
+            if (network) network.setOptions({ physics: { enabled: physicsEnabled } });
+            document.getElementById('btn-physics').classList.toggle('active', physicsEnabled);
+        }
 
-function toggleClusters() {
-  if (!network || !graphData) return;
-  clustersActive = !clustersActive;
-  document.getElementById('btn-cluster').classList.toggle('active', clustersActive);
+        function toggleClusters() {
+            if (!network || !graphData) return;
+            clustersActive = !clustersActive;
+            document.getElementById('btn-cluster').classList.toggle('active', clustersActive);
 
-  if (clustersActive) {
-    const sites = {};
-    graphData.nodes.forEach(n => {
-      const sg = n.group;
-      if (!sites[sg]) sites[sg] = [];
-      sites[sg].push(n.id);
-    });
-    Object.entries(sites).forEach(([site, nodes]) => {
-      if (nodes.length >= 2) {
-        network.cluster({
-          joinCondition: n => n.group === site,
-          clusterNodeProperties: {
-            id:    `cluster-${site}`,
-            label: `📍 ${site}\n(${nodes.length} devices)`,
-            shape: 'box',
-            color: { background: '#1a2236', border: '#38bdf8' },
-            font:  { color: '#e2e8f0', size: 14 },
-          }
-        });
-      }
-    });
-  } else {
-    graphData.nodes.forEach(n => {
-      try { network.openCluster(`cluster-${n.group}`); } catch(e) {}
-    });
-  }
-}
+            if (clustersActive) {
+                const sites = {};
+                graphData.nodes.forEach(n => {
+                    const sg = n.group;
+                    if (!sites[sg]) sites[sg] = [];
+                    sites[sg].push(n.id);
+                });
+                Object.entries(sites).forEach(([site, nodes]) => {
+                    if (nodes.length >= 2) {
+                        network.cluster({
+                            joinCondition: n => n.group === site,
+                            clusterNodeProperties: {
+                                id:    `cluster-${site}`,
+                                label: `📍 ${site}\n(${nodes.length} devices)`,
+                                shape: 'box',
+                                color: { background: '#1a2236', border: '#38bdf8' },
+                                font:  { color: '#e2e8f0', size: 14 },
+                            }
+                        });
+                    }
+                });
+            } else {
+                graphData.nodes.forEach(n => {
+                    try { network.openCluster(`cluster-${n.group}`); } catch(e) {}
+                });
+            }
+        }
 
-function fitGraph()     { if (network) network.fit({animation:{duration:500}}); }
-function zoomIn()       { if (network) network.moveTo({scale: network.getScale() * 1.3}); }
-function zoomOut()      { if (network) network.moveTo({scale: network.getScale() / 1.3}); }
-function zoomFit()      { fitGraph(); }
-function applyFilters() { clearHighlight(); loadGraph(); }
-function refreshGraph() {
-  liveCache = {};
-  clearHighlight();
-  loadGraph();
-}
+        function fitGraph()     { if (network) network.fit({animation:{duration:500}}); }
+        function zoomIn()       { if (network) network.moveTo({scale: network.getScale() * 1.3}); }
+        function zoomOut()      { if (network) network.moveTo({scale: network.getScale() / 1.3}); }
+        function zoomFit()      { fitGraph(); }
+        function applyFilters() { clearHighlight(); loadGraph(); }
+        function refreshGraph() {
+            liveCache = {};
+            clearHighlight();
+            loadGraph();
+        }
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-function switchTab(name) {
-  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(`tab-${name}`).classList.add('active');
-  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+        function switchTab(name) {
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${name}`).classList.add('active');
+            document.querySelector(`[data-tab="${name}"]`).classList.add('active');
 
   // If switching to live tab and we have a selected device, ensure data loaded
-  if (selectedDevice && ['arp','routing','bgp'].includes(name)) {
-    const el = document.getElementById(`tab-${name}`);
-    if (el.querySelector('.spinner')) {
-      loadDeviceLiveData(selectedDevice);
-    }
-  }
-}
+            if (selectedDevice && ['arp','routing','bgp'].includes(name)) {
+                const el = document.getElementById(`tab-${name}`);
+                if (el.querySelector('.spinner')) {
+                    loadDeviceLiveData(selectedDevice);
+                }
+            }
+        }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function setLoading(on) {
-  document.getElementById('loading-bar').classList.toggle('active', on);
-}
-function setStatus(msg) {
-  document.getElementById('tb-status').textContent = msg;
-}
-function fmtDate(iso) {
-  if (!iso) return '—';
-  try { return new Date(iso).toLocaleString(undefined, {dateStyle:'short', timeStyle:'short'}); }
-  catch(e) { return iso; }
-}
-</script>
+        function setLoading(on) {
+            document.getElementById('loading-bar').classList.toggle('active', on);
+        }
+        function setStatus(msg) {
+            document.getElementById('tb-status').textContent = msg;
+        }
+        function fmtDate(iso) {
+            if (!iso) return '—';
+            try { return new Date(iso).toLocaleString(undefined, {dateStyle:'short', timeStyle:'short'}); }
+            catch(e) { return iso; }
+        }
+    </script>
 
 {% endblock content %}

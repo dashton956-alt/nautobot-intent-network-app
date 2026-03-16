@@ -10,6 +10,7 @@ from intent_networking.controller_adapters import (
     ADAPTER_REGISTRY,
     CloudAdapter,
     ControllerAdapter,
+    FirewallControllerAdapter,
     SdWanControllerAdapter,
     WirelessControllerAdapter,
     classify_primitives,
@@ -24,6 +25,8 @@ ADAPTER_PLUGIN_CFG = {
         "sdwan_controller_creds": {"username": "admin", "password": "secret"},
         "cloud_controller_url": "https://cloud-api.example.com",
         "cloud_controller_creds": {"token": "tok123"},
+        "firewall_controller_url": "https://panorama.example.com",
+        "firewall_controller_creds": {"username": "admin", "api_key": "key123"},
     }
 }
 
@@ -219,6 +222,59 @@ class CloudAdapterTest(SimpleTestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Firewall Controller Adapter
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class FirewallControllerAdapterTest(SimpleTestCase):
+    """Test FirewallControllerAdapter push/verify/rollback."""
+
+    def setUp(self):
+        """Create adapter instance."""
+        self.adapter = FirewallControllerAdapter("https://panorama.example.com")
+
+    def test_push_filters_non_firewall(self):
+        """Non-firewall primitives are skipped."""
+        primitives = [
+            {"primitive_type": "static_route", "data": {}},
+            {"primitive_type": "fw_rule", "policy_name": "DENY-ALL"},
+        ]
+        result = self.adapter.push(primitives, "test-001")
+        self.assertEqual(len(result["details"]), 1)
+
+    def test_push_returns_failure_without_vendor_override(self):
+        """Base _dispatch_push returns ok=False (no vendor impl)."""
+        primitives = [{"primitive_type": "fw_rule"}]
+        result = self.adapter.push(primitives, "test-001")
+        self.assertFalse(result["success"])
+
+    def test_verify_reports_drift_without_override(self):
+        """Base _check_present returns False, so verify finds drift."""
+        primitives = [{"primitive_type": "fw_rule", "policy_name": "TEST"}]
+        result = self.adapter.verify(primitives, "test-001")
+        self.assertFalse(result["verified"])
+        self.assertEqual(len(result["drift"]), 1)
+
+    def test_verify_ignores_non_firewall(self):
+        """Non-firewall primitives don't produce drift."""
+        primitives = [{"primitive_type": "static_route"}]
+        result = self.adapter.verify(primitives, "test-001")
+        self.assertTrue(result["verified"])
+        self.assertEqual(len(result["drift"]), 0)
+
+    def test_rollback_returns_failure_without_override(self):
+        """Base _dispatch_rollback returns ok=False."""
+        primitives = [{"primitive_type": "fw_rule"}]
+        result = self.adapter.rollback(primitives, "test-001")
+        self.assertFalse(result["success"])
+
+    def test_primitive_types_frozenset(self):
+        """PRIMITIVE_TYPES is a frozenset with expected firewall types."""
+        self.assertIsInstance(FirewallControllerAdapter.PRIMITIVE_TYPES, frozenset)
+        self.assertIn("fw_rule", FirewallControllerAdapter.PRIMITIVE_TYPES)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Adapter Factory — get_adapter()
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -242,6 +298,12 @@ class GetAdapterFactoryTest(SimpleTestCase):
         """Factory returns CloudAdapter for 'cloud'."""
         adapter = get_adapter("cloud")
         self.assertIsInstance(adapter, CloudAdapter)
+
+    def test_get_firewall_adapter(self):
+        """Factory returns FirewallControllerAdapter for 'firewall'."""
+        adapter = get_adapter("firewall")
+        self.assertIsInstance(adapter, FirewallControllerAdapter)
+        self.assertEqual(adapter.controller_url, "https://panorama.example.com")
 
     def test_unknown_adapter_type_raises(self):
         """ValueError for an unregistered adapter type."""
@@ -277,10 +339,11 @@ class AdapterRegistryTest(SimpleTestCase):
     """Test ADAPTER_REGISTRY mapping."""
 
     def test_registry_has_all_types(self):
-        """Registry contains wireless, sdwan and cloud."""
+        """Registry contains wireless, sdwan, cloud and firewall."""
         self.assertIn("wireless", ADAPTER_REGISTRY)
         self.assertIn("sdwan", ADAPTER_REGISTRY)
         self.assertIn("cloud", ADAPTER_REGISTRY)
+        self.assertIn("firewall", ADAPTER_REGISTRY)
 
     def test_registry_values_are_classes(self):
         """All registry values are ControllerAdapter subclasses."""
@@ -316,6 +379,7 @@ class ClassifyPrimitivesTest(SimpleTestCase):
         self.assertNotIn("wireless", result)
         self.assertNotIn("sdwan", result)
         self.assertNotIn("cloud", result)
+        self.assertNotIn("firewall", result)
 
     def test_wireless_bucket(self):
         """Wireless primitives go to 'wireless' bucket."""
@@ -341,6 +405,13 @@ class ClassifyPrimitivesTest(SimpleTestCase):
         self.assertIn("cloud", result)
         self.assertEqual(len(result["cloud"]), 2)
 
+    def test_firewall_bucket(self):
+        """Firewall primitives go to 'firewall' bucket."""
+        primitives = [{"primitive_type": "fw_rule"}]
+        result = classify_primitives(primitives)
+        self.assertIn("firewall", result)
+        self.assertEqual(len(result["firewall"]), 1)
+
     def test_mixed_primitives(self):
         """Mixed primitives are sorted into correct buckets."""
         primitives = [
@@ -349,12 +420,14 @@ class ClassifyPrimitivesTest(SimpleTestCase):
             {"primitive_type": "sdwan_overlay"},
             {"primitive_type": "cloud_vpc_peer"},
             {"primitive_type": "acl"},
+            {"primitive_type": "fw_rule"},
         ]
         result = classify_primitives(primitives)
         self.assertEqual(len(result["nornir"]), 2)
         self.assertEqual(len(result["wireless"]), 1)
         self.assertEqual(len(result["sdwan"]), 1)
         self.assertEqual(len(result["cloud"]), 1)
+        self.assertEqual(len(result["firewall"]), 1)
 
     def test_empty_buckets_removed(self):
         """Buckets with zero items are not in the result."""
@@ -363,6 +436,7 @@ class ClassifyPrimitivesTest(SimpleTestCase):
         self.assertNotIn("nornir", result)
         self.assertNotIn("sdwan", result)
         self.assertNotIn("cloud", result)
+        self.assertNotIn("firewall", result)
         self.assertIn("wireless", result)
 
     def test_cloud_sdwan_overlap(self):

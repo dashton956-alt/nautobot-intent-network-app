@@ -1207,7 +1207,11 @@ class IntentReconciliationJob(Job):
 
     def run(self, **kwargs):  # pylint: disable=unused-argument
         """Execute the reconciliation job across all deployed intents."""
-        deployed = Intent.objects.filter(status__name__iexact="Deployed").select_related("tenant")
+        deployed = (
+            Intent.objects.filter(status__name__iexact="Deployed")
+            .exclude(status__name__iexact="Retired")
+            .select_related("tenant")
+        )
 
         self.logger.info("Reconciling %s deployed intents", deployed.count())
 

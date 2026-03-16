@@ -6,7 +6,7 @@ from nautobot.tenancy.models import Tenant
 
 from intent_networking.models import Intent, IntentTypeChoices
 
-INTENT_STATUSES = ["Draft", "Validated", "Deploying", "Deployed", "Failed", "Rolled Back", "Deprecated"]
+INTENT_STATUSES = ["Draft", "Validated", "Deploying", "Deployed", "Failed", "Rolled Back", "Deprecated", "Retired"]
 
 
 def ensure_intent_statuses():

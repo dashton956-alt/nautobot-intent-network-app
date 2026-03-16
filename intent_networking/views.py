@@ -68,6 +68,7 @@ class DashboardView(TemplateView):
         context["deploying_count"] = status_map.get("deploying", 0)
         context["draft_count"] = status_map.get("draft", 0)
         context["validated_count"] = status_map.get("validated", 0)
+        context["retired_count"] = status_map.get("retired", 0)
 
         # ── Recent intents ────────────────────────────────────────────────
         context["recent_intents"] = Intent.objects.select_related("tenant", "status").order_by("-last_updated")[:10]
@@ -97,7 +98,7 @@ class DashboardView(TemplateView):
 
         # ── Approval stats ────────────────────────────────────────────────
         context["pending_approvals"] = (
-            Intent.objects.filter(approved_by="").exclude(status__name__in=["Deprecated", "Draft"]).count()
+            Intent.objects.filter(approved_by="").exclude(status__name__in=["Deprecated", "Draft", "Retired"]).count()
         )
 
         # ── Intent type breakdown (top 10 by count) ──────────────────────

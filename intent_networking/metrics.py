@@ -151,8 +151,10 @@ class PrometheusMetricsView(View):
 
         # ── intent_conflicts_detected ─────────────────────────────────────
         conflict_count = 0
-        for intent in Intent.objects.filter(status__name__in=["Draft", "Validated", "Deploying", "Deployed"]).only(
-            "pk", "intent_data"
+        for intent in (
+            Intent.objects.filter(status__name__in=["Draft", "Validated", "Deploying", "Deployed"])
+            .exclude(status__name__iexact="Retired")
+            .only("pk", "intent_data")
         ):
             from intent_networking.models import detect_conflicts  # noqa: PLC0415
 
