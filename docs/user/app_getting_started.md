@@ -32,6 +32,23 @@ Navigate to **IPAM → Namespaces** and verify the namespace configured in `vrf_
 
 Nautobot will scan the repo for YAML files in `intents/`, `intent_definitions/`, or `intent-definitions/` directories.
 
+!!! tip "Excluding files with `.intentignore`"
+    If your intent directory contains test fixtures, scratch files, or other YAML you don't want synced,
+    create a `.intentignore` file in the repository root or inside the intent directory.
+    It uses the same glob syntax as `.gitignore`:
+
+    ```text
+    # Skip test data
+    tests/**
+    test_*.yaml
+
+    # Skip work-in-progress
+    **/scratch/**
+    draft_*.yml
+    ```
+
+    See [External Interactions → Git Integration](external_interactions.md#intentignore) for full details.
+
 ### 4. Write Your First Intent YAML
 
 Create a file in your Git repo at `intents/my-first-intent.yaml`:

@@ -68,9 +68,47 @@ The app leverages Nautobot's native `GitRepository` model to synchronise intent 
 The app registers an `"intent definitions"` provided-content type. When a `GitRepository` with this content type is synced, the app's `datasources.py` callback:
 
 1. Scans `intents/`, `intent_definitions/`, and `intent-definitions/` directories
-2. Parses all `.yaml`, `.yml`, and `.json` files
-3. Creates or updates `Intent` records in the database
-4. Marks intents whose files were removed as **Deprecated**
+2. Loads `.intentignore` patterns (if present) to exclude matching files
+3. Parses all `.yaml`, `.yml`, and `.json` files that are not ignored
+4. Creates or updates `Intent` records in the database
+5. Marks intents whose files were removed as **Deprecated**
+
+### `.intentignore` {: #intentignore }
+
+Place a `.intentignore` file in the **repository root** and/or inside the **intent directory** to exclude files from sync. The file uses `fnmatch`-style glob patterns, one per line.
+
+**Supported syntax:**
+
+| Pattern | Matches |
+|---------|---------|
+| `*.json` | Any `.json` file at any depth |
+| `test_*.yaml` | Files starting with `test_` |
+| `tests/*` | All files directly under `tests/` |
+| `**/scratch/**` | Any file under any `scratch/` directory |
+| `archive/*.yml` | `.yml` files directly under `archive/` |
+
+Blank lines and lines starting with `#` are treated as comments.
+
+**Example `.intentignore`:**
+
+```text
+# Test fixtures — don't sync to production
+tests/**
+test_*.yaml
+
+# Scratch / WIP files
+**/scratch/**
+draft_*.yml
+
+# Legacy JSON exports
+*.json
+```
+
+!!! note
+    The app checks both the full relative path (`subdir/file.yaml`) and the filename alone (`file.yaml`) against each pattern. This gives both directory-level and filename-level control.
+
+!!! tip
+    If both the repo root and the intent directory contain a `.intentignore`, patterns from **both** files are merged (duplicates removed).
 
 ### Continuous Delivery
 

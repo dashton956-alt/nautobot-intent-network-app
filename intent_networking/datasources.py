@@ -8,8 +8,22 @@ create / update Intent records — no CI pipeline or REST API call needed.
 This is the Nautobot-native "pull" model for Git integration.
 The legacy ``sync-from-git`` REST endpoint still works as a "push"
 alternative for CI-driven workflows.
+
+File exclusion
+--------------
+Users can place a ``.intentignore`` file in the repository root **or**
+inside the intent directory to exclude files from sync.  The file uses
+``fnmatch``-style glob patterns, one per line:
+
+    # Skip test fixtures
+    tests/**
+    test_*.yaml
+    **/scratch/**
+
+Blank lines and lines starting with ``#`` are treated as comments.
 """
 
+import fnmatch
 import logging
 import os
 
@@ -23,6 +37,59 @@ logger = logging.getLogger(__name__)
 
 CONTENT_IDENTIFIER = "intent_networking.intent_definitions"
 INTENT_DIRS = ("intents", "intent_definitions", "intent-definitions")
+INTENTIGNORE_FILENAME = ".intentignore"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# .intentignore helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _load_ignore_patterns(*search_dirs):
+    """Load glob patterns from ``.intentignore`` files in the given directories.
+
+    Patterns are collected from every ``.intentignore`` found (repo root and
+    the intent directory may both contain one).  Blank lines and comment
+    lines (starting with ``#``) are skipped.
+
+    Returns:
+        list[str]: De-duplicated list of glob patterns (order-preserved).
+    """
+    patterns: list[str] = []
+    seen: set[str] = set()
+    for directory in search_dirs:
+        ignore_path = os.path.join(directory, INTENTIGNORE_FILENAME)
+        if not os.path.isfile(ignore_path):
+            continue
+        with open(ignore_path, "r", encoding="utf-8") as fh:
+            for raw_line in fh:
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if line not in seen:
+                    seen.add(line)
+                    patterns.append(line)
+    return patterns
+
+
+def _is_ignored(rel_path, patterns):
+    """Check whether *rel_path* matches any of the ignore *patterns*.
+
+    ``fnmatch`` is used so users can write familiar globs like ``*.yaml``
+    or ``tests/**``.  The match is tested against:
+
+    1. The full relative path  (``subdir/file.yaml``)
+    2. The filename alone      (``file.yaml``)
+
+    This gives both directory-level and filename-level control.
+    """
+    # Normalise to forward slashes for consistent matching
+    rel_path = rel_path.replace(os.sep, "/")
+    basename = os.path.basename(rel_path)
+    for pattern in patterns:
+        if fnmatch.fnmatch(rel_path, pattern) or fnmatch.fnmatch(basename, pattern):
+            return True
+    return False
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -70,12 +137,30 @@ def _sync_repo_intents(repository_record, job_result):
         job_result.log(msg, level_choice=LogLevelChoices.LOG_WARNING, grouping="intent definitions")
         return
 
+    # Load .intentignore patterns (repo root + intent directory)
+    ignore_patterns = _load_ignore_patterns(repo_path, intent_dir)
+    if ignore_patterns:
+        msg = f"Loaded {len(ignore_patterns)} ignore pattern(s) from .intentignore"
+        job_result.log(msg, grouping="intent definitions")
+
     # Collect all YAML files (including nested subdirectories)
     yaml_files = []
+    ignored_count = 0
     for root, _dirs, files in os.walk(intent_dir):
         for fname in sorted(files):
-            if fname.endswith((".yaml", ".yml", ".json")):
-                yaml_files.append(os.path.join(root, fname))
+            if not fname.endswith((".yaml", ".yml", ".json")):
+                continue
+            full_path = os.path.join(root, fname)
+            rel_to_intent_dir = os.path.relpath(full_path, intent_dir)
+            if ignore_patterns and _is_ignored(rel_to_intent_dir, ignore_patterns):
+                ignored_count += 1
+                logger.debug("Ignoring '%s' (matched .intentignore pattern)", rel_to_intent_dir)
+                continue
+            yaml_files.append(full_path)
+
+    if ignored_count:
+        msg = f"Skipped {ignored_count} file(s) matching .intentignore patterns"
+        job_result.log(msg, grouping="intent definitions")
 
     if not yaml_files:
         msg = f"No YAML/JSON files found in '{intent_dir}'"
