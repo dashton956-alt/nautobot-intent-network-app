@@ -113,7 +113,11 @@ class VerificationResultTable(BaseTable):
 class IntentAuditEntryTable(BaseTable):
     """Table for the Audit Trail list view."""
 
-    intent = tables.Column(linkify=True, accessor="intent.intent_id", verbose_name="Intent")
+    intent = tables.Column(
+        linkify=lambda record: record.intent.get_absolute_url(),
+        accessor="intent.intent_id",
+        verbose_name="Intent",
+    )
     action = tables.Column()
     actor = tables.Column()
     timestamp = tables.DateTimeColumn()

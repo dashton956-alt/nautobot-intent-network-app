@@ -1399,6 +1399,8 @@ def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
         "netconf": "netconf.j2",
         "dhcp_server": "dhcp_server.j2",
         "global_config": "global_config.j2",
+        # Firewall
+        "fw_rule": "fw_rule.j2",
         # Service
         "lb_vip": "lb_vip.j2",
         "dns_record": "dns_record.j2",

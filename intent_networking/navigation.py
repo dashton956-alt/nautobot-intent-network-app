@@ -35,7 +35,7 @@ items = (
         permissions=["intent_networking.view_verificationresult"],
     ),
     NavMenuItem(
-        link="plugins:intent_networking:auditentry_list",
+        link="plugins:intent_networking:intentauditentry_list",
         name="🔍 Audit Trail",
         permissions=["intent_networking.view_intentauditentry"],
     ),
