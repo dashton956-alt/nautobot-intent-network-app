@@ -32,7 +32,7 @@ class LoadIgnorePatternsTest(SimpleTestCase):
         """Parse patterns, skip blank lines and comments."""
         with tempfile.TemporaryDirectory() as tmp:
             ignore = os.path.join(tmp, INTENTIGNORE_FILENAME)
-            with open(ignore, "w") as fh:
+            with open(ignore, "w", encoding="utf-8") as fh:
                 fh.write("# comment line\n")
                 fh.write("\n")
                 fh.write("tests/**\n")
@@ -47,9 +47,9 @@ class LoadIgnorePatternsTest(SimpleTestCase):
     def test_multiple_dirs_merged(self):
         """Patterns from both directories are merged."""
         with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as child:
-            with open(os.path.join(root, INTENTIGNORE_FILENAME), "w") as fh:
+            with open(os.path.join(root, INTENTIGNORE_FILENAME), "w", encoding="utf-8") as fh:
                 fh.write("root_pattern\n")
-            with open(os.path.join(child, INTENTIGNORE_FILENAME), "w") as fh:
+            with open(os.path.join(child, INTENTIGNORE_FILENAME), "w", encoding="utf-8") as fh:
                 fh.write("child_pattern\n")
 
             patterns = _load_ignore_patterns(root, child)
@@ -58,9 +58,9 @@ class LoadIgnorePatternsTest(SimpleTestCase):
     def test_duplicates_removed(self):
         """Duplicate patterns across files are de-duplicated."""
         with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as child:
-            with open(os.path.join(root, INTENTIGNORE_FILENAME), "w") as fh:
+            with open(os.path.join(root, INTENTIGNORE_FILENAME), "w", encoding="utf-8") as fh:
                 fh.write("same_pattern\n")
-            with open(os.path.join(child, INTENTIGNORE_FILENAME), "w") as fh:
+            with open(os.path.join(child, INTENTIGNORE_FILENAME), "w", encoding="utf-8") as fh:
                 fh.write("same_pattern\n")
                 fh.write("unique_pattern\n")
 
@@ -70,7 +70,7 @@ class LoadIgnorePatternsTest(SimpleTestCase):
     def test_whitespace_stripped(self):
         """Leading/trailing whitespace is stripped from lines."""
         with tempfile.TemporaryDirectory() as tmp:
-            with open(os.path.join(tmp, INTENTIGNORE_FILENAME), "w") as fh:
+            with open(os.path.join(tmp, INTENTIGNORE_FILENAME), "w", encoding="utf-8") as fh:
                 fh.write("  pattern_a  \n")
                 fh.write("\tpattern_b\t\n")
 
@@ -80,7 +80,7 @@ class LoadIgnorePatternsTest(SimpleTestCase):
     def test_empty_file_returns_empty(self):
         """An .intentignore with only comments and blanks → empty list."""
         with tempfile.TemporaryDirectory() as tmp:
-            with open(os.path.join(tmp, INTENTIGNORE_FILENAME), "w") as fh:
+            with open(os.path.join(tmp, INTENTIGNORE_FILENAME), "w", encoding="utf-8") as fh:
                 fh.write("# only comments\n")
                 fh.write("\n")
                 fh.write("  \n")
