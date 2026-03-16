@@ -4,7 +4,12 @@ NautobotUIViewSet generates list, detail, create,
 edit, and delete views automatically using the table and form classes.
 """
 
+import logging
+
+from django.contrib import messages
 from django.db.models import Count
+from django.shortcuts import get_object_or_404, redirect
+from django.views import View
 from django.views.generic import TemplateView
 from nautobot.apps.views import NautobotUIViewSet
 from nautobot.core.views.generic import ObjectListView
@@ -39,6 +44,8 @@ from intent_networking.tables import (
     ResolutionPlanTable,
     VerificationResultTable,
 )
+
+logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Dashboard
@@ -241,3 +248,86 @@ class ApprovalListView(ObjectListView):
     queryset = IntentApproval.objects.all().select_related("intent", "approver")
     table_class = None  # Uses generic rendering
     action_buttons = ("export",)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Approve / Reject (UI buttons — POST only)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class IntentApproveView(View):
+    """Handle approve POST from the intent detail page."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, pk):
+        """Create an approval record and redirect back to the intent detail."""
+        from intent_networking.events import EVENT_INTENT_APPROVED, dispatch_event
+
+        intent = get_object_or_404(Intent, pk=pk)
+
+        if not request.user.has_perm("intent_networking.approve_intent"):
+            messages.error(request, "You do not have the 'approve_intent' permission.")
+            return redirect(intent.get_absolute_url())
+
+        comment = request.POST.get("comment", "")
+
+        approval = IntentApproval.objects.create(
+            intent=intent,
+            approver=request.user,
+            decision="approved",
+            comment=comment,
+        )
+        intent.approved_by = request.user.username
+        intent.save(update_fields=["approved_by"])
+
+        IntentAuditEntry.objects.create(
+            intent=intent,
+            action="approved",
+            actor=request.user.username,
+            detail={"comment": comment, "approval_id": str(approval.pk), "source": "ui"},
+        )
+        dispatch_event(EVENT_INTENT_APPROVED, intent, {"approver": request.user.username})
+
+        messages.success(request, f"Intent '{intent.intent_id}' approved.")
+        logger.info("Intent %s approved by %s via UI.", intent.intent_id, request.user.username)
+        return redirect(intent.get_absolute_url())
+
+
+class IntentRejectView(View):
+    """Handle reject POST from the intent detail page."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, pk):
+        """Create a rejection record and redirect back to the intent detail."""
+        from intent_networking.events import EVENT_INTENT_REJECTED, dispatch_event
+
+        intent = get_object_or_404(Intent, pk=pk)
+
+        if not request.user.has_perm("intent_networking.approve_intent"):
+            messages.error(request, "You do not have the 'approve_intent' permission.")
+            return redirect(intent.get_absolute_url())
+
+        comment = request.POST.get("comment", "")
+
+        IntentApproval.objects.create(
+            intent=intent,
+            approver=request.user,
+            decision="rejected",
+            comment=comment,
+        )
+        intent.approved_by = ""
+        intent.save(update_fields=["approved_by"])
+
+        IntentAuditEntry.objects.create(
+            intent=intent,
+            action="rejected",
+            actor=request.user.username,
+            detail={"comment": comment, "source": "ui"},
+        )
+        dispatch_event(EVENT_INTENT_REJECTED, intent, {"rejector": request.user.username, "comment": comment})
+
+        messages.warning(request, f"Intent '{intent.intent_id}' rejected.")
+        logger.info("Intent %s rejected by %s via UI.", intent.intent_id, request.user.username)
+        return redirect(intent.get_absolute_url())

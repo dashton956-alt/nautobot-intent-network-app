@@ -114,6 +114,31 @@
         {% else %}
             <div class="panel-body text-muted">No approval decisions yet. Legacy: {{ object.approved_by|default:"&mdash;" }}</div>
         {% endif %}
+        {% if perms.intent_networking.approve_intent %}
+            <div class="panel-footer">
+                <div class="row">
+                    <div class="col-md-12">
+                        <form method="post" class="form-inline" style="display: inline-block; margin-right: 8px;"
+                              action="{% url 'plugins:intent_networking:intent_approve' pk=object.pk %}">
+                            {% csrf_token %}
+                            <input type="text" name="comment" class="form-control input-sm" placeholder="Comment (optional)" style="width: 260px; margin-right: 4px;">
+                            <button type="submit" class="btn btn-sm btn-success" title="Approve this intent">
+                                <i class="mdi mdi-check-bold"></i> Approve
+                            </button>
+                        </form>
+                        <form method="post" class="form-inline" style="display: inline-block;"
+                              action="{% url 'plugins:intent_networking:intent_reject' pk=object.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="comment" value="">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Reject this intent"
+                                    onclick="var c=prompt('Reason for rejection:',''); if(c===null) return false; this.form.comment.value=c;">
+                                <i class="mdi mdi-close-thick"></i> Reject
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
     </div>
 
   {# ── Timestamps ────────────────────────────────────────────────────── #}

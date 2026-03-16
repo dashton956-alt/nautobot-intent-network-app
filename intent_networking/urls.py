@@ -14,6 +14,9 @@ urlpatterns = router.urls + [
     path("", views.DashboardView.as_view(), name="dashboard"),
     # ── Topology Viewer ───────────────────────────────────────────────────
     path("topology/", TopologyViewerView.as_view(), name="topology_viewer"),
+    # ── Approve / Reject (UI buttons) ────────────────────────────────────
+    path("intents/<uuid:pk>/approve/", views.IntentApproveView.as_view(), name="intent_approve"),
+    path("intents/<uuid:pk>/reject/", views.IntentRejectView.as_view(), name="intent_reject"),
     # ── Resolution Plans (read-only UI) ───────────────────────────────────
     path("resolution-plans/", views.ResolutionPlanListView.as_view(), name="resolutionplan_list"),
     path("resolution-plans/<uuid:pk>/", views.ResolutionPlanDetailView.as_view(), name="resolutionplan"),

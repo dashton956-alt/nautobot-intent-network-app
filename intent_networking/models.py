@@ -395,11 +395,137 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
 
     @property
     def is_approved(self):
-        """Return True if at least one approval exists and none are rejected."""
+        """Return True via custom IntentApproval records OR a Nautobot native ApprovalWorkflow.
+
+        Checks two paths:
+        1. Custom: at least one IntentApproval where no record is 'rejected'.
+        2. Native: a Nautobot ApprovalWorkflow for this intent with current_state='approved'.
+        """
+        # Path 1 — custom IntentApproval records
         approvals = self.approvals.all()
-        if not approvals.exists():
+        if approvals.exists() and not approvals.filter(decision="rejected").exists():
+            return True
+
+        # Path 2 — Nautobot native approval workflow
+        try:
+            from django.contrib.contenttypes.models import ContentType  # pylint: disable=import-outside-toplevel
+            from nautobot.extras.models import ApprovalWorkflow  # pylint: disable=import-outside-toplevel
+
+            ct = ContentType.objects.get_for_model(self)
+            return ApprovalWorkflow.objects.filter(
+                object_under_review_content_type=ct,
+                object_under_review_object_id=self.pk,
+                current_state="approved",
+            ).exists()
+        except (ImportError, Exception):  # pylint: disable=broad-exception-caught
+            # ApprovalWorkflow not available in this Nautobot version
             return False
-        return not approvals.filter(decision="rejected").exists()
+
+    # ── Nautobot native approval workflow callbacks ────────────────────────
+
+    def on_workflow_approved(self):
+        """Called by Nautobot when a native ApprovalWorkflow is fully approved.
+
+        Creates a matching IntentApproval record for backward compatibility
+        with the custom approval system and audit trail.
+        """
+        from intent_networking.events import (  # pylint: disable=import-outside-toplevel
+            EVENT_INTENT_APPROVED,
+            dispatch_event,
+        )
+
+        IntentApproval.objects.create(
+            intent=self,
+            approver_id=self._get_workflow_requesting_user_id(),
+            decision="approved",
+            comment="Approved via Nautobot native approval workflow.",
+        )
+        self.approved_by = self._get_workflow_requesting_username()
+        self.save(update_fields=["approved_by"])
+
+        IntentAuditEntry.objects.create(
+            intent=self,
+            action="approved",
+            actor=self._get_workflow_requesting_username(),
+            detail={"source": "native_approval_workflow"},
+        )
+        dispatch_event(EVENT_INTENT_APPROVED, self, {"approver": self.approved_by, "source": "native_workflow"})
+
+    def on_workflow_denied(self):
+        """Called by Nautobot when a native ApprovalWorkflow is denied."""
+        from intent_networking.events import (  # pylint: disable=import-outside-toplevel
+            EVENT_INTENT_REJECTED,
+            dispatch_event,
+        )
+
+        IntentApproval.objects.create(
+            intent=self,
+            approver_id=self._get_workflow_requesting_user_id(),
+            decision="rejected",
+            comment="Denied via Nautobot native approval workflow.",
+        )
+        self.approved_by = ""
+        self.save(update_fields=["approved_by"])
+
+        IntentAuditEntry.objects.create(
+            intent=self,
+            action="rejected",
+            actor=self._get_workflow_requesting_username(),
+            detail={"source": "native_approval_workflow"},
+        )
+        dispatch_event(EVENT_INTENT_REJECTED, self, {"source": "native_workflow"})
+
+    def on_workflow_canceled(self):
+        """Called by Nautobot when a native ApprovalWorkflow is canceled."""
+        IntentApproval.objects.create(
+            intent=self,
+            approver_id=self._get_workflow_requesting_user_id(),
+            decision="revoked",
+            comment="Canceled via Nautobot native approval workflow.",
+        )
+        self.approved_by = ""
+        self.save(update_fields=["approved_by"])
+
+        IntentAuditEntry.objects.create(
+            intent=self,
+            action="approval_revoked",
+            actor=self._get_workflow_requesting_username(),
+            detail={"source": "native_approval_workflow"},
+        )
+
+    def _get_workflow_requesting_user_id(self):
+        """Get the requesting user's PK from the active native approval workflow."""
+        try:
+            from django.contrib.contenttypes.models import ContentType  # pylint: disable=import-outside-toplevel
+            from nautobot.extras.models import ApprovalWorkflow  # pylint: disable=import-outside-toplevel
+
+            ct = ContentType.objects.get_for_model(self)
+            wf = ApprovalWorkflow.objects.filter(
+                object_under_review_content_type=ct,
+                object_under_review_object_id=self.pk,
+            ).order_by("-decision_date").first()
+            if wf and wf.user_id:
+                return wf.user_id
+        except (ImportError, Exception):  # pylint: disable=broad-exception-caught
+            logger.debug("Could not resolve native workflow requesting user ID for %s.", self.intent_id)
+        return 1  # fallback to admin
+
+    def _get_workflow_requesting_username(self):
+        """Get the requesting user's username from the active native approval workflow."""
+        try:
+            from django.contrib.contenttypes.models import ContentType  # pylint: disable=import-outside-toplevel
+            from nautobot.extras.models import ApprovalWorkflow  # pylint: disable=import-outside-toplevel
+
+            ct = ContentType.objects.get_for_model(self)
+            wf = ApprovalWorkflow.objects.filter(
+                object_under_review_content_type=ct,
+                object_under_review_object_id=self.pk,
+            ).order_by("-decision_date").first()
+            if wf and wf.user:
+                return wf.user.username
+        except (ImportError, Exception):  # pylint: disable=broad-exception-caught
+            logger.debug("Could not resolve native workflow requesting username for %s.", self.intent_id)
+        return "system"
 
     @property
     def has_resource_conflicts(self):

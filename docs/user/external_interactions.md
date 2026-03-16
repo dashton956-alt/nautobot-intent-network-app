@@ -190,3 +190,71 @@ All Intent Networking models are exposed via Nautobot's GraphQL endpoint at `/ap
   }
 }
 ```
+
+## Approval Workflow
+
+Intents must be approved before deployment. The app supports **two approval paths** — use whichever fits your organisation's workflow, or both.
+
+### Path 1: In-App Approval (UI + API)
+
+**From the UI:** Open the intent detail page. Users with the `approve_intent` permission see **Approve** and **Reject** buttons in the Approval Status panel. Enter an optional comment and click the button.
+
+**From the API:**
+
+```bash
+# Approve
+curl -X POST -H "Authorization: Token $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"comment": "Reviewed and approved for production"}' \
+     https://nautobot.example.com/api/plugins/intent-networking/intents/$INTENT_UUID/approve/
+
+# Reject
+curl -X POST -H "Authorization: Token $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"comment": "ACL rules do not meet PCI-DSS requirements"}' \
+     https://nautobot.example.com/api/plugins/intent-networking/intents/$INTENT_UUID/reject/
+```
+
+Both methods require the `approve_intent` permission and create an `IntentApproval` record with full attribution.
+
+### Path 2: Nautobot Native Approval Workflow
+
+Nautobot 3.x provides a built-in multi-stage approval workflow system. To use it with intents:
+
+1. **Create an Approval Workflow Definition:**
+    - Navigate to **Approvals → Workflow Definitions → Add**.
+    - Set **Model** to `intent_networking | intent`.
+    - Optionally set **Constraints** to limit which intents require approval, e.g. `{"intent_type__in": ["evpn_vxlan_fabric", "fw_rule"]}`.
+    - Set **Weight** (higher weight takes priority when multiple definitions match).
+
+2. **Add Stage Definitions:**
+    - Define one or more stages (e.g. "Peer Review", "Security Team Sign-off", "Change Manager").
+    - For each stage, set the **Approver Group**, **Minimum Approvers**, and **Sequence**.
+
+3. **Workflow triggers automatically** when an intent matching the constraints is updated (e.g. status changed to "Validated").
+
+4. **Approvers review** via the **Approval Dashboard** (Approvals → Approval Dashboard → My Approvals tab), or via the API:
+
+    ```bash
+    # Approve a stage
+    curl -X POST -H "Authorization: Token $TOKEN" \
+         -H "Content-Type: application/json" \
+         -d '{"comment": "LGTM"}' \
+         https://nautobot.example.com/api/extras/approval-workflow-stages/$STAGE_ID/approve/
+    ```
+
+5. **When all stages pass**, Nautobot calls the intent's `on_workflow_approved()` callback, which automatically:
+    - Creates an `IntentApproval` record (for backward compatibility)
+    - Sets the `approved_by` field
+    - Writes an audit trail entry
+    - Dispatches the `intent.approved` event
+
+6. **If denied**, Nautobot calls `on_workflow_denied()`, which records the rejection and blocks deployment.
+
+!!! tip "Required Permissions for Native Approvals"
+    - Object Operators: `extras.view_approvalworkflow`, `extras.view_approvalworkflowstage`
+    - Approvers: add `extras.change_approvalworkflowstage`
+    - Workflow Architects: add `extras.add/change/delete_approvalworkflowdefinition` and `extras.add/change/delete_approvalworkflowstagedefinition`
+
+!!! note "Both paths work together"
+    The `is_approved` check on the Intent model accepts approval from **either** a custom `IntentApproval` record or an approved native `ApprovalWorkflow`. You can use one or both methods.
