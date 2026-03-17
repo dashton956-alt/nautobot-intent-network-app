@@ -33,7 +33,6 @@ from intent_networking.api.serializers import (
 from intent_networking.events import (
     EVENT_INTENT_APPROVED,
     EVENT_INTENT_REJECTED,
-    EVENT_INTENT_RETIRED,
     EVENT_INTENT_SCHEDULED,
     dispatch_event,
 )

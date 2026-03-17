@@ -1545,7 +1545,9 @@ class IntentRetireJob(Job):
             },
         )
         dispatch_event(EVENT_INTENT_RETIRED, intent)
-        notify_slack(f"🏁 Intent RETIRED: {intent_id}\nTenant: {intent.tenant.name}\nConfig removed from devices: {bool(plan and current_status in ('deployed', 'failed'))}")
+        notify_slack(
+            f"🏁 Intent RETIRED: {intent_id}\nTenant: {intent.tenant.name}\nConfig removed from devices: {bool(plan and current_status in ('deployed', 'failed'))}"
+        )
 
         self.logger.info("Retire complete for %s", intent_id)
         return {"intent_id": intent_id, "retired": commit, "config_removed": bool(plan)}

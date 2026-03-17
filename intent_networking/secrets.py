@@ -123,8 +123,7 @@ def get_servicenow_credentials() -> tuple[str, str]:
             return (username, password)
         except Exception as exc:
             logger.warning(
-                "Failed to load ServiceNow credentials from SecretsGroup '%s': %s. "
-                "Falling back to plugin config.",
+                "Failed to load ServiceNow credentials from SecretsGroup '%s': %s. Falling back to plugin config.",
                 group_name,
                 exc,
             )
@@ -160,8 +159,7 @@ def get_github_token() -> str:
             return token
         except Exception as exc:
             logger.warning(
-                "Failed to load GitHub token from SecretsGroup '%s': %s. "
-                "Falling back to GITHUB_TOKEN env var.",
+                "Failed to load GitHub token from SecretsGroup '%s': %s. Falling back to GITHUB_TOKEN env var.",
                 group_name,
                 exc,
             )
@@ -169,8 +167,7 @@ def get_github_token() -> str:
     token = os.environ.get("GITHUB_TOKEN", "")
     if token:
         logger.warning(
-            "GitHub token loaded from GITHUB_TOKEN env var. "
-            "Migrate to 'github_secrets_group' for encrypted storage."
+            "GitHub token loaded from GITHUB_TOKEN env var. Migrate to 'github_secrets_group' for encrypted storage."
         )
     return token
 
@@ -193,8 +190,7 @@ def get_slack_webhook_url() -> str:
             return url
         except Exception as exc:
             logger.warning(
-                "Failed to load Slack webhook URL from SecretsGroup '%s': %s. "
-                "Falling back to plugin config.",
+                "Failed to load Slack webhook URL from SecretsGroup '%s': %s. Falling back to plugin config.",
                 group_name,
                 exc,
             )
