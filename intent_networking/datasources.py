@@ -26,6 +26,7 @@ Blank lines and lines starting with ``#`` are treated as comments.
 import fnmatch
 import logging
 import os
+from pathlib import PurePosixPath
 
 import yaml
 from nautobot.extras.choices import LogLevelChoices
@@ -75,19 +76,28 @@ def _load_ignore_patterns(*search_dirs):
 def _is_ignored(rel_path, patterns):
     """Check whether *rel_path* matches any of the ignore *patterns*.
 
-    ``fnmatch`` is used so users can write familiar globs like ``*.yaml``
-    or ``tests/**``.  The match is tested against:
+    Supports familiar globs (``*.yaml``, ``tests/*``) and recursive
+    double-star patterns (``**/scratch/**``).  The match is tested against:
 
     1. The full relative path  (``subdir/file.yaml``)
     2. The filename alone      (``file.yaml``)
 
     This gives both directory-level and filename-level control.
     """
-    # Normalise to forward slashes for consistent matching
-    rel_path = rel_path.replace(os.sep, "/")
-    basename = os.path.basename(rel_path)
+    # Normalise to forward slashes for consistent matching (covers Windows backslashes too)
+    rel_path = rel_path.replace("\\", "/")
+    basename = rel_path.rsplit("/", 1)[-1]
+    path = PurePosixPath(rel_path)
     for pattern in patterns:
-        if fnmatch.fnmatch(rel_path, pattern) or fnmatch.fnmatch(basename, pattern):
+        if "**" in pattern:
+            # PurePosixPath.match with leading ** won't match zero directories,
+            # so also try stripping the leading **/ to allow zero-segment matches.
+            if path.match(pattern):
+                return True
+            stripped = pattern.lstrip("*").lstrip("/")
+            if stripped and path.match(stripped):
+                return True
+        elif fnmatch.fnmatch(rel_path, pattern) or fnmatch.fnmatch(basename, pattern):
             return True
     return False
 

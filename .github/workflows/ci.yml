@@ -239,13 +239,7 @@ jobs:
         run: "cp invoke.mysql.yml invoke.yml"
         if: "matrix.db-backend == 'mysql'"
       - name: "Run Tests"
-        run: "poetry run invoke unittest 2>&1 | tee test-output.txt; exit ${PIPESTATUS[0]}"
-      - name: "Upload test output"
-        if: always()
-        uses: "actions/upload-artifact@v4"
-        with:
-          name: "test-output-${{ matrix.python-version }}-${{ matrix.db-backend }}-${{ matrix.nautobot-version }}"
-          path: "test-output.txt"
+        run: "poetry run invoke unittest"
   unittest_report:
     needs:
       - "check-in-docker"
@@ -297,13 +291,7 @@ jobs:
         run: "cp invoke.mysql.yml invoke.yml"
         if: "matrix.db-backend == 'mysql'"
       - name: "Run Tests"
-        run: "poetry run invoke unittest --coverage 2>&1 | tee test-output.txt; exit ${PIPESTATUS[0]}"
-      - name: "Upload test output"
-        if: always()
-        uses: "actions/upload-artifact@v4"
-        with:
-          name: "test-output-report-${{ matrix.python-version }}-${{ matrix.db-backend }}-${{ matrix.nautobot-version }}"
-          path: "test-output.txt"
+        run: "poetry run invoke unittest --coverage"
       - name: "Generate Coverage Comment"
         if: >
           contains(fromJson('["develop","ltm-1.6"]'), github.base_ref) &&
