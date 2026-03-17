@@ -1515,7 +1515,7 @@ class IntentRetireJob(Job):
                 plan.affected_devices.count(),
             )
             rollback_job = IntentRollbackJob()
-            rollback_job._push_removal_config(plan, commit)
+            rollback_job._push_removal_config(plan, commit)  # pylint: disable=protected-access
 
             if commit:
                 self.logger.info("Removal config pushed to devices for %s", intent_id)
