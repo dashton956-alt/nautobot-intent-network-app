@@ -407,6 +407,41 @@ class IntentViewSet(NautobotModelViewSet):  # pylint: disable=too-many-ancestors
             status=status.HTTP_202_ACCEPTED,
         )
 
+    # ── Retire ─────────────────────────────────────────────────────────────
+
+    @action(detail=True, methods=["post"], url_path="retire")
+    def retire(self, request, pk=None):  # pylint: disable=unused-argument
+        """POST /api/plugins/intent-networking/intents/{id}/retire/.
+
+        Retires an intent by removing its configuration from devices,
+        releasing allocated resources, and marking it as Retired.
+
+        Body: ``{"dry_run": false}``
+        """
+        if not request.user.has_perm("intent_networking.deploy_intent"):
+            return Response({"error": "deploy_intent permission required"}, status=status.HTTP_403_FORBIDDEN)
+
+        intent = self.get_object()
+        dry_run = request.data.get("dry_run", False)
+
+        allowed_statuses = {"deployed", "failed", "rolled back", "validated", "draft"}
+        current_status = intent.status.name.lower() if intent.status else ""
+        if current_status not in allowed_statuses:
+            return Response(
+                {
+                    "error": f"Intent is in status '{intent.status}'. "
+                    f"Can only retire from: {', '.join(sorted(allowed_statuses))}."
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        _enqueue_job("IntentRetireJob", intent_id=intent.intent_id, commit=not dry_run)
+
+        return Response(
+            {"intent_id": intent.intent_id, "dry_run": dry_run, "status": "retiring"},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
     # ── Verification history / trending (#11) ─────────────────────────────
 
     @action(detail=True, methods=["get"], url_path="verifications")

@@ -133,11 +133,29 @@ PLUGINS_CONFIG = {
         "max_prefixes_per_vrf": 500,
         "reconciliation_interval_hours": 6,
         "auto_remediation_enabled": False,
+        # --- Secrets Group integration (recommended over plaintext) ---
+        # Each setting names a Nautobot SecretsGroup. Create the SecretsGroup
+        # in Nautobot (Secrets → Secrets Groups) then reference its name here.
+        # "device_secrets_group": "Network Device Credentials",
+        # "nautobot_api_secrets_group": "Nautobot API Token",
+        # "servicenow_secrets_group": "ServiceNow Credentials",
+        # "github_secrets_group": "GitHub Token",
+        # "slack_secrets_group": "Slack Webhook",
+        # --- Legacy plaintext config (deprecated — migrate to Secrets Groups) ---
         # Slack webhook URL for drift notifications (leave empty to disable)
         "slack_webhook_url": "",
+        # ServiceNow integration (deprecated — use servicenow_secrets_group)
+        # "servicenow_instance": "",
+        # "servicenow_user": "",
+        # "servicenow_password": "",
         # GitHub integration for raising drift issues (leave empty to disable)
         "github_token": "",
         "github_repo": "your-org/your-repo",
+        # --- OPA policy engine settings ---
+        # "opa_verify_ssl": True,
+        # "opa_ca_bundle": "/path/to/ca-bundle.crt",
+        # Custom OPA policy packages evaluated for every intent:
+        # "opa_custom_packages": ["org.security.baseline", "org.compliance.pci"],
         # Git integration — the preferred approach is to create a GitRepository
         # in the Nautobot UI (Extensibility → Git Repositories) with the
         # "intent definitions" content type. Nautobot will auto-discover and

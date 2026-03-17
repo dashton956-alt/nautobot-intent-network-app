@@ -138,4 +138,6 @@ nav:
           - "dev/code_reference/index.md"
           - Package: "dev/code_reference/package.md"
           - API: "dev/code_reference/api.md"
+  - Security:
+      - Security Review: "security/security_review.md"
   - Nautobot Docs Home ↗︎: "https://docs.nautobot.com"

@@ -1,7 +1,6 @@
 """Slack notifications and GitHub issue creation for the intent_networking plugin."""
 
 import logging
-import os
 
 import requests
 from django.conf import settings
@@ -19,7 +18,9 @@ def notify_slack(message: str) -> bool:
 
     Silently succeeds if no webhook is configured.
     """
-    webhook_url = _get_plugin_config("slack_webhook_url")
+    from intent_networking.secrets import get_slack_webhook_url  # noqa: PLC0415
+
+    webhook_url = get_slack_webhook_url()
     if not webhook_url:
         return False
 
@@ -37,12 +38,14 @@ def raise_github_issue(intent, drift_details: list) -> str:
 
     Returns the issue URL, or empty string if GitHub is not configured.
     """
-    token = os.environ.get("GITHUB_TOKEN")
+    from intent_networking.secrets import get_github_token  # noqa: PLC0415
+
+    token = get_github_token()
     repo = _get_plugin_config("github_repo")
     api = _get_plugin_config("github_api_url") or "https://api.github.com"
 
     if not token or not repo:
-        logger.warning("GitHub issue creation skipped — GITHUB_TOKEN env var or github_repo plugin config not set.")
+        logger.warning("GitHub issue creation skipped — GitHub token or github_repo plugin config not set.")
         return ""
 
     failed_checks = [c for c in drift_details if not c.get("passed")]
