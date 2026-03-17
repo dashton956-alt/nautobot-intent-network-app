@@ -18,6 +18,7 @@ from intent_networking.jobs import (
     IntentDeploymentJob,
     IntentReconciliationJob,
     IntentResolutionJob,
+    IntentRetireJob,
     IntentRollbackJob,
     IntentSyncFromGitJob,
     IntentVerificationJob,
@@ -32,9 +33,9 @@ from intent_networking.jobs import (
 class JobRegistrationTest(SimpleTestCase):
     """Verify all job classes are registered."""
 
-    def test_jobs_list_contains_all_seven(self):
-        """The `jobs` list has all 7 job classes."""
-        self.assertEqual(len(jobs), 7)
+    def test_jobs_list_contains_all_registered(self):
+        """The `jobs` list has all 8 job classes."""
+        self.assertEqual(len(jobs), 8)
         expected = {
             IntentSyncFromGitJob,
             IntentResolutionJob,
@@ -43,6 +44,7 @@ class JobRegistrationTest(SimpleTestCase):
             IntentVerificationJob,
             IntentRollbackJob,
             IntentReconciliationJob,
+            IntentRetireJob,
         }
         self.assertEqual(set(jobs), expected)
 
