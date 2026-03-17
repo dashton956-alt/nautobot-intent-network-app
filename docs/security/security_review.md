@@ -639,6 +639,29 @@ The following categories of personal data are processed by this plugin:
 
 ---
 
+## Remediation Status
+
+The following findings have been remediated as of 2026-03-16:
+
+| Finding | Status | Implementation Details |
+|---|---|---|
+| F1 — Hardcoded debug credentials | **REMEDIATED** | Removed `("admin", "admin")` fallback from `secrets.py`. Now raises `RuntimeError` if no credentials are configured, regardless of `DEBUG` setting. |
+| F2 — Weak example credentials | **REMEDIATED** | Replaced all `changeme`/`admin`/hardcoded values in `creds.example.env` with `<REPLACE_WITH_...>` placeholders. Added prominent warning header. |
+| F3 — ServiceNow password in config | **REMEDIATED** | Added `get_servicenow_credentials()` in `secrets.py` using `servicenow_secrets_group` SecretsGroup. `events.py` now imports from secrets module. Legacy config fallback retained with deprecation warning. |
+| F4 — GitHub token in env var | **REMEDIATED** | Added `get_github_token()` in `secrets.py` using `github_secrets_group` SecretsGroup. `notifications.py` now imports from secrets module. Env var fallback retained with deprecation warning. |
+| F5 — OPA uses HTTP by default | **REMEDIATED** | Default OPA URL changed to `https://opa:8181`. Added `opa_verify_ssl` and `opa_ca_bundle` config options for TLS certificate management. |
+| F13 — Slack URL in config | **REMEDIATED** | Added `get_slack_webhook_url()` in `secrets.py` using `slack_secrets_group` SecretsGroup. Both `events.py` and `notifications.py` now use the secrets module. |
+
+### Additional Improvements
+
+| Improvement | Details |
+|---|---|
+| Intent Retirement with Config Removal | Added `IntentRetireJob` that generates and pushes removal (negation) config to all affected devices before marking an intent as Retired. Also releases allocated resources (VNI, tunnel IDs, loopbacks, wireless VLANs). Exposed via `POST /api/plugins/intent-networking/intents/{id}/retire/` endpoint. |
+| Custom OPA Policy Support | Extended `opa_client.py` to query per-intent-type policies (`network.intent_types.<type>`) and user-configured custom packages via `opa_custom_packages` plugin config. Documented Rego policy authoring in module docstring. |
+| Secrets Group Configuration | Documented all `*_secrets_group` config options in `nautobot_config.py` with setup instructions. |
+
+---
+
 ## References
 
 - ISO/IEC 27001:2022 — <https://www.iso.org/standard/82875.html>

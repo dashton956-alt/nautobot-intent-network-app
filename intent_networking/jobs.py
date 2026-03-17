@@ -1453,6 +1453,135 @@ def _enqueue_job(job_class_name: str, **job_kwargs) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Retire — removes config from devices and marks intent as retired
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class IntentRetireJob(Job):
+    """Retires an intent by removing its configuration from all affected devices.
+
+    Steps:
+      1. Generates removal (negation) config for each affected device
+      2. Pushes the removal config via Nornir
+      3. Releases any allocated resources (VNI, tunnel IDs, loopbacks)
+      4. Updates intent status to Retired
+      5. Records audit trail
+
+    This ensures that retiring an intent is not just a status change but
+    actually cleans up the network configuration deployed by this intent.
+    """
+
+    intent_id = StringVar(description="Intent ID to retire", required=True)
+    commit = BooleanVar(description="Push removal config to devices (false = dry-run)", default=True)
+
+    class Meta:
+        """Nautobot job metadata for IntentRetireJob."""
+
+        name = "Intent Retire"
+        has_sensitive_variables = True
+        approval_required = False
+
+    def run(self, **kwargs):
+        """Execute the retire job."""
+        from intent_networking.events import EVENT_INTENT_RETIRED  # noqa: PLC0415
+
+        intent_id = kwargs["intent_id"]
+        commit = kwargs.get("commit", True)
+
+        try:
+            intent = Intent.objects.get(intent_id=intent_id)
+        except Intent.DoesNotExist:
+            self.logger.failure("Intent '%s' not found.", intent_id)
+            return
+
+        allowed_statuses = {"deployed", "failed", "rolled back", "validated", "draft"}
+        current_status = intent.status.name.lower() if intent.status else ""
+        if current_status not in allowed_statuses:
+            self.logger.failure(
+                "Intent '%s' is in status '%s'. Can only retire from: %s",
+                intent_id,
+                intent.status,
+                ", ".join(sorted(allowed_statuses)),
+            )
+            return
+
+        plan = intent.latest_plan
+
+        # If the intent was deployed, push removal config to devices
+        if plan and current_status in ("deployed", "failed"):
+            self.logger.info(
+                "Generating removal config for %s (%s devices)",
+                intent_id,
+                plan.affected_devices.count(),
+            )
+            rollback_job = IntentRollbackJob()
+            rollback_job._push_removal_config(plan, commit)
+
+            if commit:
+                self.logger.info("Removal config pushed to devices for %s", intent_id)
+            else:
+                self.logger.info("Dry-run: removal config generated but NOT pushed for %s", intent_id)
+
+        # Release allocated resources
+        if commit:
+            self._release_resources(intent)
+
+        # Update status
+        if commit:
+            retired_status = Status.objects.get(name__iexact="Retired")
+            intent.status = retired_status
+            intent.save()
+
+        # Audit trail
+        IntentAuditEntry.objects.create(
+            intent=intent,
+            action="retired",
+            actor="IntentRetireJob",
+            detail={
+                "config_removed": bool(plan and current_status in ("deployed", "failed")),
+                "resources_released": commit,
+                "dry_run": not commit,
+                "previous_status": current_status,
+            },
+        )
+        dispatch_event(EVENT_INTENT_RETIRED, intent)
+        notify_slack(f"🏁 Intent RETIRED: {intent_id}\nTenant: {intent.tenant.name}\nConfig removed from devices: {bool(plan and current_status in ('deployed', 'failed'))}")
+
+        self.logger.info("Retire complete for %s", intent_id)
+        return {"intent_id": intent_id, "retired": commit, "config_removed": bool(plan)}
+
+    def _release_resources(self, intent: Intent):
+        """Release VNI, tunnel ID, loopback, and wireless VLAN allocations for this intent."""
+        from intent_networking.models import (  # noqa: PLC0415
+            ManagedLoopback,
+            TunnelIdAllocation,
+            VniAllocation,
+            WirelessVlanAllocation,
+        )
+
+        released = []
+
+        vni_count = VniAllocation.objects.filter(intent=intent).delete()[0]
+        if vni_count:
+            released.append(f"{vni_count} VNI allocation(s)")
+
+        tunnel_count = TunnelIdAllocation.objects.filter(intent=intent).delete()[0]
+        if tunnel_count:
+            released.append(f"{tunnel_count} tunnel ID allocation(s)")
+
+        loopback_count = ManagedLoopback.objects.filter(intent=intent).delete()[0]
+        if loopback_count:
+            released.append(f"{loopback_count} loopback allocation(s)")
+
+        wlan_count = WirelessVlanAllocation.objects.filter(intent=intent).delete()[0]
+        if wlan_count:
+            released.append(f"{wlan_count} wireless VLAN allocation(s)")
+
+        if released:
+            self.logger.info("Released resources for %s: %s", intent.intent_id, ", ".join(released))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Registration — Nautobot 3.x discovers jobs via this list + register_jobs()
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1464,5 +1593,6 @@ jobs = [
     IntentVerificationJob,
     IntentRollbackJob,
     IntentReconciliationJob,
+    IntentRetireJob,
 ]
 register_jobs(*jobs)

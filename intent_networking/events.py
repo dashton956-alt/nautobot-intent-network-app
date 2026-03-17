@@ -90,7 +90,9 @@ def dispatch_event(event_type: str, intent=None, payload=None):
 
 def _send_slack(event: dict):
     """Post to Slack webhook if configured."""
-    url = _cfg("slack_webhook_url")
+    from intent_networking.secrets import get_slack_webhook_url  # noqa: PLC0415
+
+    url = get_slack_webhook_url()
     if not url:
         return
 
@@ -161,11 +163,15 @@ def _send_pagerduty(event: dict):
 
 def _send_servicenow(event: dict):
     """Create a ServiceNow incident / change record if configured."""
-    instance = _cfg("servicenow_instance")
-    user = _cfg("servicenow_user")
-    password = _cfg("servicenow_password")
+    from intent_networking.secrets import get_servicenow_credentials  # noqa: PLC0415
 
-    if not all([instance, user, password]):
+    instance = _cfg("servicenow_instance")
+    if not instance:
+        return
+
+    user, password = get_servicenow_credentials()
+    if not user or not password:
+        logger.warning("ServiceNow credentials not configured — skipping dispatch.")
         return
 
     sn_payload = {
