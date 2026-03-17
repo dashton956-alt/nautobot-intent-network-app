@@ -646,7 +646,7 @@ The following findings have been remediated as of 2026-03-16:
 | Finding | Status | Implementation Details |
 |---|---|---|
 | F1 — Hardcoded debug credentials | **REMEDIATED** | Removed `("admin", "admin")` fallback from `secrets.py`. Now raises `RuntimeError` if no credentials are configured, regardless of `DEBUG` setting. |
-| F2 — Weak example credentials | **REMEDIATED** | Replaced all `changeme`/`admin`/hardcoded values in `creds.example.env` with `<REPLACE_WITH_...>` placeholders. Added prominent warning header. |
+| F2 — Weak example credentials | **MITIGATED** | Added prominent warning header to `creds.example.env` stating defaults are for local development/CI only and must be replaced before any non-local deployment. Working defaults are retained for CI compatibility. |
 | F3 — ServiceNow password in config | **REMEDIATED** | Added `get_servicenow_credentials()` in `secrets.py` using `servicenow_secrets_group` SecretsGroup. `events.py` now imports from secrets module. Legacy config fallback retained with deprecation warning. |
 | F4 — GitHub token in env var | **REMEDIATED** | Added `get_github_token()` in `secrets.py` using `github_secrets_group` SecretsGroup. `notifications.py` now imports from secrets module. Env var fallback retained with deprecation warning. |
 | F5 — OPA uses HTTP by default | **REMEDIATED** | Default OPA URL changed to `https://opa:8181`. Added `opa_verify_ssl` and `opa_ca_bundle` config options for TLS certificate management. |
