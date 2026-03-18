@@ -7,7 +7,7 @@ description = "File support for asyncio."
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "aiofiles-25.1.0-py3-none-any.whl", hash = "sha256:abe311e527c862958650f9438e859c1fa7568a141b22abcd015e120e86a85695"},
     {file = "aiofiles-25.1.0.tar.gz", hash = "sha256:a8d728f0a29de45dc521f18f07297428d56992a742f0cd2701ba86e44d23d5b2"},
@@ -20,7 +20,7 @@ description = "Happy Eyeballs for asyncio"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\" or extra == \"meraki\" or extra == \"cisco\""
 files = [
     {file = "aiohappyeyeballs-2.6.1-py3-none-any.whl", hash = "sha256:f349ba8f4b75cb25c99c5c2d84e997e485204d2902a9597802b0371f09331fb8"},
     {file = "aiohappyeyeballs-2.6.1.tar.gz", hash = "sha256:c3f9d0113123803ccadfdf3f0faa505bc78e6a72d1cc4806cbd719826e943558"},
@@ -33,7 +33,7 @@ description = "Async http client/server framework (asyncio)"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\" or extra == \"meraki\" or extra == \"cisco\""
 files = [
     {file = "aiohttp-3.13.3-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:d5a372fd5afd301b3a89582817fdcdb6c34124787c70dbcc616f259013e7eef7"},
     {file = "aiohttp-3.13.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:147e422fd1223005c22b4fe080f5d93ced44460f5f9c105406b753612b587821"},
@@ -177,7 +177,7 @@ description = "aiosignal: a list of registered asynchronous callbacks"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\" or extra == \"meraki\" or extra == \"cisco\""
 files = [
     {file = "aiosignal-1.4.0-py3-none-any.whl", hash = "sha256:053243f8b92b990551949e63930a839ff0cf0b0ebbe0597b0f3fb19e1a0fe82e"},
     {file = "aiosignal-1.4.0.tar.gz", hash = "sha256:f47eecd9468083c2029cc99945502cb7708b082c232f9aca65da147157b251c7"},
@@ -292,7 +292,7 @@ description = "Simple LRU cache for asyncio"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "async_lru-2.2.0-py3-none-any.whl", hash = "sha256:e2c1cf731eba202b59c5feedaef14ffd9d02ad0037fcda64938699f2c380eafe"},
     {file = "async_lru-2.2.0.tar.gz", hash = "sha256:80abae2a237dbc6c60861d621619af39f0d920aea306de34cb992c879e01370c"},
@@ -425,7 +425,7 @@ description = "The bidirectional mapping library for Python."
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "bidict-0.23.1-py3-none-any.whl", hash = "sha256:5dae8d4d79b552a71cbabc7deb25dfe8ce710b17ff41711e13010ead2abfc3e5"},
     {file = "bidict-0.23.1.tar.gz", hash = "sha256:03069d763bc387bbd20e7d49914e75fc4132a41937fa3405417e1a5a2d006d71"},
@@ -619,7 +619,7 @@ description = "Universal encoding detector for Python 2 and 3"
 optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "chardet-4.0.0-py2.py3-none-any.whl", hash = "sha256:f864054d66fd9118f2e67044ac8981a54775ec5b67aed0441892edb553d21da5"},
     {file = "chardet-4.0.0.tar.gz", hash = "sha256:0d6f53a15db4120f2b08c94f11e7d93d2c911ee118b6b30a04ec3ee8310179fa"},
@@ -755,7 +755,7 @@ description = "Cisco Identity Services Engine Platform SDK"
 optional = true
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
-markers = "python_version < \"3.12\" and extra == \"extended\""
+markers = "python_version < \"3.12\" and (extra == \"extended\" or extra == \"all\")"
 files = [
     {file = "ciscoisesdk-2.4.1-py3-none-any.whl", hash = "sha256:45d8e42cfa6bd55707e56c849f14d07707e5546979d67e7ad8bb714006571fab"},
     {file = "ciscoisesdk-2.4.1.tar.gz", hash = "sha256:a80556e2eb22b277bb9b8884a2643f9f33ca6f327f87c080876985197af553bb"},
@@ -774,7 +774,7 @@ description = "Cisco Identity Services Engine Platform SDK"
 optional = true
 python-versions = "<4.0,>=3.12"
 groups = ["main"]
-markers = "python_version >= \"3.12\" and extra == \"extended\""
+markers = "python_version >= \"3.12\" and (extra == \"extended\" or extra == \"all\")"
 files = [
     {file = "ciscoisesdk-2.4.2-py3-none-any.whl", hash = "sha256:f94d9d90c033aec746940cca82e780ded2062b9ed1011d1a55a358ab760169df"},
     {file = "ciscoisesdk-2.4.2.tar.gz", hash = "sha256:8e1dc0e91ffaefa008bbb39302118bf3de739597c24a796d77f086e0a7376962"},
@@ -864,7 +864,7 @@ files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
-markers = {main = "extra == \"extended\" and sys_platform == \"win32\" or platform_system == \"Windows\""}
+markers = {main = "(extra == \"extended\" or extra == \"all\") and sys_platform == \"win32\" or platform_system == \"Windows\""}
 
 [[package]]
 name = "columnar"
@@ -997,7 +997,7 @@ files = [
     {file = "coverage-7.13.4-py3-none-any.whl", hash = "sha256:1af1641e57cf7ba1bd67d677c9abdbcd6cc2ab7da3bca7fa1e2b7e50e65f2ad0"},
     {file = "coverage-7.13.4.tar.gz", hash = "sha256:e5c8f6ed1e61a8b2dcdf31eb0b9bbf0130750ca79c1c49eb898e2ad86f5ccc91"},
 ]
-markers = {main = "extra == \"extended\""}
+markers = {main = "extra == \"extended\" or extra == \"all\""}
 
 [package.dependencies]
 tomli = {version = "*", optional = true, markers = "python_full_version <= \"3.11.0a6\" and extra == \"toml\""}
@@ -1031,7 +1031,7 @@ description = "croniter provides iteration for datetime object with cron like fo
 optional = true
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "croniter-1.4.1-py2.py3-none-any.whl", hash = "sha256:9595da48af37ea06ec3a9f899738f1b2c1c13da3c38cea606ef7cd03ea421128"},
     {file = "croniter-1.4.1.tar.gz", hash = "sha256:1a6df60eacec3b7a0aa52a8f2ef251ae3dd2a7c7c8b9874e73e791636d55a361"},
@@ -1161,7 +1161,7 @@ description = "Small utility to convert a python dictionary into an XML string"
 optional = true
 python-versions = ">=3.5"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "dict2xml-1.7.8-py3-none-any.whl", hash = "sha256:0da9213d78496322a9befaa4f934652315973fbf5437f0c0f70f14fc6d16acc5"},
     {file = "dict2xml-1.7.8.tar.gz", hash = "sha256:6638da9ad32b0f8be8336d16e0f36a9c3821145e34ed3ef4889822a9b980fb28"},
@@ -1181,7 +1181,7 @@ files = [
     {file = "dill-0.4.1-py3-none-any.whl", hash = "sha256:1e1ce33e978ae97fcfcff5638477032b801c46c7c65cf717f95fbc2248f79a9d"},
     {file = "dill-0.4.1.tar.gz", hash = "sha256:423092df4182177d4d8ba8290c8a5b640c66ab35ec7da59ccfa00f6fa3eea5fa"},
 ]
-markers = {main = "extra == \"extended\""}
+markers = {main = "extra == \"extended\" or extra == \"all\""}
 
 [package.extras]
 graph = ["objgraph (>=1.7.2)"]
@@ -1194,7 +1194,7 @@ description = "Distro - an OS platform information API"
 optional = true
 python-versions = ">=3.6"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "distro-1.9.0-py3-none-any.whl", hash = "sha256:7bffd925d65168f85027d8da9af6bddab658135b840670a223589bc0c8ef02b2"},
     {file = "distro-1.9.0.tar.gz", hash = "sha256:2fa77c6fd8940f116ee1d6b94a2f90b13b5ea8d019b98bc8bafdcabcdd9bdbed"},
@@ -1647,6 +1647,42 @@ tqdm = ">=4.62.2"
 typing-extensions = {version = ">=3.6.6", markers = "python_version < \"3.11\""}
 
 [[package]]
+name = "dnacentersdk"
+version = "2.11.0"
+description = "Cisco DNA Center Platform SDK"
+optional = true
+python-versions = "<4.0,>=3.9"
+groups = ["main"]
+markers = "python_version < \"3.12\" and (extra == \"catalyst\" or extra == \"cisco\" or extra == \"all\")"
+files = [
+    {file = "dnacentersdk-2.11.0-py3-none-any.whl", hash = "sha256:721b8ef0e664125b22c6ac11b6dabe60e201e07bf9bb7b97563e64c2bba23b2a"},
+    {file = "dnacentersdk-2.11.0.tar.gz", hash = "sha256:bf7c9fdc84a73eed5d44d926b0f3c4ffec39e58b1b60a052ab39e796089d9c9e"},
+]
+
+[package.dependencies]
+fastjsonschema = ">=2.16.2,<3.0.0"
+requests = ">=2.32.0,<3.0.0"
+requests-toolbelt = ">=1.0.0,<2.0.0"
+
+[[package]]
+name = "dnacentersdk"
+version = "2.11.2"
+description = "Cisco DNA Center Platform SDK"
+optional = true
+python-versions = "<4.0,>=3.12"
+groups = ["main"]
+markers = "python_version >= \"3.12\" and (extra == \"catalyst\" or extra == \"cisco\" or extra == \"all\")"
+files = [
+    {file = "dnacentersdk-2.11.2-py3-none-any.whl", hash = "sha256:d17d71f69824c0a99bc5e1667b5dd7d2a5ab8c8f78f3a016d58aa6d89235fea7"},
+    {file = "dnacentersdk-2.11.2.tar.gz", hash = "sha256:67daf7454d7e05dfc9db3a69b7ce44f1d70c716e79867747b7e8c0e86efd5053"},
+]
+
+[package.dependencies]
+fastjsonschema = ">=2.16.2,<3.0.0"
+requests = ">=2.32.0,<3.0.0"
+requests-toolbelt = ">=1.0.0,<2.0.0"
+
+[[package]]
 name = "drf-spectacular"
 version = "0.28.0"
 description = "Sane and flexible OpenAPI 3 schema generation for Django REST framework"
@@ -1769,7 +1805,7 @@ description = "F5 BIG-IP iControl REST API client"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "f5-icontrol-rest-1.3.13.tar.gz", hash = "sha256:49fffd999fb4971d6754beb0e066051175db9d9baeb8a76fca6c801dacc89359"},
 ]
@@ -1784,7 +1820,7 @@ description = "Fastest Python implementation of JSON schema"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\" or extra == \"catalyst\" or extra == \"cisco\""
 files = [
     {file = "fastjsonschema-2.21.2-py3-none-any.whl", hash = "sha256:1c797122d0a86c5cace2e54bf4e819c36223b552017172f32c5c024a6b77e463"},
     {file = "fastjsonschema-2.21.2.tar.gz", hash = "sha256:b1eb43748041c880796cd077f1a07c3d94e93ae84bba5ed36800a33554ae05de"},
@@ -1800,7 +1836,7 @@ description = "A list-like structure which implements collections.abc.MutableSeq
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\" or extra == \"meraki\" or extra == \"cisco\""
 files = [
     {file = "frozenlist-1.8.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:b37f6d31b3dcea7deb5e9696e529a6aa4a898adc33db82da12e4c60a7c4d2011"},
     {file = "frozenlist-1.8.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:ef2b7b394f208233e471abc541cc6991f907ffd47dc72584acee3147899d6565"},
@@ -1941,7 +1977,7 @@ description = "Genie: THE standard pyATS Library System"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "genie-25.3-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:6612bdf889cc81522e1faf04b42f9db913882e880ac27abf11a055b4ce12ce91"},
     {file = "genie-25.3-cp310-cp310-manylinux2014_x86_64.whl", hash = "sha256:fdfb53a2c06ef57c6bddf6fe99b2612a8e4295f4f5f959bbddc12b40fdfc4d36"},
@@ -1981,7 +2017,7 @@ description = "Genie Library for device clean support"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "genie.libs.clean-25.3-py3-none-any.whl", hash = "sha256:b7a2fd669d5a60bd933e6715f0aa4183fc3b721ac0c88cc9e6789fc60c6e39ca"},
 ]
@@ -2001,7 +2037,7 @@ description = "Genie libs Conf: Libraries to configures topology through Python 
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "genie.libs.conf-25.3-py3-none-any.whl", hash = "sha256:54bddac77e5210fb51e0db3129eafd4706080e1ca069aa1ee827cfc57952c508"},
 ]
@@ -2016,7 +2052,7 @@ description = "Genie libs FileTransferUtils: Genie FileTransferUtils Libraries"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "genie.libs.filetransferutils-25.3-py3-none-any.whl", hash = "sha256:cd9488511cb28a7414e946fde6248aa365cab8fc2c8014392e11e115e58e30ab"},
 ]
@@ -2036,7 +2072,7 @@ description = "pyATS Health Check for monitoring device health status"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "genie.libs.health-25.3-py3-none-any.whl", hash = "sha256:9b3f69ce24be2d9787d6d732d8c61a2fc9ca5bad254ac2bc6072b6461798dd2b"},
 ]
@@ -2056,7 +2092,7 @@ description = "Genie libs Ops: Libraries to retrieve operational state of the to
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "genie.libs.ops-25.3-py3-none-any.whl", hash = "sha256:b84862863036e12c6a6ebfc9807cf16926d03bb26f6ab3d2dbaaaa119b3b0896"},
 ]
@@ -2071,7 +2107,7 @@ description = "Genie libs Parser: Genie Parser Libraries"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "genie.libs.parser-25.3-py3-none-any.whl", hash = "sha256:4f4a0948a95164e5f21ab45142106c3ba8f9fbdab92d962bf3ad257813d227ad"},
 ]
@@ -2089,7 +2125,7 @@ description = "Genie libs sdk: Libraries containing all Triggers and Verificatio
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "genie_libs_sdk-25.3.1-py3-none-any.whl", hash = "sha256:779901fe2cc419469724a926fd2fc8a0550b75c4b3c0d039ffe9a8e8835bf1db"},
 ]
@@ -2304,7 +2340,7 @@ description = "HTTP/2-based RPC framework"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "grpcio-1.78.0-cp310-cp310-linux_armv7l.whl", hash = "sha256:7cc47943d524ee0096f973e1081cb8f4f17a4615f2116882a5f1416e4cfe92b5"},
     {file = "grpcio-1.78.0-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:c3f293fdc675ccba4db5a561048cca627b5e7bd1c8a6973ffedabe7d116e22e2"},
@@ -2382,7 +2418,7 @@ description = "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "h11-0.16.0-py3-none-any.whl", hash = "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86"},
     {file = "h11-0.16.0.tar.gz", hash = "sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1"},
@@ -2442,7 +2478,7 @@ description = "brain-dead simple config-ini parsing"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12"},
     {file = "iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730"},
@@ -2638,7 +2674,7 @@ description = "jsonpickle encodes/decodes any Python object to/from JSON"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "jsonpickle-4.1.1-py3-none-any.whl", hash = "sha256:bb141da6057898aa2438ff268362b126826c812a1721e31cf08a6e142910dc91"},
     {file = "jsonpickle-4.1.1.tar.gz", hash = "sha256:f86e18f13e2b96c1c1eede0b7b90095bbb61d99fedc14813c44dc2f361dbbae1"},
@@ -2695,7 +2731,7 @@ description = "Creates JUnit XML test result documents that can be read by tools
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "junit-xml-1.9.tar.gz", hash = "sha256:de16a051990d4e25a3982b2dd9e89d671067548718866416faec14d9de56db9f"},
     {file = "junit_xml-1.9-py2.py3-none-any.whl", hash = "sha256:ec5ca1a55aefdd76d28fcc0b135251d156c7106fa979686a4b48d62b761b4732"},
@@ -2775,7 +2811,7 @@ description = "Powerful and Pythonic XML processing library combining libxml2/li
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "lxml-6.0.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:e77dd455b9a16bbd2a5036a63ddbd479c19572af81b624e79ef422f929eef388"},
     {file = "lxml-6.0.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:5d444858b9f07cefff6455b983aea9a67f7462ba1f6cbe4a21e8bf6791bf2153"},
@@ -3122,6 +3158,23 @@ files = [
 ]
 
 [[package]]
+name = "meraki"
+version = "1.54.0"
+description = "Cisco Meraki Dashboard API library"
+optional = true
+python-versions = ">=3.10"
+groups = ["main"]
+markers = "extra == \"meraki\" or extra == \"cisco\" or extra == \"all\""
+files = [
+    {file = "meraki-1.54.0-py3-none-any.whl", hash = "sha256:bf4e9b320d34806ba2b9c67540ac1c1c99d3479fee65a8d59fcdf9f45121555f"},
+    {file = "meraki-1.54.0.tar.gz", hash = "sha256:1a3045369e1d7cfe350fc301fb5ee9e8a51557cabeb4c88de165d5ccfdb403ac"},
+]
+
+[package.dependencies]
+aiohttp = "*"
+requests = "*"
+
+[[package]]
 name = "mergedeep"
 version = "1.3.4"
 description = "A deep merge function for 🐍."
@@ -3290,7 +3343,7 @@ description = "multidict implementation"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\" or extra == \"meraki\" or extra == \"cisco\""
 files = [
     {file = "multidict-6.7.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:c93c3db7ea657dd4637d57e74ab73de31bccefe144d3d4ce370052035bc85fb5"},
     {file = "multidict-6.7.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:974e72a2474600827abaeda71af0c53d9ebbc3c2eb7da37b37d7829ae31232d8"},
@@ -3516,7 +3569,7 @@ description = "Python library for NETCONF clients"
 optional = true
 python-versions = ">=3.7"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "ncclient-0.7.1-py3-none-any.whl", hash = "sha256:47beeeee6074bd70a9215c4d353b51c7237af3c5c15269d81692810f2aa15147"},
     {file = "ncclient-0.7.1.tar.gz", hash = "sha256:60dabb6ac1a2d84fbc3349cb104ef7d0c5d12cf8eee43fefc715410d70410ddc"},
@@ -3760,7 +3813,7 @@ files = [
     {file = "pathspec-1.0.4-py3-none-any.whl", hash = "sha256:fb6ae2fd4e7c921a165808a552060e722767cfa526f99ca5156ed2ce45a5c723"},
     {file = "pathspec-1.0.4.tar.gz", hash = "sha256:0210e2ae8a21a9137c0d470578cb0e595af87edaa6ebf12ff176f14a02e0e645"},
 ]
-markers = {main = "extra == \"extended\""}
+markers = {main = "extra == \"extended\" or extra == \"all\""}
 
 [package.extras]
 hyperscan = ["hyperscan (>=0.7)"]
@@ -3912,7 +3965,7 @@ description = "plugin and hook calling mechanisms for python"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746"},
     {file = "pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3"},
@@ -3929,7 +3982,7 @@ description = "Python Lex & Yacc"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "ply-3.11-py2.py3-none-any.whl", hash = "sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce"},
     {file = "ply-3.11.tar.gz", hash = "sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3"},
@@ -3942,7 +3995,7 @@ description = "A simple Python library for easily displaying tabular data in a v
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "prettytable-3.17.0-py3-none-any.whl", hash = "sha256:aad69b294ddbe3e1f95ef8886a060ed1666a0b83018bbf56295f6f226c43d287"},
     {file = "prettytable-3.17.0.tar.gz", hash = "sha256:59f2590776527f3c9e8cf9fe7b66dd215837cca96a9c39567414cbc632e8ddb0"},
@@ -4008,7 +4061,7 @@ description = "Accelerated property cache"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\" or extra == \"meraki\" or extra == \"cisco\""
 files = [
     {file = "propcache-0.4.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:7c2d1fa3201efaf55d730400d945b5b3ab6e672e100ba0f9a409d950ab25d7db"},
     {file = "propcache-0.4.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:1eb2994229cc8ce7fe9b3db88f5465f5fd8651672840b2e426b88cdb1a30aac8"},
@@ -4141,7 +4194,7 @@ description = ""
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "protobuf-7.34.0-cp310-abi3-macosx_10_9_universal2.whl", hash = "sha256:8e329966799f2c271d5e05e236459fe1cbfdb8755aaa3b0914fa60947ddea408"},
     {file = "protobuf-7.34.0-cp310-abi3-manylinux2014_aarch64.whl", hash = "sha256:9d7a5005fb96f3c1e64f397f91500b0eb371b28da81296ae73a6b08a5b76cdd6"},
@@ -4160,7 +4213,7 @@ description = "Cross-platform lib for process and system monitoring."
 optional = true
 python-versions = ">=3.6"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "psutil-7.2.2-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:2edccc433cbfa046b980b0df0171cd25bcaeb3a68fe9022db0979e7aa74a826b"},
     {file = "psutil-7.2.2-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:e78c8603dcd9a04c7364f1a3e670cea95d51ee865e4efb3556a3a63adef958ea"},
@@ -4350,7 +4403,7 @@ description = "Make asynchat available for Python 3.12 onwards"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "python_version >= \"3.12\" and extra == \"extended\""
+markers = "python_version >= \"3.12\" and (extra == \"extended\" or extra == \"all\")"
 files = [
     {file = "pyasynchat-1.0.5-py3-none-any.whl", hash = "sha256:35b7859515693e479e8d95ebe9f32cbf4d6312ab7599ced39fc24699e51de46f"},
     {file = "pyasynchat-1.0.5.tar.gz", hash = "sha256:36665473ae730dac51e6d7dad70f8295962120c830ab692f0a31efba32687e24"},
@@ -4366,7 +4419,7 @@ description = "Make asyncore available for Python 3.12 onwards"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "python_version >= \"3.12\" and extra == \"extended\""
+markers = "python_version >= \"3.12\" and (extra == \"extended\" or extra == \"all\")"
 files = [
     {file = "pyasyncore-1.0.5-py3-none-any.whl", hash = "sha256:269bbc5252671827387636822841a1fb721ec6e858b23a3e12cf92eb1f97da2a"},
     {file = "pyasyncore-1.0.5.tar.gz", hash = "sha256:dd483d5103a6d59b66b86e0ca2334ad43dca732ff23a0ac5d63c88c52510542e"},
@@ -4379,7 +4432,7 @@ description = "pyATS - Python Automation Test System"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:b6f28c635440fbec0856908b7401f9a97a329481c5fc9e9bc26d6dee3038ddca"},
     {file = "pyats-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:0dfc5adcd1000de2de37d8729138e73266a73a9059db8e71c843549a35f7d785"},
@@ -4425,7 +4478,7 @@ description = "pyATS AEreport: Result Collection and Reporting"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_aereport-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:1803724eac82f8e6ef8ef253503af262972c829804661df1b219cf477cfd2a38"},
     {file = "pyats_aereport-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:9150f93bd961742c2daf2c5a38f29f5f6c4472a2be1eb36ff337dd8f9f801dc1"},
@@ -4459,7 +4512,7 @@ description = "pyATS AEtest: Testscript Engine"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_aetest-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:f316531ca5efae94727e00c5a696397a2a8ff1031fea6a9e3ce9647adfd71464"},
     {file = "pyats_aetest-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:9d279f2589946fdeed2f8a95f05a7aa4796bd2469c4d1b91ac5cdbb612d24ce4"},
@@ -4496,7 +4549,7 @@ description = "pyATS Async: Asynchronous Execution of Codes"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_async-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:dce112213685404202f1a67234803ab5ac4578354b11a7e8bb9d4d4fd5919493"},
     {file = "pyats_async-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:d89116ff530cf28544f5e0fc0a174bd0c770fbd43251ef305ab07863b5edefad"},
@@ -4526,7 +4579,7 @@ description = "pyATS Connection: Device Connection Handling & Base Classes"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_connections-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:5ca5bd185a27eb3f9c89cfec42328a3a9687c696f18e4af5f027642780f867db"},
     {file = "pyats_connections-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:c294c989c8ecaccbc468fba91f4ee9e3f1e08b95435b2b7dba3914e1d2ddeb9e"},
@@ -4558,7 +4611,7 @@ description = "pyATS Datastructures: Extended Datastructures for Grownups"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_datastructures-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:99b43706e8dada2310e9b0dcef537efa0625ab133741ea85a6f1e8b94695d1e6"},
     {file = "pyats_datastructures-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:919255b42f559be3ba8664bb2fcaaed8a9d1f2141f4ce23f701c75a8cf4014bd"},
@@ -4585,7 +4638,7 @@ description = "pyATS Easypy: launcher and runtime environment"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_easypy-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:e024719159f66179b32b32886858193d9516747cb59e4bdf20ad3122ee5ec76a"},
     {file = "pyats_easypy-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:75a331b34919926f450a28461b9c8560a43d155314a9c7ca00a7e61a9f0e85a5"},
@@ -4625,7 +4678,7 @@ description = "pyATS Kleenex: Testbed Preparation, Clean & Finalization"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_kleenex-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:e14879d2545422e279587f5ef7283396cfb8498d701dcc5aca0608fd9e0c33f0"},
     {file = "pyats_kleenex-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:9d7b1fc0aa08598115e736e0a9a3a9bb3eab4d9d79c069d5b61ac25c582918e1"},
@@ -4662,7 +4715,7 @@ description = "pyATS Log: Logging Format and Utilities"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_log-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:8fbcd9e04ffae82b80ecabc90d7d2785657015aa3339c8fcbd33abe9cf122170"},
     {file = "pyats_log-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:46598d4aebcb3c7244501cc2083b1074e26d3419475122007f389f5f937ff883"},
@@ -4700,7 +4753,7 @@ description = "pyATS Reporter: Result Collection and Reporting"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_reporter-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:11e2b2c0106ebd6b3e98357cd175e69c8a097c229525530e98c16a84d62ea182"},
     {file = "pyats_reporter-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:e13fc29558833c724bbdff9ed4bed95b78c023fed7d4240ca84a91da5129b11e"},
@@ -4735,7 +4788,7 @@ description = "pyATS Results: Representing Results using Objects"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_results-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:b94c4fed4089d22f9f4d3f7127ed0f4da79220c77e10100181c90ac9b257c26d"},
     {file = "pyats_results-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:95f2d53a7f6f216760adf6214c5238541447d78ff4078325e7d0085869391e95"},
@@ -4762,7 +4815,7 @@ description = "pyATS Tcl: Tcl Integration and Objects"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_tcl-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:8fb59702bf61f291ee128318a06b53c0862a8b380f2fd10e5cd6ecb1aeb699f4"},
     {file = "pyats_tcl-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:d6926befe888c55302e97b5d10a4ef565987603987afb74cabc12aeef47105e8"},
@@ -4793,7 +4846,7 @@ description = "pyATS Topology: Topology Objects and Testbed YAMLs"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_topology-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:aa99a049b8cb74f085ca4e1c61b63205f3a39e536bce0b2d22c913d99654a9b2"},
     {file = "pyats_topology-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:3742714bcd509286288309979f8a292e2807aece9fa67179fb0d5564f48b219e"},
@@ -4827,7 +4880,7 @@ description = "pyATS Utils: Utilities Module"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyats_utils-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:eb6ce0e5a17b23a44900d34ab928426fdeaf4bd2c2fa24ab975b28ebf97a536e"},
     {file = "pyats_utils-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:e2b8398804c34d86bd853abc301936d46aa46db731cd45c4468037d1fd8d7344"},
@@ -4873,7 +4926,7 @@ description = "Very fast asynchronous FTP server library"
 optional = true
 python-versions = ">=3.6"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pyftpdlib-2.2.0.tar.gz", hash = "sha256:4ba0642078792df63dd3b2e9c8f838f2a3ecf428c7518d5921c0530d53512acf"},
 ]
@@ -5275,7 +5328,7 @@ description = "A pure-Python implementation of SNMP/SMI MIB parsing and conversi
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pysmi-1.6.3-py3-none-any.whl", hash = "sha256:fc2d796c252379e1b47aeea2e547ff339ca6df504cf6196cb3adad8054f41e7d"},
     {file = "pysmi-1.6.3.tar.gz", hash = "sha256:5d2eeb9e98bc149dee8f9256899d13789206769aab1637e33ac5f0dacaaf51fb"},
@@ -5296,7 +5349,7 @@ description = "A Python library for SNMP"
 optional = true
 python-versions = "<4.0,>=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pysnmp-6.1.4-py3-none-any.whl", hash = "sha256:a13c3760b6c2892d0865a64937217eb2a3f6694610a3b9c0a218e77a6b5c3577"},
     {file = "pysnmp-6.1.4.tar.gz", hash = "sha256:99f93d7aac90eab3256a9d485772099c5ae3bd87688fb4cdfd67c11be3f9a02c"},
@@ -5315,7 +5368,7 @@ description = "Strong cryptography support for PySNMP (SNMP library for Python)"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pysnmpcrypto-0.0.4-py2.py3-none-any.whl", hash = "sha256:5889733caa030f45d9e03ea9d6370fb06426a8cb7f839aabbcdde33c6f634679"},
     {file = "pysnmpcrypto-0.0.4.tar.gz", hash = "sha256:b635fb3b1ec6637b9a0033f50506214e16eb84574b1d25ab027bbde4caa55129"},
@@ -5331,7 +5384,7 @@ description = "pytest: simple powerful testing with Python"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pytest-9.0.2-py3-none-any.whl", hash = "sha256:711ffd45bf766d5264d487b917733b453d917afd2b0ad65223959f59089f875b"},
     {file = "pytest-9.0.2.tar.gz", hash = "sha256:75186651a92bd89611d1d9fc20f0b4345fd827c41ccd5c299a868a05d70edf11"},
@@ -5356,7 +5409,7 @@ description = "Pytest plugin for measuring coverage."
 optional = true
 python-versions = ">=3.7"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "pytest-cov-4.1.0.tar.gz", hash = "sha256:3904b13dfbfec47f003b8e77fd5b589cd11904a21ddf1ab38a64f204d6a10ef6"},
     {file = "pytest_cov-4.1.0-py3-none-any.whl", hash = "sha256:6ba70b9e97e69fcc3fb45bfeab2d0a138fb65c4d0d6a41ef33983ad114be8c3a"},
@@ -5407,7 +5460,7 @@ description = "Engine.IO server and client for Python"
 optional = true
 python-versions = ">=3.6"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "python_engineio-4.9.1-py3-none-any.whl", hash = "sha256:f995e702b21f6b9ebde4e2000cd2ad0112ba0e5116ec8d22fe3515e76ba9dddd"},
     {file = "python_engineio-4.9.1.tar.gz", hash = "sha256:7631cf5563086076611e494c643b3fa93dd3a854634b5488be0bba0ef9b99709"},
@@ -5461,7 +5514,7 @@ description = "Socket.IO server and client for Python"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "python-socketio-5.11.2.tar.gz", hash = "sha256:ae6a1de5c5209ca859dc574dccc8931c4be17ee003e74ce3b8d1306162bb4a37"},
     {file = "python_socketio-5.11.2-py3-none-any.whl", hash = "sha256:b9f22a8ff762d7a6e123d16a43ddb1a27d50f07c3c88ea999334f2f89b0ad52b"},
@@ -5871,7 +5924,7 @@ description = "A utility belt for advanced users of python-requests"
 optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\" or extra == \"catalyst\" or extra == \"cisco\""
 files = [
     {file = "requests-toolbelt-1.0.0.tar.gz", hash = "sha256:7681a0a3d047012b5bdc0ee37d7f8f07ebe76ab08caeccfc3921ce23c88d5bc6"},
     {file = "requests_toolbelt-1.0.0-py2.py3-none-any.whl", hash = "sha256:cccfdd665f0a24fcf4726e690f65639d272bb0637b9b92dfd91a5568ccf6bd06"},
@@ -5887,7 +5940,7 @@ description = "pyATS REST connection package"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "rest.connector-25.3-py3-none-any.whl", hash = "sha256:0dc0f0ed24cd108ba01ff22ee4dbbe41986ab0f497247928b80f31d2a29c4de6"},
 ]
@@ -6149,7 +6202,7 @@ description = "Simple WebSocket server and client for Python"
 optional = true
 python-versions = ">=3.6"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "simple_websocket-1.1.0-py3-none-any.whl", hash = "sha256:4af6069630a38ed6c561010f0e11a5bc0d4ca569b36306eb257cd9a192497c8c"},
     {file = "simple_websocket-1.1.0.tar.gz", hash = "sha256:7939234e7aa067c534abdab3a9ed933ec9ce4691b0713c78acb195560aa52ae4"},
@@ -6340,7 +6393,7 @@ description = "Python TFTP library"
 optional = true
 python-versions = ">=2.7"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "tftpy-0.8.0.tar.gz", hash = "sha256:c9095f6420125690865717e251dac3382abe5562d98b79780857b4535f554ffe"},
 ]
@@ -6428,7 +6481,7 @@ files = [
     {file = "tomli-2.4.0-py3-none-any.whl", hash = "sha256:1f776e7d669ebceb01dee46484485f43a4048746235e683bcdffacdf1fb4785a"},
     {file = "tomli-2.4.0.tar.gz", hash = "sha256:aa89c3f6c277dd275d8e243ad24f3b5e701491a860d5121f2cdd399fbb31fc9c"},
 ]
-markers = {main = "extra == \"extended\" and python_version == \"3.10\""}
+markers = {main = "(extra == \"extended\" or extra == \"all\") and python_version == \"3.10\""}
 
 [[package]]
 name = "tomlkit"
@@ -6485,7 +6538,7 @@ files = [
     {file = "tqdm-4.67.3-py3-none-any.whl", hash = "sha256:ee1e4c0e59148062281c49d80b25b67771a127c85fc9676d3be5f243206826bf"},
     {file = "tqdm-4.67.3.tar.gz", hash = "sha256:7d825f03f89244ef73f1d4ce193cb1774a8179fd96f31d7e1dcde62092b960bb"},
 ]
-markers = {main = "extra == \"extended\""}
+markers = {main = "extra == \"extended\" or extra == \"all\""}
 
 [package.dependencies]
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
@@ -6563,7 +6616,7 @@ description = "Unicon Connection Library"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "unicon-25.11-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:64f8640580bfd4d983c22f0f835cde08974fdb251cdba294aadf984d380cf882"},
     {file = "unicon-25.11-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:362242b663b2f2696a99a180399f796415f90351621c11bec25080870d04c460"},
@@ -6597,7 +6650,7 @@ description = "Unicon Connection Library Plugins"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "unicon_plugins-25.11-py3-none-any.whl", hash = "sha256:42158df9873c1a07cdb17d55a8833ba9812d761a2365fc60a8976917ad4b99cd"},
 ]
@@ -6732,7 +6785,7 @@ description = "Command line tool for manipulating wheel files"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "wheel-0.46.3-py3-none-any.whl", hash = "sha256:4b399d56c9d9338230118d705d9737a2a468ccca63d5e813e2a4fc7815d8bc4d"},
     {file = "wheel-0.46.3.tar.gz", hash = "sha256:e3e79874b07d776c40bd6033f8ddf76a7dad46a7b8aa1b2787a83083519a1803"},
@@ -6751,7 +6804,7 @@ description = "Pure-Python WebSocket protocol implementation"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "wsproto-1.3.2-py3-none-any.whl", hash = "sha256:61eea322cdf56e8cc904bd3ad7573359a242ba65688716b0710a5eb12beab584"},
     {file = "wsproto-1.3.2.tar.gz", hash = "sha256:b86885dcf294e15204919950f666e06ffc6c7c114ca900b060d6e16293528294"},
@@ -6767,7 +6820,7 @@ description = "Makes working with XML feel like you are working with JSON"
 optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 groups = ["main"]
-markers = "python_version < \"3.12\" and extra == \"extended\""
+markers = "python_version < \"3.12\" and (extra == \"extended\" or extra == \"all\")"
 files = [
     {file = "xmltodict-0.12.0-py2.py3-none-any.whl", hash = "sha256:8bbcb45cc982f48b2ca8fe7e7827c5d792f217ecf1792626f808bf41c3b86051"},
     {file = "xmltodict-0.12.0.tar.gz", hash = "sha256:50d8c638ed7ecb88d90561beedbf720c9b4e851a9fa6c47ebd64e99d166d8a21"},
@@ -6780,7 +6833,7 @@ description = "Makes working with XML feel like you are working with JSON"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "python_version >= \"3.12\" and extra == \"extended\""
+markers = "python_version >= \"3.12\" and (extra == \"extended\" or extra == \"all\")"
 files = [
     {file = "xmltodict-1.0.2-py3-none-any.whl", hash = "sha256:62d0fddb0dcbc9f642745d8bbf4d81fd17d6dfaec5a15b5c1876300aad92af0d"},
     {file = "xmltodict-1.0.2.tar.gz", hash = "sha256:54306780b7c2175a3967cad1db92f218207e5bc1aba697d887807c0fb68b7649"},
@@ -6800,7 +6853,7 @@ files = [
     {file = "yamllint-1.38.0-py3-none-any.whl", hash = "sha256:fc394a5b3be980a4062607b8fdddc0843f4fa394152b6da21722f5d59013c220"},
     {file = "yamllint-1.38.0.tar.gz", hash = "sha256:09e5f29531daab93366bb061e76019d5e91691ef0a40328f04c927387d1d364d"},
 ]
-markers = {main = "extra == \"extended\""}
+markers = {main = "extra == \"extended\" or extra == \"all\""}
 
 [package.dependencies]
 pathspec = ">=1.0.0"
@@ -6816,7 +6869,7 @@ description = "YANG defined interface API protocol connector"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "yang.connector-25.3-py3-none-any.whl", hash = "sha256:4aa554f19854b4871167449dbec9c9c318f9cb344464ad174ed9891c236f332a"},
 ]
@@ -6838,7 +6891,7 @@ description = "Yet another URL library"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"extended\""
+markers = "extra == \"extended\" or extra == \"all\" or extra == \"meraki\" or extra == \"cisco\""
 files = [
     {file = "yarl-1.23.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:cff6d44cb13d39db2663a22b22305d10855efa0fa8015ddeacc40bc59b9d8107"},
     {file = "yarl-1.23.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:e4c53f8347cd4200f0d70a48ad059cabaf24f5adc6ba08622a23423bc7efa10d"},
@@ -6976,10 +7029,13 @@ multidict = ">=4.0"
 propcache = ">=0.2.1"
 
 [extras]
-all = []
+all = ["croniter", "dnacentersdk", "genie", "meraki", "netutils", "pyats"]
+catalyst = ["dnacentersdk"]
+cisco = ["dnacentersdk", "meraki"]
 extended = ["croniter", "genie", "netutils", "pyats"]
+meraki = ["meraki"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.14"
-content-hash = "7229768d0432b0eb86da52170da28beb3a27fbdf62add88aa40ae092ba566e42"
+content-hash = "52eab2430b5d464da8ce38cc274b6b01a8c60ef4b78ffa279421f39457f3a412"

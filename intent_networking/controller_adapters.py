@@ -733,15 +733,15 @@ class CatalystCenterAdapter:
 
         if intent_type == "connectivity":
             vn_name = intent_data.get("vn_name", intent_data.get("source", self.intent.intent_id))
-            response = self.api.sda.delete_virtual_network_with_scalable_groups(
+            response = self.api.sda.delete_virtual_network_with_scalable_groups(  # pylint: disable=no-value-for-parameter
                 virtualNetworkName=vn_name,
             )
         elif intent_type == "segmentation":
-            response = self.api.sda.delete_default_authentication_profile(
+            response = self.api.sda.delete_default_authentication_profile(  # pylint: disable=no-value-for-parameter
                 siteNameHierarchy=self.intent.controller_site,
             )
         else:
-            response = self.api.sda.delete_site(
+            response = self.api.sda.delete_site(  # pylint: disable=no-value-for-parameter
                 siteNameHierarchy=self.intent.controller_site,
             )
 
