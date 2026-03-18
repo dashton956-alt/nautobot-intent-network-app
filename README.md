@@ -53,7 +53,7 @@ Git Repository (YAML intents)
 - **Policy enforcement** — OPA Rego policies checked at PR time and again before each deployment; PCI-DSS, HIPAA, SOC2 compliance built in
 - **Dry-run deployment** — `IntentDeploymentJob` accepts a `commit=False` flag to render and store device configs without pushing to devices; useful for lab testing and pre-change review
 - **Batfish pre-deployment simulation** — reachability and isolation proven mathematically before any device is touched
-- **Full lifecycle tracking** — intent status (draft → validated → deploying → deployed → failed → rolled_back → deprecated), every verification result, and all resource allocations stored in Nautobot's database
+- **Full lifecycle tracking** — intent status (draft → validated → deploying → deployed → failed → rolled_back → deprecated → retired), every verification result, and all resource allocations stored in Nautobot's database
 - **Real-time topology viewer** — vis.js network graph with:
     - Nodes colour-coded by intent status (green = deployed, amber = deploying, red = failed)
     - Node shapes by device role (diamond = PE, square = CE, circle = other)
@@ -64,6 +64,9 @@ Git Repository (YAML intents)
     - Per-device live ARP, routing table, and BGP neighbour data
 - **Continuous reconciliation** — scheduled job detects drift, auto-remediates or raises GitHub issues for manual review
 - **Automated rollback** — failed deployments trigger automatic re-deployment of the previous intent version
+- **pyATS extended verification** — optional two-tier verification (basic → extended) using pyATS/Genie for deep device-state validation with 10 check types (interface, BGP, OSPF, VLAN, VRF, ARP, NTP, ACL, route-map, LLDP/CDP)
+- **Dashboard pyATS panel** — last 15 extended/escalated verification results displayed on the dashboard with pass/fail, engine label, and escalation details
+- **Git-backed verification reports** — per-intent toggle to commit Markdown verification reports to Git, similar to golden-config backup
 - **Slack + GitHub notifications** — deployment events notify via Slack webhook; non-remediable drift automatically creates GitHub issues with full context
 
 ### Screenshots
@@ -105,6 +108,12 @@ Git Repository (YAML intents)
 
 ```bash
 pip install nautobot-app-intent-networking
+```
+
+For pyATS extended verification support (optional):
+
+```bash
+pip install nautobot-app-intent-networking[extended]
 ```
 
 Or install from source during development:
@@ -161,6 +170,7 @@ nautobot-server migrate intent_networking
 | Failed | Red | Deployment or verification failed |
 | Rolled Back | Orange | Reverted to previous version |
 | Deprecated | Grey | Removed from Git repo or superseded |
+| Retired | Grey | Non-actionable — remains in Git, reconciliation skips |
 
 **Namespace** — verify in *IPAM → Namespaces* that the configured namespace exists (default: `"Global"`). VRFs and Route Targets are allocated using Nautobot's native IPAM models within this namespace.
 
