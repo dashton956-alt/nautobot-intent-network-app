@@ -73,6 +73,12 @@ griffe = "1.1.1"
 [tool.poetry.extras]
 all = [
 ]
+extended = [
+    "pyats",
+    "genie",
+    "netutils",
+    "croniter",
+]
 
 [tool.pylint.master]
 # Include the pylint_django plugin to avoid spurious warnings about Django patterns

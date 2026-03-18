@@ -26,9 +26,11 @@ Blank lines and lines starting with ``#`` are treated as comments.
 import fnmatch
 import logging
 import os
+import re
 from pathlib import PurePosixPath
 
 import yaml
+from django.core.exceptions import ValidationError
 from nautobot.extras.choices import LogLevelChoices
 from nautobot.extras.models import Status
 from nautobot.extras.registry import DatasourceContent
@@ -100,6 +102,30 @@ def _is_ignored(rel_path, patterns):
         elif fnmatch.fnmatch(rel_path, pattern) or fnmatch.fnmatch(basename, pattern):
             return True
     return False
+
+
+# Regex for a standard 5-field cron expression (minute hour dom month dow).
+_CRON_FIELD = r"(\*(/\d+)?|(\d+(-\d+)?(,\d+(-\d+)?)*)(/\d+)?)"
+_CRON_RE = re.compile(
+    rf"^\s*{_CRON_FIELD}\s+{_CRON_FIELD}\s+{_CRON_FIELD}\s+{_CRON_FIELD}\s+{_CRON_FIELD}\s*$"
+)
+
+
+def _is_valid_cron(expression):
+    """Return True if *expression* looks like a valid 5-field cron expression.
+
+    Uses a lightweight regex check. For production use, ``croniter`` provides
+    stricter validation and is preferred when available.
+    """
+    try:
+        from croniter import croniter  # noqa: PLC0415
+
+        croniter(expression)
+        return True
+    except (ImportError, ValueError, TypeError, KeyError):
+        # croniter not installed or invalid expression — fall back to regex
+        pass
+    return bool(_CRON_RE.match(expression))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -220,6 +246,21 @@ def _sync_repo_intents(repository_record, job_result):
 
             # Build update fields; include status only for new records so that
             # existing intents keep whatever status they already have.
+            # Parse optional verification block with safe defaults
+            verification_block = intent_yaml.get("verification", {})
+            v_level = verification_block.get("level", "basic")
+            v_trigger = verification_block.get("trigger", "on_deploy")
+            v_schedule = verification_block.get("schedule", None)
+            v_fail_action = verification_block.get("fail_action", "alert")
+
+            # Validate cron expression when trigger requires a schedule
+            if v_trigger in ("scheduled", "both") and v_schedule:
+                if not _is_valid_cron(v_schedule):
+                    raise ValidationError(  # noqa: TRY301
+                        f"Invalid cron expression '{v_schedule}' in verification.schedule "
+                        f"for intent '{intent_id}'."
+                    )
+
             update_fields = {
                 "version": intent_yaml.get("version", 1),
                 "intent_type": intent_yaml.get("type", "connectivity"),
@@ -229,6 +270,10 @@ def _sync_repo_intents(repository_record, job_result):
                 "git_commit_sha": repository_record.current_head or "",
                 "git_branch": repository_record.branch or "",
                 "git_repository": repository_record,
+                "verification_level": v_level,
+                "verification_trigger": v_trigger,
+                "verification_schedule": v_schedule,
+                "verification_fail_action": v_fail_action,
             }
             is_new = not Intent.objects.filter(intent_id=intent_id).exists()
             if is_new:

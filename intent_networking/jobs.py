@@ -683,11 +683,9 @@ class IntentDeploymentJob(Job):
 class IntentVerificationJob(Job):
     """Verifies that a deployed intent is actually satisfied on the network.
 
-    Checks:
-      - VRF present on all affected devices
-      - BGP sessions established
-      - Expected prefixes received
-      - Latency SLA met (if specified in intent)
+    Routes to BasicVerifier or PyATSVerifier based on the intent's
+    verification_level setting. Supports auto-escalation from basic
+    to extended when basic passes with warnings.
 
     Called after deployment and by the reconciliation scheduler.
     """
@@ -704,6 +702,8 @@ class IntentVerificationJob(Job):
 
     def run(self, **kwargs):
         """Execute the verification job."""
+        from intent_networking.verifiers.basic import BasicVerifier  # noqa: PLC0415
+
         intent_id = kwargs["intent_id"]
         triggered_by = kwargs.get("triggered_by", "manual")
         intent = Intent.objects.get(intent_id=intent_id)
@@ -713,187 +713,38 @@ class IntentVerificationJob(Job):
             self.logger.failure("No resolution plan found for %s", intent_id)
             return
 
-        checks = []
-        all_passed = True
-        measured_latency = None
+        if intent.verification_level == "basic":
+            result = BasicVerifier(intent).run()
 
-        # ── Controller adapter verification ───────────────────────────────
-        buckets = classify_primitives(plan.primitives)
-        for adapter_type in ("wireless", "sdwan", "cloud"):
-            adapter_prims = buckets.get(adapter_type)
-            if not adapter_prims:
-                continue
-            try:
-                adapter = get_adapter(adapter_type)
-                result = adapter.verify(adapter_prims, intent.intent_id)
-                adapter_passed = result.get("verified", False)
-                checks.append(
-                    {
-                        "check": f"{adapter_type}_controller_verify",
-                        "passed": adapter_passed,
-                        "detail": result.get("details", ""),
-                        "drift": result.get("drift", []),
-                    }
+            # Auto-escalate if basic passes with warnings
+            if result["passed"] and result.get("has_warnings"):
+                self.logger.warning(
+                    "Basic verification passed with warnings for intent "
+                    "%s — escalating to extended. Reasons: %s",
+                    intent.intent_id,
+                    result["warning_reasons"],
                 )
-                if not adapter_passed:
-                    all_passed = False
-            except ValueError:
-                self.logger.warning("Adapter '%s' not configured — skipping verification", adapter_type)
-
-        # ── Device-level verification (generic) ──────────────────────────
-        for device in plan.affected_devices.all():
-            device_state = self._collect_device_state(device, plan)
-            device_prims = [p for p in plan.primitives if p.get("device") == device.name]
-            prim_types = {p.get("primitive_type") for p in device_prims}
-
-            # Check VRF if plan requires one
-            if plan.vrf_name:
-                vrf_present = plan.vrf_name in device_state.get("vrfs", [])
-                checks.append(
-                    {
-                        "device": device.name,
-                        "check": "vrf_present",
-                        "passed": vrf_present,
-                        "detail": f"VRF {plan.vrf_name} {'present' if vrf_present else 'MISSING'}",
-                    }
-                )
-                if not vrf_present:
-                    all_passed = False
-
-            # Check BGP if there are bgp_neighbor primitives
-            if "bgp_neighbor" in prim_types or "bgp_evpn_af" in prim_types:
-                bgp_vrf = plan.vrf_name or "global"
-                bgp_state = device_state.get("bgp_sessions", {}).get(bgp_vrf, {}).get("state", "Unknown")
-                bgp_up = bgp_state == "Established"
-                checks.append(
-                    {
-                        "device": device.name,
-                        "check": "bgp_established",
-                        "passed": bgp_up,
-                        "detail": f"BGP state ({bgp_vrf}): {bgp_state}",
-                    }
-                )
-                if not bgp_up:
-                    all_passed = False
-
-                # Prefix count check
-                prefixes_received = device_state.get("prefix_count", {}).get(bgp_vrf, 0)
-                min_prefixes = intent.intent_data.get("policy", {}).get("min_prefixes", 1)
-                prefix_ok = prefixes_received >= min_prefixes
-                checks.append(
-                    {
-                        "device": device.name,
-                        "check": "prefix_count",
-                        "passed": prefix_ok,
-                        "detail": f"{prefixes_received} prefixes received (min: {min_prefixes})",
-                    }
-                )
-                if not prefix_ok:
-                    all_passed = False
-
-            # Check ACL presence
-            if "acl" in prim_types:
-                expected_acls = [
-                    p.get("acl_name") for p in device_prims if p.get("primitive_type") == "acl" and p.get("acl_name")
-                ]
-                device_acls = device_state.get("acls", [])
-                for acl_name in expected_acls:
-                    acl_present = acl_name in device_acls
-                    checks.append(
-                        {
-                            "device": device.name,
-                            "check": "acl_present",
-                            "passed": acl_present,
-                            "detail": f"ACL {acl_name} {'present' if acl_present else 'MISSING'}",
-                        }
-                    )
-                    if not acl_present:
-                        all_passed = False
-
-            # Check VLAN presence
-            if "vlan" in prim_types:
-                expected_vlans = sorted(
-                    {p.get("vlan_id") for p in device_prims if p.get("primitive_type") == "vlan" and p.get("vlan_id")}
-                )
-                device_vlans = set(device_state.get("vlans", []))
-                for vlan_id in expected_vlans:
-                    vlan_present = vlan_id in device_vlans
-                    checks.append(
-                        {
-                            "device": device.name,
-                            "check": "vlan_present",
-                            "passed": vlan_present,
-                            "detail": f"VLAN {vlan_id} {'present' if vlan_present else 'MISSING'}",
-                        }
-                    )
-                    if not vlan_present:
-                        all_passed = False
-
-            # Check OSPF neighbours if ospf primitives present
-            if "ospf" in prim_types or "ospfv3" in prim_types:
-                ospf_neighbors = device_state.get("ospf_neighbor_count", 0)
-                ospf_ok = ospf_neighbors > 0
-                checks.append(
-                    {
-                        "device": device.name,
-                        "check": "ospf_neighbors",
-                        "passed": ospf_ok,
-                        "detail": f"{ospf_neighbors} OSPF neighbor(s)",
-                    }
-                )
-                if not ospf_ok:
-                    all_passed = False
-
-            # Generic: log all primitive types on this device
-            checks.append(
-                {
-                    "device": device.name,
-                    "check": "primitives_rendered",
-                    "passed": True,
-                    "detail": f"Primitive types: {sorted(prim_types)}",
-                }
-            )
-
-        # Check 4: Latency SLA
-        max_latency = intent.intent_data.get("policy", {}).get("max_latency_ms")
-        if max_latency:
-            # Pick first device + first destination prefix for the SLA probe
-            probe_device = plan.affected_devices.first()
-            dest_prefixes = intent.intent_data.get("destination", {}).get("prefixes", [])
-            probe_dest = dest_prefixes[0].split("/")[0] if dest_prefixes else ""
-            measured_latency = self._measure_latency(device=probe_device, destination=probe_dest)
-            latency_ok = measured_latency <= max_latency
-            checks.append(
-                {
-                    "check": "latency_sla",
-                    "passed": latency_ok,
-                    "detail": f"{measured_latency}ms measured, {max_latency}ms SLA",
-                }
-            )
-            if not latency_ok:
-                all_passed = False
-
-        # Store result
-        VerificationResult.objects.create(
-            intent=intent,
-            passed=all_passed,
-            checks=checks,
-            triggered_by=triggered_by,
-            measured_latency_ms=measured_latency,
-        )
-
-        if all_passed:
-            intent.last_verified_at = timezone.now()
-            intent.save()
-            self.logger.info("Intent %s verified", intent_id)
-            notify_slack(f"✅ Intent verified: {intent_id}\nLatency: {measured_latency}ms" if measured_latency else "")
+                extended_result = self._run_extended(intent)
+                if extended_result is not None:
+                    extended_result["verification_engine"] = "escalated"
+                    extended_result["escalation_reason"] = "; ".join(result["warning_reasons"])
+                    result = extended_result
+                else:
+                    result["verification_engine"] = "basic"
+            else:
+                result["verification_engine"] = "basic"
         else:
-            failed_checks = [c for c in checks if not c["passed"]]
-            self.logger.failure(
-                "Intent %s verification FAILED. Failed checks: %s",
-                intent_id,
-                [c["check"] for c in failed_checks],
-            )
+            extended_result = self._run_extended(intent)
+            if extended_result is not None:
+                result = extended_result
+                result["verification_engine"] = "extended"
+            else:
+                # Fallback to basic if extended is unavailable
+                result = BasicVerifier(intent).run()
+                result["verification_engine"] = "basic"
+
+        self._store_result(intent, result, triggered_by)
+        self._handle_fail_action(intent, result)
 
         # Audit trail
         IntentAuditEntry.objects.create(
@@ -901,161 +752,75 @@ class IntentVerificationJob(Job):
             action="verified",
             actor="IntentVerificationJob",
             detail={
-                "passed": all_passed,
+                "passed": result["passed"],
                 "triggered_by": triggered_by,
-                "checks": checks,
-                "latency_ms": measured_latency,
+                "checks": result.get("checks", []),
+                "verification_engine": result.get("verification_engine", "basic"),
+                "latency_ms": result.get("measured_latency_ms"),
             },
         )
 
-        return {"passed": all_passed, "checks": checks}
+        return {"passed": result["passed"], "checks": result.get("checks", [])}
 
-    def _collect_device_state(self, device: Device, plan: ResolutionPlan) -> dict:
-        """Collect live state from device via Nornir.
-
-        Uses Nautobot Secrets for credentials (#5).
-        """
-        from nornir import InitNornir  # noqa: PLC0415
-        from nornir_netmiko.tasks import netmiko_send_command  # noqa: PLC0415
-
-        username, password = get_device_credentials()
-
-        nr = InitNornir(
-            inventory={
-                "plugin": "NautobotInventory",
-                "options": {
-                    "nautobot_url": _nautobot_url(),
-                    "nautobot_token": get_nautobot_token(),
-                    "filter_parameters": {"name": device.name},
-                    "username": username,
-                    "password": password,
-                },
-            },
-            logging={"enabled": False},
-        )
-
-        state = {"vrfs": [], "bgp_sessions": {}, "prefix_count": {}, "acls": [], "ospf_neighbor_count": 0, "vlans": []}
-        platform = device.platform.name if device.platform else ""
-        is_arista = platform == "arista-eos"
-
-        # Collect VRF list
-        vrf_result = nr.run(
-            task=netmiko_send_command,
-            command_string="show vrf" if is_arista else "show vrf brief",
-            use_textfsm=True,
-        )
-        if not vrf_result[device.name].failed:
-            for row in vrf_result[device.name].result:
-                state["vrfs"].append(row.get("name", ""))
-
-        # Collect BGP state for the VRF
-        if plan.vrf_name:
-            bgp_result = nr.run(
-                task=netmiko_send_command,
-                command_string=(
-                    f"show ip bgp vrf {plan.vrf_name} summary"
-                    if is_arista
-                    else f"show bgp vpnv4 unicast vrf {plan.vrf_name} summary"
-                ),
-                use_textfsm=True,
-            )
-            if not bgp_result[device.name].failed:
-                for neighbor in bgp_result[device.name].result:
-                    state["bgp_sessions"][plan.vrf_name] = {
-                        "state": neighbor.get("state_pfxrcd", "Unknown"),
-                        "prefixes": neighbor.get("state_pfxrcd", 0),
-                    }
-        else:
-            bgp_result = nr.run(
-                task=netmiko_send_command,
-                command_string="show ip bgp summary" if is_arista else "show bgp summary",
-                use_textfsm=True,
-            )
-            if not bgp_result[device.name].failed:
-                for neighbor in bgp_result[device.name].result:
-                    state["bgp_sessions"]["global"] = {
-                        "state": neighbor.get("state_pfxrcd", "Unknown"),
-                        "prefixes": neighbor.get("state_pfxrcd", 0),
-                    }
-
-        # Collect ACL names
-        acl_result = nr.run(
-            task=netmiko_send_command,
-            command_string="show ip access-lists" if is_arista else "show access-lists",
-            use_textfsm=True,
-        )
-        if not acl_result[device.name].failed:
-            for acl in acl_result[device.name].result:
-                state["acls"].append(acl.get("name", ""))
-
-        vlan_result = nr.run(task=netmiko_send_command, command_string="show vlan", use_textfsm=False)
-        if not vlan_result[device.name].failed:
-            import re  # noqa: PLC0415
-
-            output = str(vlan_result[device.name].result)
-            state["vlans"] = sorted({int(match.group(1)) for match in re.finditer(r"(?m)^\s*(\d+)\s+", output)})
-
-        # Collect OSPF neighbor count
-        ospf_result = nr.run(
-            task=netmiko_send_command,
-            command_string="show ip ospf neighbor" if is_arista else "show ip ospf neighbor brief",
-            use_textfsm=True,
-        )
-        if not ospf_result[device.name].failed:
-            state["ospf_neighbor_count"] = len(ospf_result[device.name].result)
-
-        return state
-
-    def _measure_latency(self, device: Device = None, destination: str = "") -> int:
-        """Measure latency from *device* to *destination* via ping.
-
-        Uses Nornir + Netmiko to execute a ping on the device and parses
-        the average round-trip time from the output.
-
-        Returns:
-            Average round-trip time in milliseconds.  Returns 0 if
-            measurement is unavailable or fails.
-        """
-        if not device or not destination:
-            return 0
-
+    def _run_extended(self, intent):
+        """Attempt to run PyATSVerifier; return None if pyATS is not installed."""
         try:
-            from nornir import InitNornir  # noqa: PLC0415
-            from nornir_netmiko.tasks import netmiko_send_command  # noqa: PLC0415
+            from intent_networking.verifiers.extended import PyATSVerifier  # noqa: PLC0415
+
+            return PyATSVerifier(intent).run()
         except ImportError:
-            self.logger.warning("nornir/nornir_netmiko not installed — latency measurement skipped.")
-            return 0
-
-        try:
-            nr = InitNornir(
-                inventory={
-                    "plugin": "NautobotInventory",
-                    "options": {
-                        "nautobot_url": _nautobot_url(),
-                        "nautobot_token": get_nautobot_token(),
-                        "filter_parameters": {"name": device.name},
-                    },
-                },
-                logging={"enabled": False},
+            self.logger.warning(
+                "pyATS not installed — cannot run extended verification for %s. "
+                'Install with: pip install -e ".[extended]"',
+                intent.intent_id,
             )
-            result = nr.run(
-                task=netmiko_send_command,
-                command_string=f"ping {destination} repeat 5",
+            return None
+
+    def _store_result(self, intent, result, triggered_by):
+        """Store verification result in the database."""
+        measured_latency = result.get("measured_latency_ms")
+        VerificationResult.objects.create(
+            intent=intent,
+            passed=result["passed"],
+            checks=result.get("checks", []),
+            triggered_by=triggered_by,
+            measured_latency_ms=measured_latency,
+            verification_engine=result.get("verification_engine", "basic"),
+            escalation_reason=result.get("escalation_reason", ""),
+            pyats_diff_output=result.get("pyats_diff_output", ""),
+        )
+
+        if result["passed"]:
+            intent.last_verified_at = timezone.now()
+            intent.save(update_fields=["last_verified_at"])
+            self.logger.info("Intent %s verified (%s)", intent.intent_id, result.get("verification_engine", "basic"))
+            notify_slack(
+                f"✅ Intent verified: {intent.intent_id} "
+                f"(engine: {result.get('verification_engine', 'basic')})"
             )
-            if result[device.name].failed:
-                return 0
+        else:
+            failed_checks = [c for c in result.get("checks", []) if not c.get("passed")]
+            self.logger.failure(
+                "Intent %s verification FAILED. Failed checks: %s",
+                intent.intent_id,
+                [c.get("check") for c in failed_checks],
+            )
 
-            import re  # noqa: PLC0415
-
-            output = str(result[device.name].result)
-            # Parse 'round-trip min/avg/max = X/Y/Z ms' or similar
-            match = re.search(r"[=/]\s*(\d+)/(\d+)/(\d+)", output)
-            if match:
-                return int(match.group(2))  # avg
-            return 0
-        except Exception as exc:
-            self.logger.warning("Latency measurement failed: %s", exc)
-            return 0
+    def _handle_fail_action(self, intent, result):
+        """Route post-verification failure to the appropriate action."""
+        if result["passed"]:
+            return
+        if intent.verification_fail_action == "alert":
+            notify_slack(
+                f"⚠️ Verification FAILED for {intent.intent_id} — alert only. "
+                f"Engine: {result.get('verification_engine', 'basic')}"
+            )
+        elif intent.verification_fail_action == "rollback":
+            self.logger.warning("Verification failed — triggering auto-rollback for %s", intent.intent_id)
+            _enqueue_job("IntentRollbackJob", intent_id=intent.intent_id)
+        elif intent.verification_fail_action == "remediate":
+            self.logger.warning("Verification failed — triggering auto-remediation for %s", intent.intent_id)
+            _enqueue_job("IntentReconciliationJob", intent_id=intent.intent_id, auto_remediate=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1207,6 +972,8 @@ class IntentReconciliationJob(Job):
 
     def run(self, **kwargs):  # pylint: disable=unused-argument
         """Execute the reconciliation job across all deployed intents."""
+        from intent_networking.verifiers.basic import BasicVerifier  # noqa: PLC0415
+
         deployed = (
             Intent.objects.filter(status__name__iexact="Deployed")
             .exclude(status__name__iexact="Retired")
@@ -1220,11 +987,48 @@ class IntentReconciliationJob(Job):
         for intent in deployed:
             results["checked"] += 1
 
-            # Run verification check inline
-            verify = IntentVerificationJob()
-            verify_result = verify.run(
-                intent_id=intent.intent_id,
+            # Always run basic verification on every cycle
+            basic_result = BasicVerifier(intent).run()
+
+            # Determine if extended should also run
+            run_extended = False
+            if basic_result["passed"] and basic_result.get("has_warnings"):
+                # Auto-escalate on warnings regardless of trigger setting
+                run_extended = True
+                self.logger.warning(
+                    "Basic verification passed with warnings for %s — escalating to extended",
+                    intent.intent_id,
+                )
+            elif intent.verification_trigger in ("both",) and intent.verification_level == "extended":
+                run_extended = True
+
+            if run_extended:
+                extended_result = self._run_extended_safe(intent)
+                if extended_result is not None:
+                    engine = "escalated" if basic_result.get("has_warnings") else "extended"
+                    extended_result["verification_engine"] = engine
+                    if basic_result.get("has_warnings"):
+                        extended_result["escalation_reason"] = "; ".join(
+                            basic_result.get("warning_reasons", [])
+                        )
+                    verify_result = extended_result
+                else:
+                    basic_result["verification_engine"] = "basic"
+                    verify_result = basic_result
+            else:
+                basic_result["verification_engine"] = "basic"
+                verify_result = basic_result
+
+            # Store result
+            VerificationResult.objects.create(
+                intent=intent,
+                passed=verify_result["passed"],
+                checks=verify_result.get("checks", []),
                 triggered_by="reconciliation",
+                measured_latency_ms=verify_result.get("measured_latency_ms"),
+                verification_engine=verify_result.get("verification_engine", "basic"),
+                escalation_reason=verify_result.get("escalation_reason", ""),
+                pyats_diff_output=verify_result.get("pyats_diff_output", ""),
             )
 
             if verify_result and not verify_result.get("passed"):
@@ -1243,7 +1047,6 @@ class IntentReconciliationJob(Job):
                 else:
                     self.logger.warning("Manual review required for %s", intent.intent_id)
                     issue_url = raise_github_issue(intent=intent, drift_details=verify_result.get("checks", []))
-                    # Record on the verification result
                     latest = intent.latest_verification
                     if latest:
                         latest.github_issue_url = issue_url or ""
@@ -1258,6 +1061,19 @@ class IntentReconciliationJob(Job):
             results["escalated"],
         )
         return results
+
+    def _run_extended_safe(self, intent):
+        """Attempt to run PyATSVerifier; return None if unavailable."""
+        try:
+            from intent_networking.verifiers.extended import PyATSVerifier  # noqa: PLC0415
+
+            return PyATSVerifier(intent).run()
+        except ImportError:
+            self.logger.warning(
+                "pyATS not installed — skipping extended verification for %s",
+                intent.intent_id,
+            )
+            return None
 
     def _is_auto_remediable(self, intent: Intent, verify_result: dict) -> bool:
         """Check OPA to determine if drift is safe to auto-remediate."""
