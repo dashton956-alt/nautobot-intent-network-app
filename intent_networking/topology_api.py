@@ -21,6 +21,7 @@ import logging
 import os
 
 from django.core.cache import cache
+from drf_spectacular.utils import extend_schema
 from nautobot.dcim.models import Cable, Device, Location
 from nautobot.tenancy.models import Tenant
 from rest_framework import status
@@ -62,6 +63,7 @@ class TopologyGraphView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: dict})
     def get(self, request):
         """Return nodes and edges for the topology vis.js graph."""
         tenant_slug = request.query_params.get("tenant")
@@ -295,6 +297,7 @@ class DeviceLiveDataView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: dict})
     def get(self, request, device_name):
         """Return live ARP, routing, interface and intent data for a single device."""
         cache_key = f"intent_topo_live_{device_name}"
@@ -353,6 +356,7 @@ class IntentHighlightView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: dict})
     def get(self, request, intent_id):
         """Return device names and edge IDs for the given intent."""
         try:
@@ -412,6 +416,7 @@ class TopologyFiltersView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: dict})
     def get(self, request):
         """Return tenants, sites and deployed intents for filter dropdowns."""
         tenants = list(Tenant.objects.values("name").order_by("name"))
