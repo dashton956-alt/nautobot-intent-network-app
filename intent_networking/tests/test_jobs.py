@@ -197,7 +197,7 @@ class IntentDependencyDeploymentTest(SimpleTestCase):
         job = IntentDeploymentJob()
         job.logger = MagicMock()
 
-        result = job._pre_deploy_checks(mock_intent, True)
+        result = job._pre_deploy_checks(mock_intent, True)  # pylint: disable=protected-access
         self.assertFalse(result)
         job.logger.failure.assert_called_once()
         self.assertIn("parent-001", job.logger.failure.call_args[0][2])
@@ -214,7 +214,7 @@ class IntentDependencyDeploymentTest(SimpleTestCase):
         job = IntentDeploymentJob()
         job.logger = MagicMock()
 
-        result = job._pre_deploy_checks(mock_intent, True)
+        result = job._pre_deploy_checks(mock_intent, True)  # pylint: disable=protected-access
         self.assertTrue(result)
 
     @patch("intent_networking.jobs.Intent")

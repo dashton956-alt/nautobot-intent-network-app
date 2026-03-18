@@ -315,7 +315,7 @@ def _sync_repo_intents(repository_record, job_result):
         job_result.log(msg, level_choice=LogLevelChoices.LOG_WARNING, grouping="intent definitions")
 
     # ── Resolve depends_on references (post-create pass) ──────────────────
-    _resolve_dependencies(synced_intent_ids, yaml_files, intent_dir, repo_path, ignore_patterns, job_result)
+    _resolve_dependencies(synced_intent_ids, yaml_files, (intent_dir, repo_path, ignore_patterns), job_result)
 
     summary = (
         f"Sync complete: {stats['created']} created, "
@@ -325,9 +325,11 @@ def _sync_repo_intents(repository_record, job_result):
     job_result.log(summary, grouping="intent definitions")
 
 
-def _resolve_dependencies(synced_intent_ids, yaml_files, intent_dir, repo_path, ignore_patterns, job_result):
+def _resolve_dependencies(synced_intent_ids, yaml_files, paths_and_patterns, job_result):
     """Second pass: resolve depends_on references to Intent PKs after all intents are created."""
     from intent_networking.models import Intent
+
+    intent_dir, repo_path, ignore_patterns = paths_and_patterns
 
     for filepath in yaml_files:
         rel_to_intent_dir = os.path.relpath(filepath, intent_dir)
