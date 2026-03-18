@@ -49,7 +49,6 @@ class Migration(migrations.Migration):
                 help_text="Cron expression — required if trigger includes 'scheduled'",
                 max_length=100,
             ),
-            preserve_default=False,
         ),
         migrations.AddField(
             model_name="intent",
@@ -65,13 +64,11 @@ class Migration(migrations.Migration):
             model_name="verificationresult",
             name="escalation_reason",
             field=models.TextField(blank=True, default=""),
-            preserve_default=False,
         ),
         migrations.AddField(
             model_name="verificationresult",
             name="pyats_diff_output",
             field=models.TextField(blank=True, default=""),
-            preserve_default=False,
         ),
         # ── Step 2: Backfill defaults on existing rows ───────────────────
         migrations.RunPython(
