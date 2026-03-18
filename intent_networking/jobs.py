@@ -403,8 +403,23 @@ class IntentDeploymentJob(Job):
         if not commit:
             return self._handle_dry_run(intent, rendered_configs, kwargs["commit_sha"])
 
+        # ── Controller adapter routing ────────────────────────────────────
+        # If a non-Nornir controller is specified, delegate to the adapter.
+        if intent.controller_type and intent.controller_type != "nornir":
+            adapter = self._get_adapter(intent)
+            try:
+                push_results = adapter.deploy(plan)
+            except Exception as exc:
+                self.logger.failure(
+                    "Controller adapter '%s' deployment failed for %s: %s",
+                    intent.controller_type,
+                    intent_id,
+                    exc,
+                )
+                self._mark_failed(intent)
+                push_results = {"success": False, "errors": [str(exc)]}
         # ── Staged rollout (#10) ──────────────────────────────────────────
-        if intent.deployment_strategy != "all_at_once" and plan.affected_devices.count() > 1:
+        elif intent.deployment_strategy != "all_at_once" and plan.affected_devices.count() > 1:
             push_results = self._staged_deploy(intent, plan, rendered_configs, commit)
         else:
             push_results = self._push_configs(plan, rendered_configs, commit)
@@ -690,6 +705,21 @@ class IntentDeploymentJob(Job):
     def _trigger_rollback(self, intent: Intent, commit: bool):
         """Enqueue a rollback job for the given intent."""
         _enqueue_job("IntentRollbackJob", intent_id=intent.intent_id, commit=commit)
+
+    @staticmethod
+    def _get_adapter(intent):
+        """Resolve the correct controller adapter for this intent.
+
+        All adapter imports are local to avoid requiring optional SDKs
+        at module load time. ImportError propagates as a clear job failure.
+        """
+        if intent.controller_type == "catalyst_center":
+            from .controller_adapters import CatalystCenterAdapter  # noqa: PLC0415
+
+            return CatalystCenterAdapter(intent)
+
+        # meraki and mist adapters are added in later features
+        raise ValueError(f"Controller type '{intent.controller_type}' is not yet supported. Supported: catalyst_center")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

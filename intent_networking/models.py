@@ -373,6 +373,31 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
         help_text="Other intents that must be Deployed before this intent can be deployed.",
     )
 
+    # ── Controller routing ────────────────────────────────────────────────
+    controller_type = models.CharField(
+        max_length=30,
+        choices=[
+            ("nornir", "Nornir (SSH/NETCONF)"),
+            ("catalyst_center", "Catalyst Center"),
+            ("meraki", "Meraki"),
+            ("mist", "Mist AI"),
+        ],
+        default="nornir",
+        help_text="Which controller or method to use for deployment.",
+    )
+    controller_site = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Controller site name (e.g. Catalyst Center fabric site).",
+    )
+    controller_org = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Controller organisation name (e.g. Meraki org name).",
+    )
+
     class Meta:
         """Meta options for the Intent model."""
 

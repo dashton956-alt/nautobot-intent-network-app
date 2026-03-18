@@ -447,3 +447,273 @@ class ClassifyPrimitivesTest(SimpleTestCase):
         # but the classify function checks wireless → sdwan → cloud order.
         # So it should land in sdwan.
         self.assertIn("sdwan", result)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Catalyst Center Adapter
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class FakeIntent:
+    """Minimal intent-like object for adapter tests."""
+
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        intent_id="test-001",
+        intent_type="connectivity",
+        controller_site="London-HQ",
+        controller_org="acme-corp",
+        intent_data=None,
+    ):
+        """Create a fake intent for testing."""
+        self.intent_id = intent_id
+        self.intent_type = intent_type
+        self.controller_site = controller_site
+        self.controller_org = controller_org
+        self.intent_data = intent_data or {"source": "10.0.0.0/8"}
+
+
+class FakeTaskResponse:
+    """Fake task result from Catalyst Center task API."""
+
+    def __init__(self, task_id="task-123", end_time="2026-01-01T00:00:00", is_error=False, failure_reason=""):
+        """Create a fake task response."""
+        self.response = type(
+            "TaskData",
+            (),
+            {
+                "taskId": task_id,
+                "endTime": end_time,
+                "isError": is_error,
+                "failureReason": failure_reason,
+                "progress": "completed",
+            },
+        )()
+
+
+class FakeAPIResponse:
+    """Fake response from Catalyst Center SDA API calls."""
+
+    def __init__(self, task_id="task-123"):
+        """Create a fake API response with a task ID."""
+        self.response = type("ResponseData", (), {"taskId": task_id})()
+
+
+class CatalystCenterAdapterImportTest(SimpleTestCase):
+    """Test that the base package works without dnacentersdk installed."""
+
+    def test_base_package_imports_without_dnacentersdk(self):
+        """Importing intent_networking.controller_adapters succeeds without dnacentersdk."""
+        import intent_networking.controller_adapters as mod  # noqa: PLC0415
+
+        # The module should load fine — CatalystCenterAdapter is defined but
+        # the import only fires on instantiation.
+        # Note: do NOT reload the module here — it invalidates class references
+        # held by other tests in the same process.
+        self.assertTrue(hasattr(mod, "CatalystCenterAdapter"))
+        self.assertTrue(hasattr(mod, "VALID_CONTROLLER_TYPES"))
+
+    def test_import_error_with_helpful_message(self):
+        """ImportError raised with install hint when dnacentersdk missing."""
+        import sys  # noqa: PLC0415
+        from unittest import mock  # noqa: PLC0415
+
+        from intent_networking.controller_adapters import CatalystCenterAdapter  # noqa: PLC0415
+
+        # Simulate dnacentersdk not being installed
+        with mock.patch.dict(sys.modules, {"dnacentersdk": None}):
+            with self.assertRaises(ImportError) as ctx:
+                CatalystCenterAdapter(FakeIntent())
+            self.assertIn("catalyst", str(ctx.exception))
+            self.assertIn("poetry add", str(ctx.exception))
+
+
+class CatalystCenterAdapterTest(SimpleTestCase):
+    """Test CatalystCenterAdapter deploy, verify, rollback, and task polling."""
+
+    def _make_adapter(self, intent=None):
+        """Create a CatalystCenterAdapter with a mocked SDK."""
+        from unittest import mock  # noqa: PLC0415
+
+        adapter_intent = intent or FakeIntent()
+
+        # Create a mock DNACenterAPI class
+        mock_api = mock.MagicMock()
+
+        # Patch the import and credentials
+        from intent_networking.controller_adapters import CatalystCenterAdapter  # noqa: PLC0415
+
+        with mock.patch.object(
+            CatalystCenterAdapter,
+            "_resolve_credentials",
+            return_value=("https://dnac.example.com", "admin", "password"),
+        ):
+            # Patch dnacentersdk import inside __init__
+            fake_sdk_module = mock.MagicMock()
+            fake_sdk_module.DNACenterAPI = mock.MagicMock(return_value=mock_api)
+
+            import sys  # noqa: PLC0415
+
+            with mock.patch.dict(sys.modules, {"dnacentersdk": fake_sdk_module}):
+                adapter = CatalystCenterAdapter(adapter_intent)
+
+        adapter.api = mock_api
+        return adapter, mock_api
+
+    def test_deploy_connectivity(self):
+        """Deploy connectivity intent calls SDA virtual network API."""
+        intent = FakeIntent(intent_type="connectivity", intent_data={"source": "10.0.0.0/8", "vn_name": "CORP-VN"})
+        adapter, mock_api = self._make_adapter(intent)
+
+        mock_api.sda.add_virtual_network_with_scalable_groups.return_value = FakeAPIResponse("task-001")
+        mock_api.task.get_task_by_id.return_value = FakeTaskResponse("task-001")
+
+        result = adapter.deploy(None)
+
+        self.assertTrue(result["success"])
+        mock_api.sda.add_virtual_network_with_scalable_groups.assert_called_once()
+
+    def test_deploy_segmentation(self):
+        """Deploy segmentation intent calls SDA authentication profile API."""
+        intent = FakeIntent(intent_type="segmentation", intent_data={"policy_name": "SEG-POLICY"})
+        adapter, mock_api = self._make_adapter(intent)
+
+        mock_api.sda.add_default_authentication_profile.return_value = FakeAPIResponse("task-002")
+        mock_api.task.get_task_by_id.return_value = FakeTaskResponse("task-002")
+
+        result = adapter.deploy(None)
+
+        self.assertTrue(result["success"])
+        mock_api.sda.add_default_authentication_profile.assert_called_once()
+
+    def test_deploy_reachability(self):
+        """Deploy reachability intent calls SDA site API."""
+        intent = FakeIntent(intent_type="reachability", intent_data={"fabric_name": "Default"})
+        adapter, mock_api = self._make_adapter(intent)
+
+        mock_api.sda.add_site.return_value = FakeAPIResponse("task-003")
+        mock_api.task.get_task_by_id.return_value = FakeTaskResponse("task-003")
+
+        result = adapter.deploy(None)
+
+        self.assertTrue(result["success"])
+        mock_api.sda.add_site.assert_called_once()
+
+    def test_deploy_unsupported_type_raises(self):
+        """UnsupportedIntentTypeError raised for non-supported intent type."""
+        from intent_networking.controller_adapters import UnsupportedIntentTypeError  # noqa: PLC0415
+
+        intent = FakeIntent(intent_type="mpls_l3vpn")
+        adapter, _ = self._make_adapter(intent)
+
+        with self.assertRaises(UnsupportedIntentTypeError) as ctx:
+            adapter.deploy(None)
+        self.assertIn("mpls_l3vpn", str(ctx.exception))
+        self.assertIn("connectivity", str(ctx.exception))
+
+    def test_verify_no_drift(self):
+        """Verify returns verified=True when no non-compliant devices."""
+        adapter, mock_api = self._make_adapter()
+
+        compliance_response = type("ComplianceResp", (), {"response": []})()
+        mock_api.compliance.get_compliance_detail.return_value = compliance_response
+
+        result = adapter.verify()
+
+        self.assertTrue(result["verified"])
+        self.assertEqual(len(result["drift"]), 0)
+
+    def test_verify_with_drift(self):
+        """Verify returns drift when non-compliant devices found."""
+        adapter, mock_api = self._make_adapter()
+
+        device = type("Device", (), {"deviceName": "switch-01", "complianceType": "RUNNING_CONFIG"})()
+        compliance_response = type("ComplianceResp", (), {"response": [device]})()
+        mock_api.compliance.get_compliance_detail.return_value = compliance_response
+
+        result = adapter.verify()
+
+        self.assertFalse(result["verified"])
+        self.assertEqual(len(result["drift"]), 1)
+        self.assertEqual(result["drift"][0]["device"], "switch-01")
+
+    def test_rollback_connectivity(self):
+        """Rollback connectivity intent calls delete virtual network."""
+        intent = FakeIntent(intent_type="connectivity", intent_data={"vn_name": "CORP-VN"})
+        adapter, mock_api = self._make_adapter(intent)
+
+        mock_api.sda.delete_virtual_network_with_scalable_groups.return_value = FakeAPIResponse("task-010")
+        mock_api.task.get_task_by_id.return_value = FakeTaskResponse("task-010")
+
+        result = adapter.rollback(None)
+
+        self.assertTrue(result["success"])
+        mock_api.sda.delete_virtual_network_with_scalable_groups.assert_called_once()
+
+    def test_task_poll_timeout(self):
+        """Task polling returns failure on timeout."""
+        from unittest import mock  # noqa: PLC0415
+
+        adapter, mock_api = self._make_adapter()
+
+        # Task never completes (endTime stays None)
+        never_done = type(
+            "TaskResp",
+            (),
+            {
+                "response": type(
+                    "TaskData",
+                    (),
+                    {
+                        "endTime": None,
+                        "isError": False,
+                        "progress": "in progress",
+                    },
+                )()
+            },
+        )()
+        mock_api.task.get_task_by_id.return_value = never_done
+
+        # Override timeout to avoid waiting 5 minutes
+        adapter.TASK_POLL_TIMEOUT = 0.1
+        adapter.TASK_POLL_INTERVAL = 0.05
+
+        with mock.patch("time.sleep"):
+            result = adapter._poll_task("task-999")  # pylint: disable=protected-access
+
+        self.assertFalse(result["completed"])
+        self.assertIn("timed out", result["error"])
+
+    def test_get_live_state(self):
+        """get_live_state returns device list from Catalyst Center."""
+        adapter, mock_api = self._make_adapter()
+
+        dev = type(
+            "Dev",
+            (),
+            {
+                "hostname": "pe-01",
+                "managementIpAddress": "10.0.0.1",
+                "reachabilityStatus": "Reachable",
+                "role": "ACCESS",
+            },
+        )()
+        mock_api.devices.get_device_list.return_value = type("DevResp", (), {"response": [dev]})()  # pylint: disable=no-member
+
+        result = adapter.get_live_state()
+
+        self.assertEqual(len(result["devices"]), 1)
+        self.assertEqual(result["devices"][0]["hostname"], "pe-01")
+
+
+class ValidControllerTypesTest(SimpleTestCase):
+    """Test VALID_CONTROLLER_TYPES constant."""
+
+    def test_contains_expected_types(self):
+        """VALID_CONTROLLER_TYPES contains all expected controller types."""
+        from intent_networking.controller_adapters import VALID_CONTROLLER_TYPES  # noqa: PLC0415
+
+        self.assertIn("nornir", VALID_CONTROLLER_TYPES)
+        self.assertIn("catalyst_center", VALID_CONTROLLER_TYPES)
+        self.assertIn("meraki", VALID_CONTROLLER_TYPES)
+        self.assertIn("mist", VALID_CONTROLLER_TYPES)

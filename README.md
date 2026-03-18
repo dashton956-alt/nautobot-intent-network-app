@@ -107,13 +107,23 @@ Git Repository (YAML intents)
 ### 1. Install the package
 
 ```bash
+# Core only (Nornir/SSH devices, no Cisco controllers)
 poetry add nautobot-app-intent-networking
-```
 
-For pyATS extended verification support (optional):
+# With Catalyst Center support
+poetry add nautobot-app-intent-networking[catalyst]
 
-```bash
+# With Meraki support
+poetry add nautobot-app-intent-networking[meraki]
+
+# With both Cisco controllers
+poetry add nautobot-app-intent-networking[cisco]
+
+# With pyATS extended verification
 poetry add nautobot-app-intent-networking[extended]
+
+# Everything
+poetry add nautobot-app-intent-networking[all]
 ```
 
 Or install from source during development:
