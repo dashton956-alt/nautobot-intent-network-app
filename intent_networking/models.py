@@ -208,6 +208,34 @@ class IntentTypeChoices(models.TextChoices):
 
 
 # ────────────────────────────────────────────────────────────────────────────
+# Verification Choices
+# ────────────────────────────────────────────────────────────────────────────
+
+
+class VerificationLevel(models.TextChoices):
+    """Verification depth for an intent."""
+
+    BASIC = "basic", "Basic"
+    EXTENDED = "extended", "Extended"
+
+
+class VerificationTrigger(models.TextChoices):
+    """When extended verification should run."""
+
+    ON_DEPLOY = "on_deploy", "On Deploy Only"
+    SCHEDULED = "scheduled", "Scheduled Only"
+    BOTH = "both", "On Deploy + Scheduled"
+
+
+class VerificationFailAction(models.TextChoices):
+    """Action to take when verification fails."""
+
+    ALERT = "alert", "Alert Only"
+    ROLLBACK = "rollback", "Auto Rollback"
+    REMEDIATE = "remediate", "Auto Remediate"
+
+
+# ────────────────────────────────────────────────────────────────────────────
 # Core Intent Model
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -306,6 +334,34 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
         default=dict,
         blank=True,
         help_text="Cached rendered device configs from the last dry-run / preview. Maps device_name → config_string.",
+    )
+
+    # ── Verification settings ─────────────────────────────────────────────
+    verification_level = models.CharField(
+        max_length=20,
+        choices=VerificationLevel.choices,
+        default=VerificationLevel.BASIC,
+    )
+    verification_trigger = models.CharField(
+        max_length=20,
+        choices=VerificationTrigger.choices,
+        default=VerificationTrigger.ON_DEPLOY,
+    )
+    verification_schedule = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Cron expression — required if trigger includes 'scheduled'",
+    )
+    verification_fail_action = models.CharField(
+        max_length=20,
+        choices=VerificationFailAction.choices,
+        default=VerificationFailAction.ALERT,
+    )
+    backup_verification_to_git = models.BooleanField(
+        default=False,
+        help_text="When enabled, verification results are committed to the intent's Git repository "
+        "as human-readable Markdown reports (similar to golden-config backups).",
     )
 
     class Meta:
@@ -835,6 +891,15 @@ class VerificationResult(BaseModel):
     bgp_sessions_established = models.PositiveIntegerField(default=0)
     prefixes_expected = models.PositiveIntegerField(default=0)
     prefixes_received = models.PositiveIntegerField(default=0)
+
+    # ── Verification engine metadata ───────────────────────────────────────
+    verification_engine = models.CharField(
+        max_length=20,
+        choices=[("basic", "Basic"), ("extended", "Extended"), ("escalated", "Escalated")],
+        default="basic",
+    )
+    escalation_reason = models.TextField(blank=True, default="")
+    pyats_diff_output = models.TextField(blank=True, default="")
 
     # ── Drift detail ──────────────────────────────────────────────────────
     drift_details = models.JSONField(

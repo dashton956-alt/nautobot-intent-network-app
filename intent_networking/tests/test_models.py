@@ -31,3 +31,28 @@ class TestIntentModel(ModelTestCases.BaseModelTestCase):
         """latest_verification returns None when no VerificationResult exists."""
         intent = models.Intent.objects.first()
         self.assertIsNone(intent.latest_verification)
+
+    def test_intent_verification_level_defaults_to_basic(self):
+        intent = models.Intent.objects.first()
+        self.assertEqual(intent.verification_level, "basic")
+
+    def test_intent_verification_trigger_defaults_to_on_deploy(self):
+        intent = models.Intent.objects.first()
+        self.assertEqual(intent.verification_trigger, "on_deploy")
+
+    def test_intent_verification_fail_action_defaults_to_alert(self):
+        intent = models.Intent.objects.first()
+        self.assertEqual(intent.verification_fail_action, "alert")
+
+    def test_intent_verification_schedule_defaults_blank(self):
+        intent = models.Intent.objects.first()
+        self.assertEqual(intent.verification_schedule, "")
+
+    def test_verification_result_engine_defaults_to_basic(self):
+        intent = models.Intent.objects.first()
+        vr = models.VerificationResult.objects.create(
+            intent=intent,
+            passed=True,
+            checks=[],
+        )
+        self.assertEqual(vr.verification_engine, "basic")
