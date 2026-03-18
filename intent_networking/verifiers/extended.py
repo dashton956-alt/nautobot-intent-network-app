@@ -69,8 +69,8 @@ class PyATSVerifier:
     def _ensure_pyats_installed():
         """Raise ImportError with install hint if pyATS is not available."""
         try:
-            import genie  # noqa: F401, PLC0415
-            import pyats  # noqa: F401, PLC0415
+            __import__("pyats")
+            __import__("genie")
         except ImportError as exc:
             raise ImportError(
                 "pyATS and Genie are required for extended verification. "
@@ -317,7 +317,7 @@ class PyATSVerifier:
 
         # Check all VRF instances
         instances = info.get("instance", {})
-        for instance_name, instance_data in instances.items():
+        for _instance_name, instance_data in instances.items():
             vrfs = instance_data.get("vrf", {})
             for vrf_name, vrf_data in vrfs.items():
                 neighbors = vrf_data.get("neighbor", {})
@@ -347,22 +347,26 @@ class PyATSVerifier:
         issues = []
 
         vrfs = info.get("vrf", {})
-        for vrf_name, vrf_data in vrfs.items():
+        for _vrf_name, vrf_data in vrfs.items():
             areas = vrf_data.get("address_family", {}).get("ipv4", {}).get("instance", {})
-            for instance_name, instance_data in areas.items():
-                neighbors = instance_data.get("areas", {})
-                for area_id, area_data in neighbors.items():
-                    for iface_data in area_data.get("interfaces", {}).values():
-                        for nbr_id, nbr_data in iface_data.get("neighbors", {}).items():
-                            state = nbr_data.get("state", "Unknown")
-                            if state.lower() not in ("full", "full/dr", "full/bdr", "full/drother"):
-                                issues.append(f"OSPF neighbor {nbr_id} in area {area_id}: state={state}")
-                            if "exstart" in state.lower():
-                                issues.append(f"OSPF neighbor {nbr_id} stuck in EXSTART")
+            for _instance_name, instance_data in areas.items():
+                for area_id, area_data in instance_data.get("areas", {}).items():
+                    self._check_ospf_area(issues, area_id, area_data)
 
         if issues:
             return {"passed": False, "detail": "; ".join(issues)}
         return {"passed": True, "detail": "All OSPF neighbors in FULL state, LSA database consistent"}
+
+    @staticmethod
+    def _check_ospf_area(issues, area_id, area_data):
+        """Check all OSPF neighbors in a single area."""
+        for iface_data in area_data.get("interfaces", {}).values():
+            for nbr_id, nbr_data in iface_data.get("neighbors", {}).items():
+                state = nbr_data.get("state", "Unknown")
+                if state.lower() not in ("full", "full/dr", "full/bdr", "full/drother"):
+                    issues.append(f"OSPF neighbor {nbr_id} in area {area_id}: state={state}")
+                if "exstart" in state.lower():
+                    issues.append(f"OSPF neighbor {nbr_id} stuck in EXSTART")
 
     def _check_mpls(self, learned_state):
         """Verify MPLS label bindings and LDP sessions.
@@ -394,11 +398,11 @@ class PyATSVerifier:
         issues = []
 
         vrfs = info.get("vrf", {})
-        for vrf_name, vrf_data in vrfs.items():
+        for _vrf_name, vrf_data in vrfs.items():
             peers = vrf_data.get("ldp_id", {})
-            for peer_id, peer_data in peers.items():
+            for _peer_id, peer_data in peers.items():
                 address_families = peer_data.get("address_family", {})
-                for af_name, af_data in address_families.items():
+                for _af_name, af_data in address_families.items():
                     neighbors = af_data.get("neighbor", {})
                     for nbr_id, nbr_data in neighbors.items():
                         state = nbr_data.get("state", "Unknown")
@@ -541,7 +545,7 @@ class PyATSVerifier:
 
         # Check NVE peers
         nve_interfaces = info.get("nve", {})
-        for nve_name, nve_data in nve_interfaces.items():
+        for _nve_name, nve_data in nve_interfaces.items():
             peers = nve_data.get("peers", {})
             for peer_ip, peer_data in peers.items():
                 peer_state = peer_data.get("peer_state", "Unknown")

@@ -73,6 +73,7 @@ class TestBasicVerifier(TestCase):
     @patch("intent_networking.verifiers.basic.BasicVerifier._check_controller_adapters")
     def test_basic_returns_passed_false_when_bgp_not_established(self, mock_ctrl, mock_state):
         from nautobot.dcim.models import Device, DeviceType, Location, LocationType, Manufacturer
+        from nautobot.extras.models import Role
 
         from intent_networking.verifiers.basic import BasicVerifier
 
@@ -86,12 +87,14 @@ class TestBasicVerifier(TestCase):
             status = Status.objects.first()
         loc_type, _ = LocationType.objects.get_or_create(name="Site-Test")
         loc_type.content_types.add(
-            *[ct for ct in loc_type.content_types.all()]
+            *list(loc_type.content_types.all())
         )
         from django.contrib.contenttypes.models import ContentType
 
         device_ct = ContentType.objects.get_for_model(Device)
         loc_type.content_types.add(device_ct)
+        role, _ = Role.objects.get_or_create(name="Router-Test")
+        role.content_types.add(device_ct)
         loc, _ = Location.objects.get_or_create(
             name="test-site-bgp", location_type=loc_type, defaults={"status": status}
         )
@@ -101,6 +104,7 @@ class TestBasicVerifier(TestCase):
                 "device_type": dt,
                 "location": loc,
                 "status": status,
+                "role": role,
             },
         )
 
@@ -185,6 +189,7 @@ class TestPyATSVerifier(TestCase):
             Manufacturer,
             Platform,
         )
+        from nautobot.extras.models import Role
 
         from intent_networking.verifiers.extended import UNSUPPORTED_PLATFORMS, PyATSVerifier
 
@@ -202,6 +207,8 @@ class TestPyATSVerifier(TestCase):
         loc_type, _ = LocationType.objects.get_or_create(name="Site-Junos-Test")
         device_ct = ContentType.objects.get_for_model(Device)
         loc_type.content_types.add(device_ct)
+        role, _ = Role.objects.get_or_create(name="Router-Junos-Test")
+        role.content_types.add(device_ct)
         loc, _ = Location.objects.get_or_create(
             name="test-site-junos", location_type=loc_type, defaults={"status": status}
         )
@@ -212,6 +219,7 @@ class TestPyATSVerifier(TestCase):
                 "location": loc,
                 "status": status,
                 "platform": platform,
+                "role": role,
             },
         )
 
@@ -296,7 +304,7 @@ class TestPyATSVerifier(TestCase):
             # but we verify the class structure has the finally block
             import inspect
 
-            source = inspect.getsource(verifier._verify_device)
+            source = inspect.getsource(verifier._verify_device)  # pylint: disable=protected-access
             self.assertIn("finally", source)
             self.assertIn("disconnect", source)
 

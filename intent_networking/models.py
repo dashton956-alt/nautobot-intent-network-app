@@ -350,7 +350,7 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
     verification_schedule = models.CharField(
         max_length=100,
         blank=True,
-        null=True,
+        default="",
         help_text="Cron expression — required if trigger includes 'scheduled'",
     )
     verification_fail_action = models.CharField(
@@ -893,8 +893,8 @@ class VerificationResult(BaseModel):
         choices=[("basic", "Basic"), ("extended", "Extended"), ("escalated", "Escalated")],
         default="basic",
     )
-    escalation_reason = models.TextField(blank=True, null=True)
-    pyats_diff_output = models.TextField(blank=True, null=True)
+    escalation_reason = models.TextField(blank=True, default="")
+    pyats_diff_output = models.TextField(blank=True, default="")
 
     # ── Drift detail ──────────────────────────────────────────────────────
     drift_details = models.JSONField(

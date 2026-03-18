@@ -44,9 +44,9 @@ class TestIntentModel(ModelTestCases.BaseModelTestCase):
         intent = models.Intent.objects.first()
         self.assertEqual(intent.verification_fail_action, "alert")
 
-    def test_intent_verification_schedule_nullable(self):
+    def test_intent_verification_schedule_defaults_blank(self):
         intent = models.Intent.objects.first()
-        self.assertIsNone(intent.verification_schedule)
+        self.assertEqual(intent.verification_schedule, "")
 
     def test_verification_result_engine_defaults_to_basic(self):
         intent = models.Intent.objects.first()

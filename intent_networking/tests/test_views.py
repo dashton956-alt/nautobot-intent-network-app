@@ -30,6 +30,9 @@ class IntentViewTest(ViewTestCases.PrimaryObjectViewTestCase):
             "intent_data": '{"name": "view-test-new-001", "type": "connectivity", "source": "GigabitEthernet0/1"}',
             "deployment_strategy": "all_at_once",
             "rendered_configs": "{}",
+            "verification_level": "basic",
+            "verification_trigger": "on_deploy",
+            "verification_fail_action": "alert",
         }
         cls.update_data = {
             "intent_id": "view-test-new-001",
@@ -40,6 +43,9 @@ class IntentViewTest(ViewTestCases.PrimaryObjectViewTestCase):
             "intent_data": '{"name": "view-test-new-001", "type": "connectivity", "source": "GigabitEthernet0/1", "updated": true}',
             "deployment_strategy": "all_at_once",
             "rendered_configs": "{}",
+            "verification_level": "basic",
+            "verification_trigger": "on_deploy",
+            "verification_fail_action": "alert",
         }
         cls.bulk_edit_data = {
             "version": 2,
