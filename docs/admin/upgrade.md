@@ -28,6 +28,23 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v1.13 (pyATS Extended Verification)
+
+v1.13 adds pyATS-based extended verification, a dashboard pyATS panel, and git-backed verification reports.
+
+**Migrations** `0010` and `0011` are applied automatically by `post_upgrade`.
+
+**Optional dependencies:** To enable extended verification, install the `[extended]` extras:
+
+```shell
+pip install nautobot-app-intent-networking[extended]
+```
+
+**New plugin settings (optional):**
+
+- `verification_backup_branch` — Git branch for verification report backups (defaults to `"main"`).
+- Ensure `github_repo` and a GitHub token are configured if you enable the "Backup verification to Git" toggle on any intent.
+
 ### Upgrading to v0.5 (IPAM Refactor)
 
 v0.5 replaced the custom `RouteDistinguisherPool`, `RouteDistinguisher`, `RouteTargetPool`, and `RouteTarget` models with Nautobot's native `ipam.VRF`, `ipam.RouteTarget`, and `ipam.Namespace` models. **Migration 0006** handles this automatically.
