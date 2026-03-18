@@ -107,13 +107,13 @@ Git Repository (YAML intents)
 ### 1. Install the package
 
 ```bash
-pip install nautobot-app-intent-networking
+poetry add nautobot-app-intent-networking
 ```
 
 For pyATS extended verification support (optional):
 
 ```bash
-pip install nautobot-app-intent-networking[extended]
+poetry add nautobot-app-intent-networking[extended]
 ```
 
 Or install from source during development:
@@ -121,7 +121,7 @@ Or install from source during development:
 ```bash
 git clone https://github.com/dashton956-alt/nautobot-intent-network-app.git
 cd nautobot-intent-network-app
-pip install -e ".[dev]"
+poetry install --with dev
 ```
 
 ### 2. Add to `nautobot_config.py`
