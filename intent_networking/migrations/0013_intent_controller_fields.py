@@ -18,6 +18,11 @@ class Migration(migrations.Migration):
         ("intent_networking", "0012_intent_dependencies"),
     ]
 
+    # Each step (add nullable → backfill → alter non-null) must run in its own
+    # transaction so PostgreSQL doesn't reject the ALTER with
+    # "pending trigger events".
+    atomic = False
+
     operations = [
         # Step 1: Add fields as nullable (no table lock for default backfill)
         migrations.AddField(
