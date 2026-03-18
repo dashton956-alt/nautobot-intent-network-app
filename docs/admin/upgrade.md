@@ -28,9 +28,9 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
-### Upgrading to v1.13 (pyATS Extended Verification)
+### Upgrading to v1.1.3 (pyATS Extended Verification)
 
-v1.13 adds pyATS-based extended verification, a dashboard pyATS panel, and git-backed verification reports.
+v1.1.3 adds pyATS-based extended verification, a dashboard pyATS panel, and git-backed verification reports.
 
 **Migrations** `0010` and `0011` are applied automatically by `post_upgrade`.
 
