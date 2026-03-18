@@ -86,9 +86,7 @@ class TestBasicVerifier(TestCase):
         if not status:
             status = Status.objects.first()
         loc_type, _ = LocationType.objects.get_or_create(name="Site-Test")
-        loc_type.content_types.add(
-            *list(loc_type.content_types.all())
-        )
+        loc_type.content_types.add(*list(loc_type.content_types.all()))
         from django.contrib.contenttypes.models import ContentType
 
         device_ct = ContentType.objects.get_for_model(Device)
@@ -230,9 +228,7 @@ class TestPyATSVerifier(TestCase):
 
         # Should return a warning instead of failing
         self.assertTrue(result["has_warnings"])
-        self.assertTrue(
-            any("limited Genie coverage" in r for r in result["warning_reasons"])
-        )
+        self.assertTrue(any("limited Genie coverage" in r for r in result["warning_reasons"]))
 
     def test_extended_raises_import_error_when_pyats_not_installed(self):
         import sys

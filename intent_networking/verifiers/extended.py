@@ -73,8 +73,7 @@ class PyATSVerifier:
             __import__("genie")
         except ImportError as exc:
             raise ImportError(
-                "pyATS and Genie are required for extended verification. "
-                'Install with: pip install -e ".[extended]"'
+                'pyATS and Genie are required for extended verification. Install with: pip install -e ".[extended]"'
             ) from exc
 
     def run(self):
@@ -135,9 +134,7 @@ class PyATSVerifier:
 
         loop = asyncio.new_event_loop()
         try:
-            results = loop.run_until_complete(
-                self._run_all_devices(supported_devices, features)
-            )
+            results = loop.run_until_complete(self._run_all_devices(supported_devices, features))
         finally:
             loop.close()
 
@@ -159,18 +156,13 @@ class PyATSVerifier:
     async def _run_all_devices(self, devices, features):
         """Run verification on all devices with a concurrency semaphore."""
         semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_SESSIONS)
-        tasks = [
-            self._run_device_with_semaphore(semaphore, device, features)
-            for device in devices
-        ]
+        tasks = [self._run_device_with_semaphore(semaphore, device, features) for device in devices]
         return await asyncio.gather(*tasks)
 
     async def _run_device_with_semaphore(self, semaphore, device, features):
         """Acquire semaphore, then run verification on a single device."""
         async with semaphore:
-            return await asyncio.get_event_loop().run_in_executor(
-                None, self._verify_device, device, features
-            )
+            return await asyncio.get_event_loop().run_in_executor(None, self._verify_device, device, features)
 
     def _verify_device(self, device, features):
         """Connect to a single device, learn features, and run checks."""
@@ -197,9 +189,7 @@ class PyATSVerifier:
                 try:
                     learned_state[feature] = pyats_device.learn(feature)
                 except Exception as exc:
-                    logger.warning(
-                        "Failed to learn '%s' on %s: %s", feature, device.name, exc
-                    )
+                    logger.warning("Failed to learn '%s' on %s: %s", feature, device.name, exc)
                     checks.append(
                         {
                             "device": device.name,
@@ -520,9 +510,7 @@ class PyATSVerifier:
         plan = self.intent.latest_plan
         if plan:
             expected_acls = {
-                p.get("acl_name")
-                for p in plan.primitives
-                if p.get("primitive_type") == "acl" and p.get("acl_name")
+                p.get("acl_name") for p in plan.primitives if p.get("primitive_type") == "acl" and p.get("acl_name")
             }
             found_acls = set(info.keys()) if isinstance(info, dict) else set()
             missing = expected_acls - found_acls

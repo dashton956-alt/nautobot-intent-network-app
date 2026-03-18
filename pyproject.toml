@@ -35,6 +35,11 @@ requests = "^2.32.5"
 jinja2 = "^3.1.6"
 nornir = "^3.5.0"
 nornir-netmiko = "^1.0.1"
+# Optional: extended verification via pyATS/Genie
+pyats = {version = ">=24.0", optional = true}
+genie = {version = ">=24.0", optional = true}
+netutils = {version = "^1.6.0", optional = true}
+croniter = {version = "^1.3.0", optional = true}
 
 [tool.poetry.group.dev.dependencies]
 coverage = "*"

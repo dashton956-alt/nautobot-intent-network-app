@@ -719,8 +719,7 @@ class IntentVerificationJob(Job):
             # Auto-escalate if basic passes with warnings
             if result["passed"] and result.get("has_warnings"):
                 self.logger.warning(
-                    "Basic verification passed with warnings for intent "
-                    "%s — escalating to extended. Reasons: %s",
+                    "Basic verification passed with warnings for intent %s — escalating to extended. Reasons: %s",
                     intent.intent_id,
                     result["warning_reasons"],
                 )
@@ -795,8 +794,7 @@ class IntentVerificationJob(Job):
             intent.save(update_fields=["last_verified_at"])
             self.logger.info("Intent %s verified (%s)", intent.intent_id, result.get("verification_engine", "basic"))
             notify_slack(
-                f"✅ Intent verified: {intent.intent_id} "
-                f"(engine: {result.get('verification_engine', 'basic')})"
+                f"✅ Intent verified: {intent.intent_id} (engine: {result.get('verification_engine', 'basic')})"
             )
         else:
             failed_checks = [c for c in result.get("checks", []) if not c.get("passed")]
@@ -1008,9 +1006,7 @@ class IntentReconciliationJob(Job):
                     engine = "escalated" if basic_result.get("has_warnings") else "extended"
                     extended_result["verification_engine"] = engine
                     if basic_result.get("has_warnings"):
-                        extended_result["escalation_reason"] = "; ".join(
-                            basic_result.get("warning_reasons", [])
-                        )
+                        extended_result["escalation_reason"] = "; ".join(basic_result.get("warning_reasons", []))
                     verify_result = extended_result
                 else:
                     basic_result["verification_engine"] = "basic"

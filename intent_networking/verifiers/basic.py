@@ -127,9 +127,7 @@ class BasicVerifier:
             # ACL check
             if "acl" in prim_types:
                 expected_acls = [
-                    p.get("acl_name")
-                    for p in device_prims
-                    if p.get("primitive_type") == "acl" and p.get("acl_name")
+                    p.get("acl_name") for p in device_prims if p.get("primitive_type") == "acl" and p.get("acl_name")
                 ]
                 device_acls = device_state.get("acls", [])
                 for acl_name in expected_acls:
@@ -148,11 +146,7 @@ class BasicVerifier:
             # VLAN check
             if "vlan" in prim_types:
                 expected_vlans = sorted(
-                    {
-                        p.get("vlan_id")
-                        for p in device_prims
-                        if p.get("primitive_type") == "vlan" and p.get("vlan_id")
-                    }
+                    {p.get("vlan_id") for p in device_prims if p.get("primitive_type") == "vlan" and p.get("vlan_id")}
                 )
                 device_vlans = set(device_state.get("vlans", []))
                 for vlan_id in expected_vlans:
@@ -213,9 +207,7 @@ class BasicVerifier:
 
             # Warning: latency within 80% of SLA threshold
             if latency_ok and measured_latency > max_latency * 0.8:
-                warning_reasons.append(
-                    f"Latency {measured_latency}ms is within 80% of SLA threshold {max_latency}ms"
-                )
+                warning_reasons.append(f"Latency {measured_latency}ms is within 80% of SLA threshold {max_latency}ms")
 
         return {
             "passed": all_passed,

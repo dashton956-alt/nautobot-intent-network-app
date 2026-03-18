@@ -106,9 +106,7 @@ def _is_ignored(rel_path, patterns):
 
 # Regex for a standard 5-field cron expression (minute hour dom month dow).
 _CRON_FIELD = r"(\*(/\d+)?|(\d+(-\d+)?(,\d+(-\d+)?)*)(/\d+)?)"
-_CRON_RE = re.compile(
-    rf"^\s*{_CRON_FIELD}\s+{_CRON_FIELD}\s+{_CRON_FIELD}\s+{_CRON_FIELD}\s+{_CRON_FIELD}\s*$"
-)
+_CRON_RE = re.compile(rf"^\s*{_CRON_FIELD}\s+{_CRON_FIELD}\s+{_CRON_FIELD}\s+{_CRON_FIELD}\s+{_CRON_FIELD}\s*$")
 
 
 def _is_valid_cron(expression):
@@ -257,8 +255,7 @@ def _sync_repo_intents(repository_record, job_result):
             if v_trigger in ("scheduled", "both") and v_schedule:
                 if not _is_valid_cron(v_schedule):
                     raise ValidationError(  # noqa: TRY301
-                        f"Invalid cron expression '{v_schedule}' in verification.schedule "
-                        f"for intent '{intent_id}'."
+                        f"Invalid cron expression '{v_schedule}' in verification.schedule for intent '{intent_id}'."
                     )
 
             update_fields = {
