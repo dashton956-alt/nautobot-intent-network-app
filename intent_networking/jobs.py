@@ -778,7 +778,7 @@ class IntentVerificationJob(Job):
     def _store_result(self, intent, result, triggered_by):
         """Store verification result in the database."""
         measured_latency = result.get("measured_latency_ms")
-        VerificationResult.objects.create(
+        vr = VerificationResult.objects.create(
             intent=intent,
             passed=result["passed"],
             checks=result.get("checks", []),
@@ -788,6 +788,12 @@ class IntentVerificationJob(Job):
             escalation_reason=result.get("escalation_reason", ""),
             pyats_diff_output=result.get("pyats_diff_output", ""),
         )
+
+        # Back up verification report to Git if the user opted in
+        if intent.backup_verification_to_git:
+            from intent_networking.notifications import backup_verification_to_git  # noqa: PLC0415
+
+            backup_verification_to_git(intent, vr)
 
         if result["passed"]:
             intent.last_verified_at = timezone.now()
@@ -1016,7 +1022,7 @@ class IntentReconciliationJob(Job):
                 verify_result = basic_result
 
             # Store result
-            VerificationResult.objects.create(
+            vr = VerificationResult.objects.create(
                 intent=intent,
                 passed=verify_result["passed"],
                 checks=verify_result.get("checks", []),
@@ -1026,6 +1032,12 @@ class IntentReconciliationJob(Job):
                 escalation_reason=verify_result.get("escalation_reason", ""),
                 pyats_diff_output=verify_result.get("pyats_diff_output", ""),
             )
+
+            # Back up verification report to Git if the user opted in
+            if intent.backup_verification_to_git:
+                from intent_networking.notifications import backup_verification_to_git  # noqa: PLC0415
+
+                backup_verification_to_git(intent, vr)
 
             if verify_result and not verify_result.get("passed"):
                 results["drifted"] += 1

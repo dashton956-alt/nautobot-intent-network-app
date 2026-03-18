@@ -358,6 +358,11 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
         choices=VerificationFailAction.choices,
         default=VerificationFailAction.ALERT,
     )
+    backup_verification_to_git = models.BooleanField(
+        default=False,
+        help_text="When enabled, verification results are committed to the intent's Git repository "
+        "as human-readable Markdown reports (similar to golden-config backups).",
+    )
 
     class Meta:
         """Meta options for the Intent model."""

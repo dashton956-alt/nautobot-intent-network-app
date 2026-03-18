@@ -33,6 +33,7 @@ class IntentForm(NautobotModelForm):  # pylint: disable=too-many-ancestors
             "verification_schedule": forms.TextInput(
                 attrs={"placeholder": "e.g. 0 * * * * (hourly)"},
             ),
+            "backup_verification_to_git": forms.CheckboxInput(),
         }
         help_texts = {
             "intent_data": "Paste the full YAML intent content here as JSON.",
