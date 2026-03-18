@@ -314,12 +314,66 @@ def _sync_repo_intents(repository_record, job_result):
         msg = f"Deprecated {orphan_count} intent(s) no longer present in repo"
         job_result.log(msg, level_choice=LogLevelChoices.LOG_WARNING, grouping="intent definitions")
 
+    # ── Resolve depends_on references (post-create pass) ──────────────────
+    _resolve_dependencies(synced_intent_ids, yaml_files, (intent_dir, repo_path, ignore_patterns), job_result)
+
     summary = (
         f"Sync complete: {stats['created']} created, "
         f"{stats['updated']} updated, {stats['errors']} errors, "
         f"{orphan_count} deprecated"
     )
     job_result.log(summary, grouping="intent definitions")
+
+
+def _resolve_dependencies(synced_intent_ids, yaml_files, paths_and_patterns, job_result):
+    """Second pass: resolve depends_on references to Intent PKs after all intents are created."""
+    from intent_networking.models import Intent
+
+    intent_dir, repo_path, ignore_patterns = paths_and_patterns
+
+    for filepath in yaml_files:
+        rel_to_intent_dir = os.path.relpath(filepath, intent_dir)
+        if ignore_patterns and _is_ignored(rel_to_intent_dir, ignore_patterns):
+            continue
+        try:
+            with open(filepath, "r", encoding="utf-8") as fd:
+                intent_yaml = yaml.safe_load(fd)
+            if not isinstance(intent_yaml, dict):
+                continue
+            if "intent" in intent_yaml and isinstance(intent_yaml["intent"], dict):
+                intent_yaml = intent_yaml["intent"]
+
+            intent_id = intent_yaml.get("id")
+            if not intent_id or intent_id not in synced_intent_ids:
+                continue
+
+            depends_on = intent_yaml.get("depends_on", [])
+            if not isinstance(depends_on, list) or not depends_on:
+                continue
+
+            try:
+                intent = Intent.objects.get(intent_id=intent_id)
+            except Intent.DoesNotExist:
+                continue
+
+            dep_intents = Intent.objects.filter(intent_id__in=depends_on)
+            found_ids = set(dep_intents.values_list("intent_id", flat=True))
+            missing = set(depends_on) - found_ids
+
+            if missing:
+                msg = f"Intent '{intent_id}' depends_on unresolved intents: {', '.join(sorted(missing))}"
+                job_result.log(msg, level_choice=LogLevelChoices.LOG_WARNING, grouping="intent definitions")
+
+            intent.dependencies.set(dep_intents)
+            if found_ids:
+                msg = f"Resolved {len(found_ids)} dependency(ies) for intent '{intent_id}'"
+                job_result.log(msg, grouping="intent definitions")
+
+        except Exception as exc:
+            rel_path = os.path.relpath(filepath, repo_path)
+            msg = f"Error resolving dependencies from `{rel_path}`: {exc}"
+            logger.error(msg)
+            job_result.log(msg, level_choice=LogLevelChoices.LOG_ERROR, grouping="intent definitions")
 
 
 def _delete_repo_intents(repository_record, job_result):

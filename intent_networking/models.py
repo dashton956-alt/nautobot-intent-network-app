@@ -364,6 +364,15 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
         "as human-readable Markdown reports (similar to golden-config backups).",
     )
 
+    # ── Intent Dependency Graph ───────────────────────────────────────────
+    dependencies = models.ManyToManyField(
+        "self",
+        symmetrical=False,
+        blank=True,
+        related_name="dependents",
+        help_text="Other intents that must be Deployed before this intent can be deployed.",
+    )
+
     class Meta:
         """Meta options for the Intent model."""
 
@@ -595,6 +604,25 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
     def has_resource_conflicts(self):
         """Return True if any overlapping prefix or device conflicts exist with other intents."""
         return bool(detect_conflicts(self))
+
+    @property
+    def dependency_status(self):
+        """Return 'blocked' if any dependency is not Deployed, else 'ready'.
+
+        Intents with no dependencies are always 'ready'.
+        """
+        deps = self.dependencies.select_related("status").all()
+        if not deps.exists():
+            return "ready"
+        for dep in deps:
+            if not dep.is_deployed:
+                return "blocked"
+        return "ready"
+
+    @property
+    def blocking_dependencies(self):
+        """Return list of dependency intent_ids that are not yet Deployed."""
+        return [dep.intent_id for dep in self.dependencies.select_related("status").all() if not dep.is_deployed]
 
 
 # ────────────────────────────────────────────────────────────────────────────

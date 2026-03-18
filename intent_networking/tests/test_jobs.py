@@ -174,3 +174,70 @@ class EnqueueJobTest(SimpleTestCase):
 
         # Should not raise
         _enqueue_job("NonexistentJob")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent Dependency Graph — deployment and rollback guards
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class IntentDependencyDeploymentTest(SimpleTestCase):
+    """Test dependency checks in deployment and rollback jobs."""
+
+    @patch("intent_networking.jobs.IntentAuditEntry")
+    def test_deployment_blocked_when_dependency_not_deployed(self, mock_audit):
+        """IntentDeploymentJob._pre_deploy_checks returns False when dependency is blocked."""
+        mock_intent = MagicMock()
+        mock_intent.intent_id = "child-001"
+        mock_intent.dependency_status = "blocked"
+        mock_intent.blocking_dependencies = ["parent-001", "parent-002"]
+        mock_intent.is_approved = True
+        mock_intent.scheduled_deploy_at = None
+
+        job = IntentDeploymentJob()
+        job.logger = MagicMock()
+
+        result = job._pre_deploy_checks(mock_intent, True)  # pylint: disable=protected-access
+        self.assertFalse(result)
+        job.logger.failure.assert_called_once()
+        self.assertIn("parent-001", job.logger.failure.call_args[0][2])
+
+    @patch("intent_networking.jobs.IntentAuditEntry")
+    def test_deployment_proceeds_when_all_deps_deployed(self, mock_audit):
+        """IntentDeploymentJob._pre_deploy_checks returns True when dependencies are ready."""
+        mock_intent = MagicMock()
+        mock_intent.intent_id = "child-001"
+        mock_intent.dependency_status = "ready"
+        mock_intent.is_approved = True
+        mock_intent.scheduled_deploy_at = None
+
+        job = IntentDeploymentJob()
+        job.logger = MagicMock()
+
+        result = job._pre_deploy_checks(mock_intent, True)  # pylint: disable=protected-access
+        self.assertTrue(result)
+
+    @patch("intent_networking.jobs.Intent")
+    @patch("intent_networking.jobs.IntentAuditEntry")
+    @patch("intent_networking.jobs.notify_slack")
+    def test_rollback_blocked_when_dependents_exist(self, mock_slack, mock_audit, mock_intent_cls):
+        """IntentRollbackJob.run aborts when deployed intents depend on this one."""
+        mock_intent = MagicMock()
+        mock_intent.intent_id = "parent-001"
+
+        mock_dependent = MagicMock()
+        mock_dependent.intent_id = "child-001"
+        mock_dependents_qs = MagicMock()
+        mock_dependents_qs.exists.return_value = True
+        mock_dependents_qs.values_list.return_value = ["child-001"]
+        mock_intent.dependents.filter.return_value = mock_dependents_qs
+
+        mock_intent_cls.objects.get.return_value = mock_intent
+
+        job = IntentRollbackJob()
+        job.logger = MagicMock()
+
+        job.run(intent_id="parent-001")
+
+        job.logger.failure.assert_called_once()
+        self.assertIn("child-001", job.logger.failure.call_args[0][2])
