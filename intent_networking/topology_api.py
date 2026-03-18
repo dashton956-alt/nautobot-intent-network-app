@@ -253,6 +253,12 @@ class TopologyGraphView(APIView):
                         }
                     )
 
+        # ── Dependency edges ───────────────────────────────────────────────
+        # Draw a dashed orange edge between intents that have a depends_on
+        # relationship, linking the first affected device of each intent.
+        dep_edges = _build_dependency_edges(device_ids)
+        edges.extend(dep_edges)
+
         # ── Site grouping for vis.js clustering ───────────────────────────
         sites = {}
         for device in devices:
@@ -430,6 +436,67 @@ class TopologyFiltersView(APIView):
 # ─────────────────────────────────────────────────────────────────────────────
 # Internal helpers
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+def _build_dependency_edges(device_ids):
+    """Build vis.js edges for intent dependency relationships.
+
+    For each dependency pair, links the first affected device of the
+    dependent intent to the first affected device of the dependency.
+    Only includes devices that are in the current topology view.
+    """
+    edges = []
+    seen = set()
+
+    intents_with_deps = Intent.objects.filter(
+        dependencies__isnull=False,
+    ).prefetch_related("dependencies", "resolution_plans__affected_devices").distinct()
+
+    for intent in intents_with_deps:
+        plan = intent.latest_plan
+        if not plan:
+            continue
+        intent_device = plan.affected_devices.filter(pk__in=device_ids).first()
+        if not intent_device:
+            continue
+
+        for dep in intent.dependencies.all():
+            dep_plan = dep.latest_plan
+            if not dep_plan:
+                continue
+            dep_device = dep_plan.affected_devices.filter(pk__in=device_ids).first()
+            if not dep_device:
+                continue
+
+            pair_key = (intent.intent_id, dep.intent_id)
+            if pair_key in seen:
+                continue
+            seen.add(pair_key)
+
+            edges.append(
+                {
+                    "id": f"dep-{intent.intent_id}-{dep.intent_id}",
+                    "from": dep_device.name,
+                    "to": intent_device.name,
+                    "label": "dependency",
+                    "dashes": [5, 5],
+                    "arrows": {"to": {"enabled": True, "scaleFactor": 0.5}},
+                    "color": {
+                        "color": "#f59e0b",  # amber for dependency
+                        "highlight": "#ffffff",
+                        "hover": "#fbbf24",
+                    },
+                    "width": 1.5,
+                    "smooth": {"type": "curvedCW", "roundness": 0.2},
+                    "meta": {
+                        "edge_type": "dependency",
+                        "from_intent": dep.intent_id,
+                        "to_intent": intent.intent_id,
+                    },
+                }
+            )
+
+    return edges
 
 
 def _build_intent_index(devices):

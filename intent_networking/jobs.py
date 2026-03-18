@@ -441,10 +441,27 @@ class IntentDeploymentJob(Job):
         return push_results
 
     def _pre_deploy_checks(self, intent, commit):
-        """Run approval and change-window checks before deployment.
+        """Run approval, dependency, and change-window checks before deployment.
 
         Returns True if deployment may proceed, False otherwise.
         """
+        # ── Dependency gate ───────────────────────────────────────────────
+        if intent.dependency_status == "blocked":
+            blocked_deps = intent.blocking_dependencies
+            self.logger.failure(
+                "Intent '%s' is BLOCKED — the following dependencies are not yet Deployed: %s. "
+                "Deploy those intents first.",
+                intent.intent_id,
+                ", ".join(blocked_deps),
+            )
+            IntentAuditEntry.objects.create(
+                intent=intent,
+                action="deployed",
+                actor="IntentDeploymentJob",
+                detail={"blocked": True, "reason": "dependency_not_deployed", "blocked_by": blocked_deps},
+            )
+            return False
+
         # ── Approval gate (#2) ────────────────────────────────────────────
         # In lab/testing mode, allow dry-run (commit=False) without approval.
         # Production commits still require formal approval records.
@@ -854,6 +871,24 @@ class IntentRollbackJob(Job):
         intent_id = kwargs["intent_id"]
         commit = kwargs.get("commit", True)
         intent = Intent.objects.get(intent_id=intent_id)
+
+        # ── Dependency guard: block rollback if other deployed intents depend on this one
+        deployed_dependents = intent.dependents.filter(status__name__iexact="Deployed")
+        if deployed_dependents.exists():
+            dependent_ids = list(deployed_dependents.values_list("intent_id", flat=True))
+            self.logger.failure(
+                "Cannot roll back intent '%s' — the following deployed intents depend on it: %s. "
+                "Roll back those intents first.",
+                intent_id,
+                ", ".join(dependent_ids),
+            )
+            IntentAuditEntry.objects.create(
+                intent=intent,
+                action="rolled_back",
+                actor="IntentRollbackJob",
+                detail={"blocked": True, "reason": "has_deployed_dependents", "dependent_intents": dependent_ids},
+            )
+            return
 
         self.logger.info("Rolling back intent %s", intent_id)
 

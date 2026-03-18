@@ -204,6 +204,8 @@ class IntentSerializer(NautobotModelSerializer):
     latest_verification_passed = serializers.SerializerMethodField()
     is_approved = serializers.BooleanField(read_only=True)
     has_resource_conflicts = serializers.BooleanField(read_only=True)
+    dependency_ids = serializers.SerializerMethodField()
+    dependency_status = serializers.CharField(read_only=True)
 
     def get_latest_plan_id(self, obj):
         """Return the primary key of the latest resolution plan, or None."""
@@ -214,6 +216,10 @@ class IntentSerializer(NautobotModelSerializer):
         """Return passed status of the latest verification, or None."""
         v = obj.latest_verification
         return v.passed if v else None
+
+    def get_dependency_ids(self, obj):
+        """Return list of intent_ids this intent depends on."""
+        return list(obj.dependencies.values_list("intent_id", flat=True))
 
     def validate(self, data):
         """Cross-field validation: check intent_data keys match the intent_type."""
