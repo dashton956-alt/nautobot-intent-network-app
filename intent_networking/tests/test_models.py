@@ -70,6 +70,7 @@ class TestIntentDependencyGraph(ModelTestCases.BaseModelTestCase):
 
     def _get_status(self, name):
         from nautobot.extras.models import Status
+
         return Status.objects.get(name__iexact=name)
 
     def test_dependency_status_ready_no_dependencies(self):

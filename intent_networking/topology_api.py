@@ -448,9 +448,13 @@ def _build_dependency_edges(device_ids):
     edges = []
     seen = set()
 
-    intents_with_deps = Intent.objects.filter(
-        dependencies__isnull=False,
-    ).prefetch_related("dependencies", "resolution_plans__affected_devices").distinct()
+    intents_with_deps = (
+        Intent.objects.filter(
+            dependencies__isnull=False,
+        )
+        .prefetch_related("dependencies", "resolution_plans__affected_devices")
+        .distinct()
+    )
 
     for intent in intents_with_deps:
         plan = intent.latest_plan

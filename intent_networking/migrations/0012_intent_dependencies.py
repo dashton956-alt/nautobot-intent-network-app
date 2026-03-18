@@ -2,7 +2,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("intent_networking", "0011_intent_backup_verification_to_git"),
     ]

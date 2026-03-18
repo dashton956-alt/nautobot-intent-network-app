@@ -622,11 +622,7 @@ class Intent(PrimaryModel):  # pylint: disable=too-many-ancestors
     @property
     def blocking_dependencies(self):
         """Return list of dependency intent_ids that are not yet Deployed."""
-        return [
-            dep.intent_id
-            for dep in self.dependencies.select_related("status").all()
-            if not dep.is_deployed
-        ]
+        return [dep.intent_id for dep in self.dependencies.select_related("status").all() if not dep.is_deployed]
 
 
 # ────────────────────────────────────────────────────────────────────────────
