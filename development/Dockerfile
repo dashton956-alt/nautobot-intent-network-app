@@ -1,6 +1,6 @@
 # -------------------------------------------------------------------------------------
 # Nautobot App Developement Dockerfile Template
-# Version: 1.1.4
+# Version: 1.1.5
 #
 # Apps that need to add additional steps or packages can do in the section below.
 # -------------------------------------------------------------------------------------
