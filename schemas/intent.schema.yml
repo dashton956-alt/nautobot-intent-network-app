@@ -752,3 +752,42 @@ mapping:
           all_tenant_devices:
             type: bool
             required: false
+
+      # ── Deployment & verification settings ───────────────────────────────
+      deployment:
+        type: map
+        required: false
+        mapping:
+          controller:
+            type: str
+            required: false
+            enum: [nornir, catalyst_center, meraki, mist]
+          controller_site:
+            type: str
+            required: false
+          controller_org:
+            type: str
+            required: false
+          strategy:
+            type: str
+            required: false
+            enum: [all_at_once, canary, rolling]
+          verification:
+            type: map
+            required: false
+            mapping:
+              level:
+                type: str
+                required: false
+                enum: [basic, extended]
+              trigger:
+                type: str
+                required: false
+                enum: [on_deploy, scheduled, both]
+              fail_action:
+                type: str
+                required: false
+                enum: [alert, rollback, remediate]
+              schedule:
+                type: str
+                required: false

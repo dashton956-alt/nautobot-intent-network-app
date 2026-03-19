@@ -16,3 +16,11 @@ intent:
   policy:
     compliance: NONE
     encryption: none
+
+  deployment:
+    controller: nornir
+    strategy: all_at_once
+    verification:
+      level: basic
+      trigger: on_deploy
+      fail_action: alert

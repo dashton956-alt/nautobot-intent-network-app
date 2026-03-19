@@ -17,3 +17,12 @@ intent:
   policy:
     compliance: NONE
     encryption: required
+
+  deployment:
+    controller: nornir
+    strategy: canary
+    verification:
+      level: extended
+      trigger: both
+      fail_action: rollback
+      schedule: "0 */4 * * *"

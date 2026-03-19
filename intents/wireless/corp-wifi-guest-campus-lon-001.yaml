@@ -21,3 +21,12 @@ intent:
   policy:
     compliance: NONE
     encryption: none
+
+  deployment:
+    controller: catalyst_center
+    controller_site: campus-london
+    strategy: all_at_once
+    verification:
+      level: basic
+      trigger: on_deploy
+      fail_action: alert

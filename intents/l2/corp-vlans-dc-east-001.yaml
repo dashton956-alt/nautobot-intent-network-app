@@ -28,3 +28,11 @@ intent:
     - id: 999
       name: QUARANTINE
       description: "Quarantine VLAN for non-compliant devices"
+
+  deployment:
+    controller: nornir
+    strategy: rolling
+    verification:
+      level: basic
+      trigger: on_deploy
+      fail_action: alert

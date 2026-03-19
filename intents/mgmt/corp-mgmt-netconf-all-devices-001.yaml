@@ -20,3 +20,11 @@ intent:
   policy:
     compliance: NONE
     encryption: tls
+
+  deployment:
+    controller: nornir
+    strategy: rolling
+    verification:
+      level: basic
+      trigger: on_deploy
+      fail_action: alert

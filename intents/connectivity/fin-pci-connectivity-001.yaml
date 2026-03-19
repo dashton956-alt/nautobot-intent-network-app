@@ -35,3 +35,12 @@ intent:
       - ftp
       - snmpv1
       - snmpv2
+
+  deployment:
+    controller: nornir
+    strategy: all_at_once
+    verification:
+      level: extended
+      trigger: both
+      fail_action: rollback
+      schedule: "0 */6 * * *"
