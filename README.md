@@ -90,7 +90,7 @@ Git Repository (YAML intents)
 | Dependency | Minimum version | Purpose |
 |------------|----------------|---------|
 | Nautobot | 3.0.0 | Platform (Nautobot 3.x required) |
-| Python | 3.10 | Runtime |
+| Python | 3.10–3.12 | Runtime (pyATS/Genie do not yet publish wheels for Python 3.13+) |
 | nautobot-golden-config | 2.0.0 | Config rendering and compliance |
 | Nornir | 3.3.0 | Device connection and config push |
 | nornir-nautobot | 3.0.0 | Nautobot inventory plugin for Nornir |
@@ -119,10 +119,10 @@ poetry add nautobot-app-intent-networking[meraki]
 # With both Cisco controllers
 poetry add nautobot-app-intent-networking[cisco]
 
-# With pyATS extended verification
+# With pyATS extended verification (requires Python 3.12 or below)
 poetry add nautobot-app-intent-networking[extended]
 
-# Everything
+# Everything (requires Python 3.12 or below for pyATS)
 poetry add nautobot-app-intent-networking[all]
 ```
 

@@ -29,17 +29,25 @@ def create_intents():
         (
             IntentTypeChoices.CONNECTIVITY,
             {"type": "connectivity", "name": "test-intent-001", "source": "GigabitEthernet0/1"},
+            {"controller_type": "nornir", "deployment_strategy": "all_at_once", "verification_level": "basic",
+             "verification_trigger": "on_deploy", "verification_fail_action": "alert"},
         ),
         (
             IntentTypeChoices.SECURITY,
             {"type": "security", "name": "test-intent-002"},
+            {"controller_type": "catalyst_center", "controller_site": "Test-Site",
+             "deployment_strategy": "canary", "verification_level": "extended",
+             "verification_trigger": "both", "verification_fail_action": "rollback",
+             "verification_schedule": "0 */6 * * *"},
         ),
         (
             IntentTypeChoices.REACHABILITY,
             {"type": "reachability", "name": "test-intent-003", "reachability_type": "static"},
+            {"controller_type": "nornir", "deployment_strategy": "rolling", "verification_level": "basic",
+             "verification_trigger": "on_deploy", "verification_fail_action": "remediate"},
         ),
     ]
-    for idx, (itype, idata) in enumerate(intent_configs, start=1):
+    for idx, (itype, idata, extra) in enumerate(intent_configs, start=1):
         Intent.objects.get_or_create(
             intent_id=f"test-intent-{idx:03d}",
             defaults={
@@ -48,5 +56,6 @@ def create_intents():
                 "tenant": tenant,
                 "status": status,
                 "intent_data": idata,
+                **extra,
             },
         )

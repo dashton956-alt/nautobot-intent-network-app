@@ -774,7 +774,7 @@ description = "Cisco Identity Services Engine Platform SDK"
 optional = true
 python-versions = "<4.0,>=3.12"
 groups = ["main"]
-markers = "python_version >= \"3.12\" and (extra == \"extended\" or extra == \"all\")"
+markers = "python_version == \"3.12\" and (extra == \"extended\" or extra == \"all\")"
 files = [
     {file = "ciscoisesdk-2.4.2-py3-none-any.whl", hash = "sha256:f94d9d90c033aec746940cca82e780ded2062b9ed1011d1a55a358ab760169df"},
     {file = "ciscoisesdk-2.4.2.tar.gz", hash = "sha256:8e1dc0e91ffaefa008bbb39302118bf3de739597c24a796d77f086e0a7376962"},
@@ -864,7 +864,7 @@ files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
-markers = {main = "(extra == \"extended\" or extra == \"all\") and sys_platform == \"win32\" or platform_system == \"Windows\""}
+markers = {main = "(extra == \"extended\" or extra == \"all\" or platform_system == \"Windows\") and (sys_platform == \"win32\" or platform_system == \"Windows\")"}
 
 [[package]]
 name = "columnar"
@@ -1671,7 +1671,7 @@ description = "Cisco DNA Center Platform SDK"
 optional = true
 python-versions = "<4.0,>=3.12"
 groups = ["main"]
-markers = "python_version >= \"3.12\" and (extra == \"catalyst\" or extra == \"cisco\" or extra == \"all\")"
+markers = "python_version == \"3.12\" and (extra == \"catalyst\" or extra == \"cisco\" or extra == \"all\")"
 files = [
     {file = "dnacentersdk-2.11.2-py3-none-any.whl", hash = "sha256:d17d71f69824c0a99bc5e1667b5dd7d2a5ab8c8f78f3a016d58aa6d89235fea7"},
     {file = "dnacentersdk-2.11.2.tar.gz", hash = "sha256:67daf7454d7e05dfc9db3a69b7ce44f1d70c716e79867747b7e8c0e86efd5053"},
@@ -4403,7 +4403,7 @@ description = "Make asynchat available for Python 3.12 onwards"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "python_version >= \"3.12\" and (extra == \"extended\" or extra == \"all\")"
+markers = "(extra == \"extended\" or extra == \"all\") and python_version == \"3.12\""
 files = [
     {file = "pyasynchat-1.0.5-py3-none-any.whl", hash = "sha256:35b7859515693e479e8d95ebe9f32cbf4d6312ab7599ced39fc24699e51de46f"},
     {file = "pyasynchat-1.0.5.tar.gz", hash = "sha256:36665473ae730dac51e6d7dad70f8295962120c830ab692f0a31efba32687e24"},
@@ -4419,7 +4419,7 @@ description = "Make asyncore available for Python 3.12 onwards"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "python_version >= \"3.12\" and (extra == \"extended\" or extra == \"all\")"
+markers = "(extra == \"extended\" or extra == \"all\") and python_version == \"3.12\""
 files = [
     {file = "pyasyncore-1.0.5-py3-none-any.whl", hash = "sha256:269bbc5252671827387636822841a1fb721ec6e858b23a3e12cf92eb1f97da2a"},
     {file = "pyasyncore-1.0.5.tar.gz", hash = "sha256:dd483d5103a6d59b66b86e0ca2334ad43dca732ff23a0ac5d63c88c52510542e"},
@@ -6833,7 +6833,7 @@ description = "Makes working with XML feel like you are working with JSON"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "python_version >= \"3.12\" and (extra == \"extended\" or extra == \"all\")"
+markers = "python_version == \"3.12\" and (extra == \"extended\" or extra == \"all\")"
 files = [
     {file = "xmltodict-1.0.2-py3-none-any.whl", hash = "sha256:62d0fddb0dcbc9f642745d8bbf4d81fd17d6dfaec5a15b5c1876300aad92af0d"},
     {file = "xmltodict-1.0.2.tar.gz", hash = "sha256:54306780b7c2175a3967cad1db92f218207e5bc1aba697d887807c0fb68b7649"},
@@ -7037,5 +7037,5 @@ meraki = ["meraki"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.10,<3.14"
-content-hash = "52eab2430b5d464da8ce38cc274b6b01a8c60ef4b78ffa279421f39457f3a412"
+python-versions = ">=3.10,<3.13"
+content-hash = "b5248578ac83544dfba76735ec959d582c1e1a184eb7b8f17f419d447b3feeae"
