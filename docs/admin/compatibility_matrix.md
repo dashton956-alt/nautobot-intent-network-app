@@ -6,8 +6,8 @@ The app follows semantic versioning. Patch releases (e.g. `0.4.1`) contain only 
 
 | Intent Networking Version | Nautobot Minimum | Nautobot Maximum | Python | Status |
 |---------------------------|-----------------|-----------------|--------|--------|
-| 1.1.4 | 3.0.0 | 3.x | 3.10–3.12 | Current |
-| 1.1.x | 3.0.0 | 3.x | ≥ 3.10 | Supported |
+| 1.1.5 | 3.0.0 | 3.x | 3.10–3.12 | Current |
+| 1.1.4 | 3.0.0 | 3.x | 3.10–3.12 | Supported |
 | 1.0.x | 3.0.0 | 3.x | ≥ 3.10 | Supported |
 | 0.5.x | 3.0.0 | 3.x | ≥ 3.10 | Deprecated |
 | 0.4.x | 3.0.0 | 3.x | ≥ 3.10 | Deprecated |
