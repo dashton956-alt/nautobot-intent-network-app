@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nautobot-app-intent-networking"
-version = "1.1.3"
+version = "1.1.4"
 description = "Intent Networking"
 authors = ["Daniel Ashton <info@networktocode.com>"]
 license = "Apache-2.0"
@@ -16,7 +16,6 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
 ]
 packages = [
     { include = "intent_networking" },
@@ -28,18 +27,22 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.14"
+python = ">=3.10,<3.13"
 # Used for local development
 nautobot = ">=3.0.0,<4.0.0"
 requests = "^2.32.5"
 jinja2 = "^3.1.6"
 nornir = "^3.5.0"
 nornir-netmiko = "^1.0.1"
-# Optional: extended verification via pyATS/Genie
+# Optional: extended verification via pyATS/Genie (requires Python <=3.12)
 pyats = {version = ">=24.0", optional = true}
 genie = {version = ">=24.0", optional = true}
 netutils = {version = "^1.6.0", optional = true}
 croniter = {version = "^1.3.0", optional = true}
+# Optional: Cisco Catalyst Center adapter
+dnacentersdk = {version = ">=2.6.0", optional = true}
+# Optional: Cisco Meraki adapter
+meraki = {version = ">=1.33.0", optional = true}
 
 [tool.poetry.group.dev.dependencies]
 coverage = "*"
@@ -76,9 +79,25 @@ mkdocs-autorefs = "1.2.0"
 griffe = "1.1.1"
 
 [tool.poetry.extras]
-all = [
+catalyst = [
+    "dnacentersdk",
+]
+meraki = [
+    "meraki",
+]
+cisco = [
+    "dnacentersdk",
+    "meraki",
 ]
 extended = [
+    "pyats",
+    "genie",
+    "netutils",
+    "croniter",
+]
+all = [
+    "dnacentersdk",
+    "meraki",
     "pyats",
     "genie",
     "netutils",

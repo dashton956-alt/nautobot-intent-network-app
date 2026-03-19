@@ -550,6 +550,257 @@ class FirewallControllerAdapter(ControllerAdapter):
 
 
 # ---------------------------------------------------------------------------
+# Catalyst Center Adapter (optional — requires [catalyst] extra)
+# ---------------------------------------------------------------------------
+
+# Allowed controller values for YAML validation.
+VALID_CONTROLLER_TYPES = frozenset({"nornir", "catalyst_center", "meraki", "mist"})
+
+
+class UnsupportedIntentTypeError(ValueError):
+    """Raised when an adapter does not support the given intent type."""
+
+
+class CatalystCenterAdapter:
+    """Adapter for Cisco Catalyst Center (formerly DNA Center).
+
+    This adapter is an **optional extra**. The ``dnacentersdk`` package is
+    imported lazily in ``__init__`` so that the rest of the plugin works
+    without it. Install with::
+
+        poetry add nautobot-app-intent-networking[catalyst]
+
+    Supported intent types:
+        - ``connectivity`` → virtual network + scalable group
+        - ``segmentation`` → policy + contract
+        - ``reachability`` → routing policy
+
+    Auth credentials are read from the Nautobot SecretsGroup named in
+    ``catalyst_center_secrets_group`` plugin config, falling back to env
+    vars ``CATALYST_CENTER_URL``, ``CATALYST_CENTER_USERNAME``,
+    ``CATALYST_CENTER_PASSWORD``.
+    """
+
+    SUPPORTED_INTENT_TYPES = frozenset({"connectivity", "segmentation", "reachability"})
+    TASK_POLL_TIMEOUT = 300  # seconds
+    TASK_POLL_INTERVAL = 5  # seconds
+
+    def __init__(self, intent):
+        """Initialise the adapter — lazy-imports dnacentersdk."""
+        try:
+            from dnacentersdk import DNACenterAPI  # noqa: F811,PLC0415
+        except ImportError:
+            raise ImportError(
+                "Catalyst Center adapter requires the 'catalyst' extra. "
+                "Install it with: poetry add nautobot-app-intent-networking[catalyst]"
+            ) from None
+        self.intent = intent
+        self._api_cls = DNACenterAPI
+
+        # Resolve credentials
+        url, username, password = self._resolve_credentials()
+        self.api = self._api_cls(
+            base_url=url,
+            username=username,
+            password=password,
+            verify=False,
+        )
+
+    @staticmethod
+    def _resolve_credentials():
+        """Resolve Catalyst Center credentials from Secrets or env vars."""
+        import os  # noqa: PLC0415
+
+        group_name = _get_plugin_config("catalyst_center_secrets_group")
+
+        if group_name:
+            from intent_networking.secrets import get_secrets_group_value  # noqa: PLC0415
+
+            url = get_secrets_group_value(group_name, "HTTP(S)", "url")
+            username = get_secrets_group_value(group_name, "Generic", "username")
+            password = get_secrets_group_value(group_name, "Generic", "password")
+            return url, username, password
+
+        # Fallback to env vars
+        url = os.environ.get("CATALYST_CENTER_URL", "")
+        username = os.environ.get("CATALYST_CENTER_USERNAME", "")
+        password = os.environ.get("CATALYST_CENTER_PASSWORD", "")
+        if not all([url, username, password]):
+            raise RuntimeError(
+                "No Catalyst Center credentials available. Either:\n"
+                "  1. Configure 'catalyst_center_secrets_group' in PLUGINS_CONFIG, or\n"
+                "  2. Set CATALYST_CENTER_URL, CATALYST_CENTER_USERNAME, CATALYST_CENTER_PASSWORD env vars."
+            )
+        return url, username, password
+
+    def deploy(self, resolution_plan) -> dict:
+        """Deploy the intent via Catalyst Center SDK."""
+        intent_type = self.intent.intent_type
+        if intent_type not in self.SUPPORTED_INTENT_TYPES:
+            raise UnsupportedIntentTypeError(
+                f"Catalyst Center adapter does not support intent type '{intent_type}'. "
+                f"Supported types: {', '.join(sorted(self.SUPPORTED_INTENT_TYPES))}"
+            )
+
+        intent_data = self.intent.intent_data
+        site = self.intent.controller_site
+
+        if intent_type == "connectivity":
+            return self._deploy_connectivity(intent_data, site)
+        if intent_type == "segmentation":
+            return self._deploy_segmentation(intent_data, site)
+        return self._deploy_reachability(intent_data, site)
+
+    def _deploy_connectivity(self, intent_data, site):
+        """Deploy a connectivity intent — virtual network + scalable groups."""
+        vn_name = intent_data.get("vn_name", intent_data.get("source", self.intent.intent_id))
+        sgt_list = intent_data.get("scalable_groups", [])
+
+        payload = {
+            "virtualNetworkName": vn_name,
+            "isGuestVirtualNetwork": False,
+            "scalableGroupNames": sgt_list,
+        }
+
+        response = self.api.sda.add_virtual_network_with_scalable_groups(payload=[payload])
+        task_id = self._extract_task_id(response)
+        task_result = self._poll_task(task_id)
+
+        return {"success": task_result["completed"], "details": task_result, "task_id": task_id}
+
+    def _deploy_segmentation(self, intent_data, site):
+        """Deploy a segmentation intent — policy + contract."""
+        policy_name = intent_data.get("policy_name", self.intent.intent_id)
+        contract = intent_data.get("contract", {})
+
+        response = self.api.sda.add_default_authentication_profile(
+            payload=[
+                {
+                    "authenticateTemplateName": policy_name,
+                    "siteNameHierarchy": site,
+                }
+            ]
+        )
+        task_id = self._extract_task_id(response)
+        task_result = self._poll_task(task_id)
+
+        return {
+            "success": task_result["completed"],
+            "details": {**task_result, "contract": contract},
+            "task_id": task_id,
+        }
+
+    def _deploy_reachability(self, intent_data, site):
+        """Deploy a reachability intent — routing policy."""
+        response = self.api.sda.add_site(
+            payload=[
+                {
+                    "fabricName": intent_data.get("fabric_name", "Default"),
+                    "siteNameHierarchy": site,
+                }
+            ]
+        )
+        task_id = self._extract_task_id(response)
+        task_result = self._poll_task(task_id)
+
+        return {"success": task_result["completed"], "details": task_result, "task_id": task_id}
+
+    def verify(self) -> dict:
+        """Verify compliance of affected devices via Catalyst Center."""
+        site = self.intent.controller_site
+        compliance = self.api.compliance.get_compliance_detail(
+            deviceUuid="",
+            complianceStatus="NON_COMPLIANT",
+        )
+
+        non_compliant = []
+        if hasattr(compliance, "response") and compliance.response:
+            for item in compliance.response:
+                device_name = getattr(item, "deviceName", "unknown")
+                category = getattr(item, "complianceType", "unknown")
+                non_compliant.append({"device": device_name, "category": category})
+
+        return {
+            "verified": len(non_compliant) == 0,
+            "drift": non_compliant,
+            "details": f"Checked compliance for site '{site}'",
+        }
+
+    def rollback(self, previous_version) -> dict:
+        """Roll back to a previous intent version by removing current config."""
+        intent_data = self.intent.intent_data
+        intent_type = self.intent.intent_type
+
+        if intent_type == "connectivity":
+            vn_name = intent_data.get("vn_name", intent_data.get("source", self.intent.intent_id))
+            response = self.api.sda.delete_virtual_network_with_scalable_groups(  # pylint: disable=no-value-for-parameter
+                virtualNetworkName=vn_name,
+            )
+        elif intent_type == "segmentation":
+            response = self.api.sda.delete_default_authentication_profile(  # pylint: disable=no-value-for-parameter
+                siteNameHierarchy=self.intent.controller_site,
+            )
+        else:
+            response = self.api.sda.delete_site(  # pylint: disable=no-value-for-parameter
+                siteNameHierarchy=self.intent.controller_site,
+            )
+
+        task_id = self._extract_task_id(response)
+        task_result = self._poll_task(task_id)
+
+        return {"success": task_result["completed"], "details": task_result}
+
+    def get_live_state(self) -> dict:
+        """Pull live device data from Catalyst Center for topology viewer."""
+        devices = self.api.devices.get_device_list()
+        device_list = []
+        if hasattr(devices, "response") and devices.response:
+            for dev in devices.response:
+                device_list.append(
+                    {
+                        "hostname": getattr(dev, "hostname", ""),
+                        "managementIpAddress": getattr(dev, "managementIpAddress", ""),
+                        "reachabilityStatus": getattr(dev, "reachabilityStatus", ""),
+                        "role": getattr(dev, "role", ""),
+                    }
+                )
+        return {"devices": device_list}
+
+    @staticmethod
+    def _extract_task_id(response):
+        """Extract the task ID from a Catalyst Center API response."""
+        if hasattr(response, "response") and hasattr(response.response, "taskId"):
+            return response.response.taskId
+        if isinstance(response, dict):
+            return response.get("response", {}).get("taskId", "")
+        return ""
+
+    def _poll_task(self, task_id):
+        """Poll a Catalyst Center task until completion or timeout."""
+        import time  # noqa: PLC0415
+
+        if not task_id:
+            return {"completed": False, "error": "No task ID returned"}
+
+        elapsed = 0
+        while elapsed < self.TASK_POLL_TIMEOUT:
+            task = self.api.task.get_task_by_id(task_id)
+            if hasattr(task, "response"):
+                resp = task.response
+                if getattr(resp, "endTime", None):
+                    is_error = getattr(resp, "isError", False)
+                    return {
+                        "completed": not is_error,
+                        "error": getattr(resp, "failureReason", "") if is_error else "",
+                        "progress": getattr(resp, "progress", ""),
+                    }
+            time.sleep(self.TASK_POLL_INTERVAL)
+            elapsed += self.TASK_POLL_INTERVAL
+
+        return {"completed": False, "error": f"Task {task_id} timed out after {self.TASK_POLL_TIMEOUT}s"}
+
+
+# ---------------------------------------------------------------------------
 # Adapter Factory
 # ---------------------------------------------------------------------------
 

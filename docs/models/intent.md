@@ -15,6 +15,14 @@ Each `Intent` corresponds to one YAML file in the repo. It is created or updated
 | `status` | StatusField | Current lifecycle status: `Draft → Validated → Deploying → Deployed → Failed → Rolled Back → Deprecated` |
 | `intent_data` | JSON | Full parsed YAML stored as JSON — the single source of truth |
 | `rendered_configs` | JSON | Per-device rendered Jinja2 configuration output, populated during dry-run or live deployments |
+| `deployment_strategy` | choice | How to deploy across multiple sites: `all_at_once`, `canary` (single site first), `rolling` (one site at a time) |
+| `verification_level` | choice | Verification depth: `basic` or `extended` |
+| `verification_trigger` | choice | When verification should run: `on_deploy`, `scheduled`, `both` |
+| `verification_fail_action` | choice | Action when verification fails: `alert`, `rollback` (auto), `remediate` (auto) |
+| `verification_schedule` | string | Cron expression for scheduled verification (required when trigger includes `scheduled`) |
+| `controller_type` | choice | Deployment controller: `nornir` (SSH/NETCONF), `catalyst_center`, `meraki`, `mist` |
+| `controller_site` | string | Controller site name (e.g. Catalyst Center fabric site) |
+| `controller_org` | string | Controller organisation name (e.g. Meraki org name) |
 | `change_ticket` | string | Change management ticket reference, e.g. `CHG0012345` |
 | `approved_by` | string | GitHub username of the PR approver |
 | `git_commit_sha` | string | Commit SHA that triggered the most recent deployment |

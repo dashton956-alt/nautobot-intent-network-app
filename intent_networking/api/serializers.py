@@ -207,17 +207,17 @@ class IntentSerializer(NautobotModelSerializer):
     dependency_ids = serializers.SerializerMethodField()
     dependency_status = serializers.CharField(read_only=True)
 
-    def get_latest_plan_id(self, obj):
+    def get_latest_plan_id(self, obj) -> str | None:
         """Return the primary key of the latest resolution plan, or None."""
         plan = obj.latest_plan
         return str(plan.pk) if plan else None
 
-    def get_latest_verification_passed(self, obj):
+    def get_latest_verification_passed(self, obj) -> bool | None:
         """Return passed status of the latest verification, or None."""
         v = obj.latest_verification
         return v.passed if v else None
 
-    def get_dependency_ids(self, obj):
+    def get_dependency_ids(self, obj) -> list[str]:
         """Return list of intent_ids this intent depends on."""
         return list(obj.dependencies.values_list("intent_id", flat=True))
 
@@ -316,7 +316,7 @@ class ResolutionPlanSerializer(NautobotModelSerializer):
     affected_devices = serializers.SerializerMethodField()
     primitive_count = serializers.IntegerField(read_only=True)
 
-    def get_affected_devices(self, obj):
+    def get_affected_devices(self, obj) -> list[str]:
         """Return list of device names in this plan."""
         return list(obj.affected_devices.values_list("name", flat=True))
 

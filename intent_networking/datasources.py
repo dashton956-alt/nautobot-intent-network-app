@@ -272,6 +272,21 @@ def _sync_repo_intents(repository_record, job_result):
                 "verification_schedule": v_schedule,
                 "verification_fail_action": v_fail_action,
             }
+
+            # Parse deployment.controller fields
+            deployment_block = intent_yaml.get("deployment", {})
+            if isinstance(deployment_block, dict):
+                controller = deployment_block.get("controller", "nornir")
+                from intent_networking.controller_adapters import VALID_CONTROLLER_TYPES  # noqa: PLC0415
+
+                if controller not in VALID_CONTROLLER_TYPES:
+                    raise ValidationError(
+                        f"Invalid controller '{controller}' in intent '{intent_id}'. "
+                        f"Supported controllers: {', '.join(sorted(VALID_CONTROLLER_TYPES))}"
+                    )
+                update_fields["controller_type"] = controller
+                update_fields["controller_site"] = deployment_block.get("controller_site", "")
+                update_fields["controller_org"] = deployment_block.get("controller_org", "")
             is_new = not Intent.objects.filter(intent_id=intent_id).exists()
             if is_new:
                 update_fields["status"] = draft_status

@@ -28,6 +28,11 @@ class Migration(migrations.Migration):
         ("intent_networking", "0009_add_fw_rule_intent_type"),
     ]
 
+    # Each step (add nullable → backfill → alter non-null) must run in its own
+    # transaction so PostgreSQL doesn't reject the ALTER with
+    # "pending trigger events".
+    atomic = False
+
     operations = [
         # ── Step 1: Add all fields as nullable (no default in schema) ────
         migrations.AddField(

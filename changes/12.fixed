@@ -1,0 +1,1 @@
+Fixed PostgreSQL "pending trigger events" errors — migrations 0010 and 0013 now set atomic = False.

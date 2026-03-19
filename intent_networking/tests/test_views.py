@@ -33,6 +33,9 @@ class IntentViewTest(ViewTestCases.PrimaryObjectViewTestCase):
             "verification_level": "basic",
             "verification_trigger": "on_deploy",
             "verification_fail_action": "alert",
+            "controller_type": "nornir",
+            "controller_site": "",
+            "controller_org": "",
         }
         cls.update_data = {
             "intent_id": "view-test-new-001",
@@ -46,6 +49,9 @@ class IntentViewTest(ViewTestCases.PrimaryObjectViewTestCase):
             "verification_level": "basic",
             "verification_trigger": "on_deploy",
             "verification_fail_action": "alert",
+            "controller_type": "nornir",
+            "controller_site": "",
+            "controller_org": "",
         }
         cls.bulk_edit_data = {
             "version": 2,

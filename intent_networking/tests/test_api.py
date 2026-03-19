@@ -18,6 +18,7 @@ class IntentAPIViewTest(APIViewTestCases.APIViewTestCase):
         "verification_level",
         "verification_trigger",
         "verification_fail_action",
+        "controller_type",
     )
 
     @classmethod
