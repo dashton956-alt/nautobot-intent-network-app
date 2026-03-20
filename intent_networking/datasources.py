@@ -142,10 +142,16 @@ def refresh_git_intent_definitions(repository_record, job_result, delete=False):
     if CONTENT_IDENTIFIER not in repository_record.provided_contents:
         return
 
-    if delete:
-        _delete_repo_intents(repository_record, job_result)
-    else:
-        _sync_repo_intents(repository_record, job_result)
+    try:
+        if delete:
+            _delete_repo_intents(repository_record, job_result)
+        else:
+            _sync_repo_intents(repository_record, job_result)
+    except Exception as exc:
+        msg = f"Unhandled error during intent sync for '{repository_record.name}': {exc}"
+        logger.exception(msg)
+        job_result.log(msg, level_choice=LogLevelChoices.LOG_ERROR, grouping="intent definitions")
+        raise
 
 
 def _sync_repo_intents(repository_record, job_result):
@@ -248,7 +254,7 @@ def _sync_repo_intents(repository_record, job_result):
             verification_block = intent_yaml.get("verification", {})
             v_level = verification_block.get("level", "basic")
             v_trigger = verification_block.get("trigger", "on_deploy")
-            v_schedule = verification_block.get("schedule", None)
+            v_schedule = verification_block.get("schedule") or ""
             v_fail_action = verification_block.get("fail_action", "alert")
 
             # Validate cron expression when trigger requires a schedule
@@ -320,17 +326,28 @@ def _sync_repo_intents(repository_record, job_result):
 
     # Mark intents that were previously managed by this repo but are no
     # longer present in it as deprecated (soft-delete).
-    orphaned = Intent.objects.filter(git_repository=repository_record).exclude(intent_id__in=synced_intent_ids)
-    orphan_count = orphaned.count()
-    if orphan_count:
-        deprecated_status = Status.objects.filter(name__iexact="Deprecated").first()
-        if deprecated_status:
-            orphaned.update(status=deprecated_status)
-        msg = f"Deprecated {orphan_count} intent(s) no longer present in repo"
-        job_result.log(msg, level_choice=LogLevelChoices.LOG_WARNING, grouping="intent definitions")
+    orphan_count = 0
+    try:
+        orphaned = Intent.objects.filter(git_repository=repository_record).exclude(intent_id__in=synced_intent_ids)
+        orphan_count = orphaned.count()
+        if orphan_count:
+            deprecated_status = Status.objects.filter(name__iexact="Deprecated").first()
+            if deprecated_status:
+                orphaned.update(status=deprecated_status)
+            msg = f"Deprecated {orphan_count} intent(s) no longer present in repo"
+            job_result.log(msg, level_choice=LogLevelChoices.LOG_WARNING, grouping="intent definitions")
+    except Exception as exc:
+        msg = f"Error during orphan detection for '{repository_record.name}': {exc}"
+        logger.error(msg, exc_info=True)
+        job_result.log(msg, level_choice=LogLevelChoices.LOG_ERROR, grouping="intent definitions")
 
     # ── Resolve depends_on references (post-create pass) ──────────────────
-    _resolve_dependencies(synced_intent_ids, yaml_files, (intent_dir, repo_path, ignore_patterns), job_result)
+    try:
+        _resolve_dependencies(synced_intent_ids, yaml_files, (intent_dir, repo_path, ignore_patterns), job_result)
+    except Exception as exc:
+        msg = f"Error resolving dependencies for '{repository_record.name}': {exc}"
+        logger.error(msg, exc_info=True)
+        job_result.log(msg, level_choice=LogLevelChoices.LOG_ERROR, grouping="intent definitions")
 
     summary = (
         f"Sync complete: {stats['created']} created, "
