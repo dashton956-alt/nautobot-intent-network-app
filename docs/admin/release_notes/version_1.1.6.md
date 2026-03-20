@@ -17,7 +17,7 @@
 ## Fixed
 
 - **Git sync error surfacing** — unhandled exceptions in the datasource callback are now written to the Nautobot job result (visible in the UI) and logged with a full traceback, instead of being swallowed and only appearing as the generic "Please see logs" message.
-- **`verification_schedule` NOT NULL violation** — intent files without a `verification.schedule` key now correctly write an empty string `""` to the database column instead of `NULL`, resolving a PostgreSQL constraint error that caused all 21 intents to fail during Git sync.
+- **`verification_schedule` NOT NULL violation** — intent files without a `verification.schedule` key now correctly write an empty string `""` to the database column instead of `NULL`, resolving a PostgreSQL constraint error that caused all intents to fail during Git sync.
 - **PostgreSQL "pending trigger events"** — migrations `0010` and `0013` now set `atomic = False` to avoid locking errors on large tables.
 - **Python 3.13 Docker build** — pinned Python to `>=3.10,<3.13` as pyATS/Genie do not publish Python 3.13 wheels.
 
