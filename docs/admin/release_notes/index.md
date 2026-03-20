@@ -4,6 +4,7 @@ All published release notes are listed below. Patch releases are included within
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [v1.1.6](version_1.1.6.md) | 2026-03-20 | Git sync error surfacing, verification_schedule NULL fix, .intentignore, Approve/Reject UI, Catalyst Center adapter, intent dependency graph, fw_rule intent type, Retired status |
 | [v1.1.5](version_1.1.5.md) | 2026-03-19 | Documentation updates and deployment pipeline improvements |
 | [v1.1.4](version_1.1.4.md) | 2026-03-19 | Fix PostgreSQL migrations, Python 3.12 pin, Catalyst Center adapter, intent dependency graph |
 | [v1.1](version_1.1.md) | 2026-03-12 | 4 new global-config management intent types, dry-run deployment, extended platform templates |
