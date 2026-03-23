@@ -168,5 +168,5 @@ PLUGINS_CONFIG = {
         # sync intent YAML files from the repository on every pull.
         # The directories searched inside the repo are:
         #   intents/  |  intent_definitions/  |  intent-definitions/
-    }
+    },
 }

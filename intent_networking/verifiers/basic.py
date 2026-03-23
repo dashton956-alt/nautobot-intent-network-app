@@ -245,11 +245,10 @@ class BasicVerifier:
     def _collect_device_state(self, device):
         """Collect live state from device via Nornir."""
         from nautobot.dcim.models import Device  # noqa: PLC0415
+        from nautobot_plugin_nornir.plugins.inventory.nautobot_orm import NautobotORMInventory  # noqa: PLC0415
         from nornir import InitNornir  # noqa: PLC0415
         from nornir.core.plugins.inventory import InventoryPluginRegister  # noqa: PLC0415
         from nornir_netmiko.tasks import netmiko_send_command  # noqa: PLC0415
-
-        from nautobot_plugin_nornir.plugins.inventory.nautobot_orm import NautobotORMInventory  # noqa: PLC0415
 
         try:
             InventoryPluginRegister.register("nautobot-inventory", NautobotORMInventory)
@@ -359,7 +358,6 @@ class BasicVerifier:
 
         try:
             from nautobot.dcim.models import Device as DeviceModel  # noqa: PLC0415
-
             from nautobot_plugin_nornir.plugins.inventory.nautobot_orm import NautobotORMInventory  # noqa: PLC0415
 
             try:

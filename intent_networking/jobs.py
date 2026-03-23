@@ -657,9 +657,8 @@ class IntentDeploymentJob(Job):
                 )
 
         # ── Nornir / device-level push ────────────────────────────────────
-        from nornir.core.plugins.inventory import InventoryPluginRegister  # noqa: PLC0415
-
         from nautobot_plugin_nornir.plugins.inventory.nautobot_orm import NautobotORMInventory  # noqa: PLC0415
+        from nornir.core.plugins.inventory import InventoryPluginRegister  # noqa: PLC0415
 
         try:
             InventoryPluginRegister.register("nautobot-inventory", NautobotORMInventory)
