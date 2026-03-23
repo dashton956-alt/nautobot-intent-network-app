@@ -203,6 +203,26 @@ files = [
 vine = ">=5.0.0,<6.0.0"
 
 [[package]]
+name = "anyio"
+version = "4.12.1"
+description = "High-level concurrency and networking framework on top of asyncio or Trio"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "anyio-4.12.1-py3-none-any.whl", hash = "sha256:d405828884fc140aa80a3c667b8beed277f1dfedec42ba031bd6ac3db606ab6c"},
+    {file = "anyio-4.12.1.tar.gz", hash = "sha256:41cfcc3a4c85d3f05c932da7c26d0201ac36f72abd4435ba90d0464a3ffed703"},
+]
+
+[package.dependencies]
+exceptiongroup = {version = ">=1.0.2", markers = "python_version < \"3.11\""}
+idna = ">=2.8"
+typing_extensions = {version = ">=4.5", markers = "python_version < \"3.13\""}
+
+[package.extras]
+trio = ["trio (>=0.31.0) ; python_version < \"3.10\"", "trio (>=0.32.0) ; python_version >= \"3.10\""]
+
+[[package]]
 name = "application-file-scanner"
 version = "0.6.4"
 description = "A small package to deal with the headaches of scanning for files for an application to execute on."
@@ -521,7 +541,6 @@ description = "Foreign Function Interface for Python calling C code."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "platform_python_implementation != \"PyPy\""
 files = [
     {file = "cffi-2.0.0-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:0cf2d91ecc3fcc0625c2c530fe004f82c110405f101548512cce44322fa8ac44"},
     {file = "cffi-2.0.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f73b96c41e3b2adedc34a7356e64c8eb96e03a3782b535e043a986276ce12a49"},
@@ -864,7 +883,6 @@ files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
-markers = {main = "(extra == \"extended\" or extra == \"all\" or platform_system == \"Windows\") and (sys_platform == \"win32\" or platform_system == \"Windows\")"}
 
 [[package]]
 name = "columnar"
@@ -2415,14 +2433,60 @@ protobuf = ["grpcio-tools (>=1.78.0)"]
 name = "h11"
 version = "0.16.0"
 description = "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "h11-0.16.0-py3-none-any.whl", hash = "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86"},
     {file = "h11-0.16.0.tar.gz", hash = "sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1"},
 ]
+
+[[package]]
+name = "httpcore"
+version = "1.0.9"
+description = "A minimal low-level HTTP client."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "httpcore-1.0.9-py3-none-any.whl", hash = "sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55"},
+    {file = "httpcore-1.0.9.tar.gz", hash = "sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8"},
+]
+
+[package.dependencies]
+certifi = "*"
+h11 = ">=0.16"
+
+[package.extras]
+asyncio = ["anyio (>=4.0,<5.0)"]
+http2 = ["h2 (>=3,<5)"]
+socks = ["socksio (==1.*)"]
+trio = ["trio (>=0.22.0,<1.0)"]
+
+[[package]]
+name = "httpx"
+version = "0.27.0"
+description = "The next generation HTTP client."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "httpx-0.27.0-py3-none-any.whl", hash = "sha256:71d5465162c13681bff01ad59b2cc68dd838ea1f10e51574bac27103f00c91a5"},
+    {file = "httpx-0.27.0.tar.gz", hash = "sha256:a0cb88a46f32dc874e04ee956e4c2764aba2aa228f650b06788ba6bda2962ab5"},
+]
+
+[package.dependencies]
+anyio = "*"
+certifi = "*"
+httpcore = "==1.*"
+idna = "*"
+sniffio = "*"
+
+[package.extras]
+brotli = ["brotli ; platform_python_implementation == \"CPython\"", "brotlicffi ; platform_python_implementation != \"CPython\""]
+cli = ["click (==8.*)", "pygments (==2.*)", "rich (>=10,<14)"]
+http2 = ["h2 (>=3,<5)"]
+socks = ["socksio (==1.*)"]
 
 [[package]]
 name = "idna"
@@ -2741,6 +2805,30 @@ files = [
 six = "*"
 
 [[package]]
+name = "junos-eznc"
+version = "2.7.1"
+description = "Junos 'EZ' automation for non-programmers"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "junos-eznc-2.7.1.tar.gz", hash = "sha256:371f0298bf03e0cb4c017c43f6f4122263584eda0d690d0112e93f13daae41ac"},
+    {file = "junos_eznc-2.7.1-py3-none-any.whl", hash = "sha256:8a7918faa8f0570341cac64c1210c1cd3e3542162d1e7449c3364f8d805716b2"},
+]
+
+[package.dependencies]
+jinja2 = ">=2.7.1"
+lxml = ">=3.2.4"
+ncclient = ">=0.6.15"
+pyparsing = "*"
+pyserial = "*"
+PyYAML = ">=5.1"
+scp = ">=0.7.0"
+six = "*"
+transitions = "*"
+yamlordereddictloader = "*"
+
+[[package]]
 name = "kombu"
 version = "5.6.2"
 description = "Messaging library for Python."
@@ -2808,10 +2896,9 @@ adal = ["adal (>=1.0.2)"]
 name = "lxml"
 version = "6.0.2"
 description = "Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API."
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "lxml-6.0.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:e77dd455b9a16bbd2a5036a63ddbd479c19572af81b624e79ef422f929eef388"},
     {file = "lxml-6.0.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:5d444858b9f07cefff6455b983aea9a67f7462ba1f6cbe4a21e8bf6791bf2153"},
@@ -3497,6 +3584,38 @@ files = [
 typing-extensions = {version = ">=4.1.0", markers = "python_version < \"3.11\""}
 
 [[package]]
+name = "napalm"
+version = "5.0.0"
+description = "Network Automation and Programmability Abstraction Layer with Multivendor support"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "napalm-5.0.0-py2.py3-none-any.whl", hash = "sha256:458837932e527ca06a4bab7e600b0ca6e6bc3bb4b33fad9c9ef2befc7df6d2f5"},
+    {file = "napalm-5.0.0.tar.gz", hash = "sha256:350ac3d74f2f10030dbae44d3395551d7e03ee25c65fa5eb8263a4e6f51f2c94"},
+]
+
+[package.dependencies]
+cffi = ">=1.11.3"
+jinja2 = "*"
+junos-eznc = ">=2.7.0"
+lxml = ">=4.3.0"
+ncclient = "*"
+netaddr = "*"
+netmiko = ">=4.1.0"
+netutils = ">=1.0.0"
+paramiko = ">=2.6.0"
+pyeapi = ">=1.0.2"
+pyYAML = "*"
+requests = ">=2.7.0"
+scp = "*"
+setuptools = ">=38.4.0"
+textfsm = "*"
+ttp = "*"
+ttp-templates = "*"
+typing-extensions = ">=4.3.0"
+
+[[package]]
 name = "nautobot"
 version = "3.0.8"
 description = "Source of truth and network automation platform."
@@ -3563,13 +3682,28 @@ remote-storage = ["django-storages (>=1.14.6,<1.15.0)"]
 sso = ["social-auth-core[saml] (>=4.8.5,<4.9.0)"]
 
 [[package]]
+name = "nautobot-plugin-nornir"
+version = "3.0.0"
+description = "Nautobot App that provides a shim layer to simplify using Nornir within other Nautobot Apps and Nautobot Jobs"
+optional = false
+python-versions = "<3.14,>=3.10"
+groups = ["main"]
+files = [
+    {file = "nautobot_plugin_nornir-3.0.0-py3-none-any.whl", hash = "sha256:cc16c4971b66212462f947ab02167b9f1f2d2029ffe4314024b50bc00822020e"},
+    {file = "nautobot_plugin_nornir-3.0.0.tar.gz", hash = "sha256:6fef33ffc69b230f75d28d78e30e5ed8c2a685607736bda2e7208c09943708a1"},
+]
+
+[package.dependencies]
+nautobot = ">=3.0.0,<4.0.0"
+nornir-nautobot = ">=4.0.0,<5.0.0"
+
+[[package]]
 name = "ncclient"
 version = "0.7.1"
 description = "Python library for NETCONF clients"
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
-markers = "extra == \"extended\" or extra == \"all\""
 files = [
     {file = "ncclient-0.7.1-py3-none-any.whl", hash = "sha256:47beeeee6074bd70a9215c4d353b51c7237af3c5c15269d81692810f2aa15147"},
     {file = "ncclient-0.7.1.tar.gz", hash = "sha256:60dabb6ac1a2d84fbc3349cb104ef7d0c5d12cf8eee43fefc715410d70410ddc"},
@@ -3691,6 +3825,51 @@ files = [
 setuptools = ">=43.0.0"
 
 [[package]]
+name = "nornir-napalm"
+version = "0.5.0"
+description = "NAPALM's plugins for nornir"
+optional = false
+python-versions = "<4.0,>=3.8"
+groups = ["main"]
+files = [
+    {file = "nornir_napalm-0.5.0-py3-none-any.whl", hash = "sha256:1a418bf0f5e38ac65894d474f81b50787dafe0aa1965c4fbd1b86d34d4374418"},
+    {file = "nornir_napalm-0.5.0.tar.gz", hash = "sha256:4c95979eebe2475e7b8516411ad8e3205d2ff30e410d1dbdce785a55033d1130"},
+]
+
+[package.dependencies]
+napalm = ">=5,<6"
+nornir = ">=3,<4"
+
+[[package]]
+name = "nornir-nautobot"
+version = "4.1.0"
+description = "Nornir Nautobot"
+optional = false
+python-versions = "<3.15,>=3.10"
+groups = ["main"]
+files = [
+    {file = "nornir_nautobot-4.1.0-py3-none-any.whl", hash = "sha256:7fee1f8565bbad7f9a08a4a793f3c7e058423d96e7e4356554fb74da7f4165db"},
+    {file = "nornir_nautobot-4.1.0.tar.gz", hash = "sha256:51307b582d8d4d42dd7d064cf6f11467ede1b8e89112abf5153b60af1fffe8aa"},
+]
+
+[package.dependencies]
+httpx = ">=0.23.0,<=0.27.0"
+napalm = ">=5.0.0,<6.0.0"
+netmiko = ">=4.4.0,<5.0.0"
+netutils = ">=1.14.1,<2.0.0"
+nornir = ">=3.3.0,<4.0.0"
+nornir-napalm = ">=0.5.0,<1.0.0"
+nornir-netmiko = ">=1.0.0,<2.0.0"
+nornir-scrapli = ">=2025.1.30,<2026.0.0"
+nornir-utils = ">=0,<1"
+pynautobot = ">=3.0.0,<4.0.0"
+requests = ">=2.30.1,<3.0.0"
+scrapli = ">=2024.1.30"
+
+[package.extras]
+mikrotik-driver = ["routeros-api (>=0.17.0,<0.18.0)"]
+
+[[package]]
 name = "nornir-netmiko"
 version = "1.0.1"
 description = "Netmiko's plugins for Nornir"
@@ -3704,6 +3883,49 @@ files = [
 
 [package.dependencies]
 netmiko = ">=4.0.0,<5.0.0"
+
+[[package]]
+name = "nornir-scrapli"
+version = "2025.1.30"
+description = "Scrapli's plugin for Nornir"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "nornir_scrapli-2025.1.30-py3-none-any.whl", hash = "sha256:be178b13257ece024a01c97c798973622138bc780fa607fe8bed70d0dbf2914a"},
+    {file = "nornir_scrapli-2025.1.30.tar.gz", hash = "sha256:b36bbfcf3678e695d54c0df673f9cf662dbd737d9e13170893cd4ed833c7b410"},
+]
+
+[package.dependencies]
+nornir = ">=3.0.0"
+nornir_utils = ">=0.1.0"
+ntc_templates = ">=1.1.0"
+scrapli = ">=2022.1.30"
+scrapli_cfg = ">=2022.1.30"
+scrapli_community = ">=2021.1.30"
+scrapli_netconf = ">=2022.1.30"
+textfsm = ">=1.1.0"
+
+[package.extras]
+dev = ["black (>=23.3.0,<25.0.0)", "darglint (>=1.8.1,<2.0.0)", "genie (>=20.2) ; sys_platform != \"win32\" and python_version < \"3.13\"", "isort (>=5.10.1,<6.0.0)", "mypy (>1.0.0,<2.0.0)", "nox (==2024.4.15)", "pyats (>=20.2) ; sys_platform != \"win32\" and python_version < \"3.13\"", "pydocstyle (>=6.1.1,<7.0.0)", "pylint (>=3.0.0,<4.0.0)", "pytest (>=7.0.0,<8.0.0)", "pytest-cov (>=3.0.0,<5.0.0)", "toml (>=0.10.2,<1.0.0)"]
+docs = ["mdx-gh-links (>=0.2,<1.0)", "mkdocs (>=1.2.3,<2.0.0)", "mkdocs-gen-files (>=0.4.0,<1.0.0)", "mkdocs-literate-nav (>=0.5.0,<1.0.0)", "mkdocs-material (>=8.1.6,<10.0.0)", "mkdocs-material-extensions (>=1.0.3,<2.0.0)", "mkdocs-section-index (>=0.3.4,<1.0.0)", "mkdocstrings[python] (>=0.19.0,<1.0.0)"]
+genie = ["genie (>=20.2) ; sys_platform != \"win32\" and python_version < \"3.13\"", "pyats (>=20.2) ; sys_platform != \"win32\" and python_version < \"3.13\""]
+
+[[package]]
+name = "nornir-utils"
+version = "0.2.0"
+description = "Collection of plugins and functions for nornir that don't require external dependencies"
+optional = false
+python-versions = ">=3.6.2,<4.0.0"
+groups = ["main"]
+files = [
+    {file = "nornir_utils-0.2.0-py3-none-any.whl", hash = "sha256:b4c430793a74f03affd5ff2d90abc8c67a28c7ff325f48e3a01a9a44ec71b844"},
+    {file = "nornir_utils-0.2.0.tar.gz", hash = "sha256:4de6aaa35e5c1a98e1c84db84a008b0b1e974dc65d88484f2dcea3e30c95fbc2"},
+]
+
+[package.dependencies]
+colorama = ">=0.4.3,<0.5.0"
+nornir = ">=3,<4"
 
 [[package]]
 name = "ntc-templates"
@@ -4913,11 +5135,29 @@ description = "C parser in Python"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "platform_python_implementation != \"PyPy\" and implementation_name != \"PyPy\""
+markers = "implementation_name != \"PyPy\""
 files = [
     {file = "pycparser-3.0-py3-none-any.whl", hash = "sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992"},
     {file = "pycparser-3.0.tar.gz", hash = "sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29"},
 ]
+
+[[package]]
+name = "pyeapi"
+version = "1.0.4"
+description = "Python Client for eAPI"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "pyeapi-1.0.4.tar.gz", hash = "sha256:05920677246823cd3dddf7d4d0f831fbc86fd416f356706a03bc56a291d78f3d"},
+]
+
+[package.dependencies]
+netaddr = "*"
+
+[package.extras]
+dev = ["check-manifest", "pep8", "pyflakes", "twine"]
+test = ["coverage"]
 
 [[package]]
 name = "pyftpdlib"
@@ -5305,6 +5545,38 @@ cffi = {version = ">=2.0.0", markers = "platform_python_implementation != \"PyPy
 [package.extras]
 docs = ["sphinx (<7)", "sphinx_rtd_theme"]
 tests = ["hypothesis (>=3.27.0)", "pytest (>=7.4.0)", "pytest-cov (>=2.10.1)", "pytest-xdist (>=3.5.0)"]
+
+[[package]]
+name = "pynautobot"
+version = "3.0.0"
+description = "Nautobot API client library"
+optional = false
+python-versions = "<4.0,>=3.10"
+groups = ["main"]
+files = [
+    {file = "pynautobot-3.0.0-py3-none-any.whl", hash = "sha256:b24c636517dfdbebdc258d283a99af079e0c278e69d705767db3e8455413590f"},
+    {file = "pynautobot-3.0.0.tar.gz", hash = "sha256:cc0b5ccfd9edc4f7fa9777845ce895bf0f6a6e41610a8bc05c2459463351b0b7"},
+]
+
+[package.dependencies]
+packaging = ">=23.2"
+requests = ">=2.30.0,<3.0.0"
+urllib3 = ">=1.21.1,<3"
+
+[[package]]
+name = "pyparsing"
+version = "3.3.2"
+description = "pyparsing - Classes and methods to define and execute parsing grammars"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "pyparsing-3.3.2-py3-none-any.whl", hash = "sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d"},
+    {file = "pyparsing-3.3.2.tar.gz", hash = "sha256:c777f4d763f140633dcb6d8a3eda953bf7a214dc4eff598413c070bcdc117cbc"},
+]
+
+[package.extras]
+diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pyserial"
@@ -6175,6 +6447,97 @@ files = [
 paramiko = "*"
 
 [[package]]
+name = "scrapli"
+version = "2026.2.20"
+description = "Fast, flexible, sync/async, Python 3.7+ screen scraping client specifically for network devices"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "scrapli-2026.2.20-py3-none-any.whl", hash = "sha256:abbe6f0d70e9b59166e590a74335781e4b5987a488403e08110ce75321a255af"},
+    {file = "scrapli-2026.2.20.tar.gz", hash = "sha256:b6f8492110601c11ca8394d8540814464bb97681b87e92b30bb6853b5213558a"},
+]
+
+[package.extras]
+asyncssh = ["asyncssh (>=2.2.1,<3.0.0)"]
+community = ["scrapli_community (>=2021.1.30)"]
+dev = ["asyncssh (>=2.2.1,<3.0.0)", "black (>=23.3.0,<25.0.0)", "darglint (>=1.8.1,<2.0.0)", "genie (>=20.2) ; sys_platform != \"win32\" and python_version < \"3.13\"", "isort (>=5.10.1,<6.0.0)", "mypy (>=1.4.1,<2.0.0)", "nox (==2024.4.15)", "ntc-templates (>=1.1.0,<8.0.0)", "paramiko (>=2.6.0,<4.0.0)", "pyats (>=20.2) ; sys_platform != \"win32\" and python_version < \"3.13\"", "pydocstyle (>=6.1.1,<7.0.0)", "pyfakefs (>=5.4.1,<6.0.0)", "pylint (>=3.0.0,<4.0.0)", "pytest (>=7.0.0,<8.0.0)", "pytest-asyncio (>=0.17.0,<1.0.0)", "pytest-cov (>=3.0.0,<5.0.0)", "scrapli-cfg (==2023.7.30)", "scrapli-replay (==2023.7.30)", "scrapli_community (>=2021.1.30)", "ssh2-python (>=0.23.0,<2.0.0) ; python_version < \"3.12\"", "textfsm (>=1.1.0,<2.0.0)", "toml (>=0.10.2,<1.0.0)", "ttp (>=0.5.0,<1.0.0)", "types-paramiko (>=2.8.6,<4.0.0)"]
+dev-darwin = ["asyncssh (>=2.2.1,<3.0.0)", "black (>=23.3.0,<25.0.0)", "darglint (>=1.8.1,<2.0.0)", "genie (>=20.2) ; sys_platform != \"win32\" and python_version < \"3.13\"", "isort (>=5.10.1,<6.0.0)", "mypy (>=1.4.1,<2.0.0)", "nox (==2024.4.15)", "ntc-templates (>=1.1.0,<8.0.0)", "paramiko (>=2.6.0,<4.0.0)", "pyats (>=20.2) ; sys_platform != \"win32\" and python_version < \"3.13\"", "pydocstyle (>=6.1.1,<7.0.0)", "pyfakefs (>=5.4.1,<6.0.0)", "pylint (>=3.0.0,<4.0.0)", "pytest (>=7.0.0,<8.0.0)", "pytest-asyncio (>=0.17.0,<1.0.0)", "pytest-cov (>=3.0.0,<5.0.0)", "scrapli-cfg (==2023.7.30)", "scrapli-replay (==2023.7.30)", "scrapli_community (>=2021.1.30)", "textfsm (>=1.1.0,<2.0.0)", "toml (>=0.10.2,<1.0.0)", "ttp (>=0.5.0,<1.0.0)", "types-paramiko (>=2.8.6,<4.0.0)"]
+docs = ["mdx-gh-links (>=0.2,<1.0)", "mkdocs (>=1.2.3,<2.0.0)", "mkdocs-gen-files (>=0.4.0,<1.0.0)", "mkdocs-literate-nav (>=0.5.0,<1.0.0)", "mkdocs-material (>=8.1.6,<10.0.0)", "mkdocs-material-extensions (>=1.0.3,<2.0.0)", "mkdocs-section-index (>=0.3.4,<1.0.0)", "mkdocstrings[python] (>=0.19.0,<1.0.0)"]
+genie = ["genie (>=20.2) ; sys_platform != \"win32\" and python_version < \"3.13\"", "pyats (>=20.2) ; sys_platform != \"win32\" and python_version < \"3.13\""]
+paramiko = ["paramiko (>=2.6.0,<4.0.0)"]
+ssh2 = ["ssh2-python (>=0.23.0,<2.0.0) ; python_version < \"3.12\""]
+textfsm = ["ntc-templates (>=1.1.0,<8.0.0)", "textfsm (>=1.1.0,<2.0.0)"]
+ttp = ["ttp (>=0.5.0,<1.0.0)"]
+
+[[package]]
+name = "scrapli-cfg"
+version = "2025.1.30"
+description = "Network device configuration management with scrapli"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "scrapli_cfg-2025.1.30-py3-none-any.whl", hash = "sha256:aaf0c5f52ed06ba0ffefa860ab947c96b663c98a96f38b90eac567d46906fdf4"},
+    {file = "scrapli_cfg-2025.1.30.tar.gz", hash = "sha256:7ed3b5743116d35d7d65f86d06dd7e74fcc509e1c8df6ddebffdeb7cebed13e8"},
+]
+
+[package.dependencies]
+scrapli = ">=2022.1.30a2"
+
+[package.extras]
+asyncssh = ["asyncssh (>=2.2.1,<3.0.0)"]
+dev = ["asyncssh (>=2.2.1,<3.0.0)", "black (>=23.3.0,<25.0.0)", "darglint (>=1.8.1,<2.0.0)", "isort (>=5.10.1,<6.0.0)", "mypy (>=1.4.1,<2.0.0)", "nox (==2024.4.15)", "paramiko (>=2.6.0,<4.0.0)", "pydocstyle (>=6.1.1,<7.0.0)", "pyfakefs (>=5.4.1,<6.0.0)", "pylint (>=3.0.0,<4.0.0)", "pytest (>=7.0.0,<8.0.0)", "pytest-asyncio (>=0.17.0,<1.0.0)", "pytest-cov (>=3.0.0,<5.0.0)", "scrapli-replay (==2023.7.30)", "ssh2-python (>=0.23.0,<2.0.0) ; python_version < \"3.12\"", "toml (>=0.10.2,<1.0.0)"]
+dev-darwin = ["asyncssh (>=2.2.1,<3.0.0)", "black (>=23.3.0,<25.0.0)", "darglint (>=1.8.1,<2.0.0)", "isort (>=5.10.1,<6.0.0)", "mypy (>=1.4.1,<2.0.0)", "nox (==2024.4.15)", "paramiko (>=2.6.0,<4.0.0)", "pydocstyle (>=6.1.1,<7.0.0)", "pyfakefs (>=5.4.1,<6.0.0)", "pylint (>=3.0.0,<4.0.0)", "pytest (>=7.0.0,<8.0.0)", "pytest-asyncio (>=0.17.0,<1.0.0)", "pytest-cov (>=3.0.0,<5.0.0)", "scrapli-replay (==2023.7.30)", "toml (>=0.10.2,<1.0.0)"]
+docs = ["mdx-gh-links (>=0.2,<1.0)", "mkdocs (>=1.2.3,<2.0.0)", "mkdocs-gen-files (>=0.4.0,<1.0.0)", "mkdocs-literate-nav (>=0.5.0,<1.0.0)", "mkdocs-material (>=8.1.6,<10.0.0)", "mkdocs-material-extensions (>=1.0.3,<2.0.0)", "mkdocs-section-index (>=0.3.4,<1.0.0)", "mkdocstrings[python] (>=0.19.0,<1.0.0)"]
+paramiko = ["paramiko (>=2.6.0,<4.0.0)"]
+ssh2 = ["ssh2-python (>=0.23.0,<2.0.0) ; python_version < \"3.12\""]
+
+[[package]]
+name = "scrapli-community"
+version = "2025.1.30"
+description = "Easily add support for 'non-core' platforms to scrapli"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "scrapli_community-2025.1.30-py3-none-any.whl", hash = "sha256:dc4d02193ec3bb14cec9e04ab0d48fc59d575e1ccedac92fb4b8bbd6f3b6726f"},
+    {file = "scrapli_community-2025.1.30.tar.gz", hash = "sha256:5357d1e471879203f648948adf114d8155a69ca1242060504d9b92f54f79d119"},
+]
+
+[package.dependencies]
+scrapli = ">=2021.7.30a1"
+
+[package.extras]
+dev = ["black (>=23.3.0,<25.0.0)", "darglint (>=1.8.1,<2.0.0)", "isort (>=5.10.1,<6.0.0)", "mypy (>=1.4.1,<2.0.0)", "nox (==2024.4.15)", "pydocstyle (>=6.1.1,<7.0.0)", "pylint (>=3.0.0,<4.0.0)", "pytest (>=7.0.0,<8.0.0)", "pytest-cov (>=3.0.0,<5.0.0)", "toml (>=0.10.2,<1.0.0)"]
+dev-darwin = ["black (>=23.3.0,<25.0.0)", "darglint (>=1.8.1,<2.0.0)", "isort (>=5.10.1,<6.0.0)", "mypy (>=1.4.1,<2.0.0)", "nox (==2024.4.15)", "pydocstyle (>=6.1.1,<7.0.0)", "pylint (>=3.0.0,<4.0.0)", "pytest (>=7.0.0,<8.0.0)", "pytest-cov (>=3.0.0,<5.0.0)", "toml (>=0.10.2,<1.0.0)"]
+docs = ["mdx-gh-links (>=0.2,<1.0)", "mkdocs (>=1.2.3,<2.0.0)", "mkdocs-gen-files (>=0.4.0,<1.0.0)", "mkdocs-literate-nav (>=0.5.0,<1.0.0)", "mkdocs-material (>=8.1.6,<10.0.0)", "mkdocs-material-extensions (>=1.0.3,<2.0.0)", "mkdocs-section-index (>=0.3.4,<1.0.0)", "mkdocstrings[python] (>=0.19.0,<1.0.0)"]
+
+[[package]]
+name = "scrapli-netconf"
+version = "2026.1.12"
+description = "Fast, flexible, sync/async, Python 3.7+ NETCONF client built on scrapli"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "scrapli_netconf-2026.1.12-py3-none-any.whl", hash = "sha256:ec833aa4f29407af2622391c3afb84721af736869edd7d4b1f4b4e9faf9decda"},
+    {file = "scrapli_netconf-2026.1.12.tar.gz", hash = "sha256:6e497d52c986ed8d05504767d84e56487f5887271f1ab59b569fb30e879f8f9b"},
+]
+
+[package.dependencies]
+lxml = ">=4.5.1"
+scrapli = ">=2022.7.30"
+
+[package.extras]
+asyncssh = ["asyncssh (>=2.2.1,<3.0.0)"]
+dev = ["asyncssh (>=2.2.1,<3.0.0)", "black (>=23.3.0,<25.0.0)", "darglint (>=1.8.1,<2.0.0)", "isort (>=5.10.1,<6.0.0)", "mypy (>=1.4.1,<2.0.0)", "nox (==2024.4.15)", "paramiko (>=2.6.0,<4.0.0)", "pydocstyle (>=6.1.1,<7.0.0)", "pylint (>=3.0.0,<4.0.0)", "pytest (>=7.0.0,<8.0.0)", "pytest-asyncio (>=0.17.0,<1.0.0)", "pytest-cov (>=3.0.0,<5.0.0)", "ssh2-python (>=0.23.0,<2.0.0) ; python_version < \"3.12\"", "toml (>=0.10.2,<1.0.0)"]
+dev-darwin = ["asyncssh (>=2.2.1,<3.0.0)", "black (>=23.3.0,<25.0.0)", "darglint (>=1.8.1,<2.0.0)", "isort (>=5.10.1,<6.0.0)", "mypy (>=1.4.1,<2.0.0)", "nox (==2024.4.15)", "paramiko (>=2.6.0,<4.0.0)", "pydocstyle (>=6.1.1,<7.0.0)", "pylint (>=3.0.0,<4.0.0)", "pytest (>=7.0.0,<8.0.0)", "pytest-asyncio (>=0.17.0,<1.0.0)", "pytest-cov (>=3.0.0,<5.0.0)", "toml (>=0.10.2,<1.0.0)"]
+docs = ["mdx-gh-links (>=0.2,<1.0)", "mkdocs (>=1.2.3,<2.0.0)", "mkdocs-gen-files (>=0.4.0,<1.0.0)", "mkdocs-literate-nav (>=0.5.0,<1.0.0)", "mkdocs-material (>=8.1.6,<10.0.0)", "mkdocs-material-extensions (>=1.0.3,<2.0.0)", "mkdocs-section-index (>=0.3.4,<1.0.0)", "mkdocstrings[python] (>=0.19.0,<1.0.0)"]
+paramiko = ["paramiko (>=2.6.0,<4.0.0)"]
+ssh2 = ["ssh2-python (>=0.23.0,<2.0.0) ; python_version < \"3.12\""]
+
+[[package]]
 name = "setuptools"
 version = "82.0.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
@@ -6249,6 +6612,18 @@ groups = ["main"]
 files = [
     {file = "smmap-5.0.2-py3-none-any.whl", hash = "sha256:b30115f0def7d7531d22a0fb6502488d879e75b260a9db4d0819cfb25403af5e"},
     {file = "smmap-5.0.2.tar.gz", hash = "sha256:26ea65a03958fa0c8a1c7e8c7a58fdc77221b8910f6be2131affade476898ad5"},
+]
+
+[[package]]
+name = "sniffio"
+version = "1.3.1"
+description = "Sniff out which async library your code is running under"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "sniffio-1.3.1-py3-none-any.whl", hash = "sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2"},
+    {file = "sniffio-1.3.1.tar.gz", hash = "sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc"},
 ]
 
 [[package]]
@@ -6567,6 +6942,59 @@ docs = ["myst-parser", "pydata-sphinx-theme", "sphinx"]
 test = ["argcomplete (>=3.0.3)", "mypy (>=1.7.0)", "pre-commit", "pytest (>=7.0,<8.2)", "pytest-mock", "pytest-mypy-testing"]
 
 [[package]]
+name = "transitions"
+version = "0.9.3"
+description = "A lightweight, object-oriented Python state machine implementation with many extensions."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "transitions-0.9.3-py2.py3-none-any.whl", hash = "sha256:02463248f2b668d86f66636b1e3c9e8de84d93e22915247f4e1aa9ee1cae28aa"},
+    {file = "transitions-0.9.3.tar.gz", hash = "sha256:881fb75bb1654ed55d86060bb067f2c716f8e155f57bb73fd444e53713aafec8"},
+]
+
+[package.dependencies]
+six = "*"
+
+[package.extras]
+diagrams = ["pygraphviz"]
+test = ["pytest"]
+
+[[package]]
+name = "ttp"
+version = "0.10.1"
+description = "Template Text Parser"
+optional = false
+python-versions = "<4.0,>=3.9"
+groups = ["main"]
+files = [
+    {file = "ttp-0.10.1-py3-none-any.whl", hash = "sha256:2c8bc871f7740b690c6df6fb8c9633be58fcda123eea3e53be40a79e4af54b83"},
+    {file = "ttp-0.10.1.tar.gz", hash = "sha256:9c928aeb1f2dade05419c7ecc756d62cb45857deb5cc6b1b9f2058e70f25ae59"},
+]
+
+[package.extras]
+docs = ["Sphinx (==8.2.*) ; python_version >= \"3.11\"", "readthedocs-sphinx-search (==0.3.*) ; python_version >= \"3.11\"", "sphinx_rtd_theme (==3.0.*) ; python_version >= \"3.11\"", "sphinxcontrib-applehelp (==2.0.*) ; python_version >= \"3.11\"", "sphinxcontrib-devhelp (==2.0.*) ; python_version >= \"3.11\"", "sphinxcontrib-htmlhelp (==2.1.*) ; python_version >= \"3.11\"", "sphinxcontrib-jsmath (==1.0.*) ; python_version >= \"3.11\"", "sphinxcontrib-napoleon (==0.7) ; python_version >= \"3.11\"", "sphinxcontrib-qthelp (==2.0.*) ; python_version >= \"3.11\"", "sphinxcontrib-serializinghtml (==2.0.*) ; python_version >= \"3.11\"", "sphinxcontrib-spelling (==8.0.*) ; python_version >= \"3.11\""]
+full = ["cerberus (==1.3.*) ; python_version >= \"3.9\"", "deepdiff (==8.6.*) ; python_version >= \"3.9\"", "jinja2 (==3.1.*) ; python_version >= \"3.9\"", "n2g (==0.3.*) ; python_version >= \"3.9\"", "openpyxl (==3.0.*) ; python_version >= \"3.9\"", "pyyaml (==6.0.3) ; python_version >= \"3.9\"", "tabulate (==0.9.*) ; python_version >= \"3.9\"", "ttp_templates (==0.*) ; python_version >= \"3.9\"", "yangson (==1.6.*) ; python_version >= \"3.9\""]
+
+[[package]]
+name = "ttp-templates"
+version = "0.5.1"
+description = "Template Text Parser Templates collections"
+optional = false
+python-versions = "<4.0,>=3.10"
+groups = ["main"]
+files = [
+    {file = "ttp_templates-0.5.1-py3-none-any.whl", hash = "sha256:eb3af31b312ffb2ce501c4d7b2c055fc946ee63ea32e7ac60145ee0322dbcf27"},
+    {file = "ttp_templates-0.5.1.tar.gz", hash = "sha256:7aa868abfb3942905a953d160af51139340495cf087529630a162a7994b3f81b"},
+]
+
+[package.dependencies]
+ttp = ">=0.6.0"
+
+[package.extras]
+docs = ["mkdocs", "mkdocs-material", "mkdocs-material-extensions", "mkdocstrings[python]", "pygments", "pymdown-extensions"]
+
+[[package]]
 name = "typing-extensions"
 version = "4.15.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
@@ -6863,6 +7291,21 @@ pyyaml = "*"
 dev = ["doc8", "flake8", "flake8-import-order", "rstcheck[sphinx]", "ruff", "sphinx"]
 
 [[package]]
+name = "yamlordereddictloader"
+version = "0.4.2"
+description = "YAML loader and dumper for PyYAML allowing to keep keys order."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "yamlordereddictloader-0.4.2-py3-none-any.whl", hash = "sha256:dc048adb67026786cd24119bd71241f35bc8b0fd37d24b415c37bbc8049f9cd7"},
+    {file = "yamlordereddictloader-0.4.2.tar.gz", hash = "sha256:36af2f6210fcff5da4fc4c12e1d815f973dceb41044e795e1f06115d634bca13"},
+]
+
+[package.dependencies]
+pyyaml = "*"
+
+[[package]]
 name = "yang-connector"
 version = "25.3"
 description = "YANG defined interface API protocol connector"
@@ -7038,4 +7481,4 @@ meraki = ["meraki"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "b5248578ac83544dfba76735ec959d582c1e1a184eb7b8f17f419d447b3feeae"
+content-hash = "6e93c5a7305c80595f4a40230969a3cd013a72e07375c483539f993a94201a04"
