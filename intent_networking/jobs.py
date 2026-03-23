@@ -657,9 +657,18 @@ class IntentDeploymentJob(Job):
                 )
 
         # ── Nornir / device-level push ────────────────────────────────────
+        from nornir.core.plugins.inventory import InventoryPluginRegister  # noqa: PLC0415
+
+        from nautobot_plugin_nornir.plugins.inventory.nautobot_orm import NautobotORMInventory  # noqa: PLC0415
+
+        try:
+            InventoryPluginRegister.register("nautobot-inventory", NautobotORMInventory)
+        except KeyError:
+            pass  # already registered
+
         nr = InitNornir(
             inventory={
-                "plugin": "NautobotORMInventory",
+                "plugin": "nautobot-inventory",
                 "options": {
                     "queryset": Device.objects.filter(name__in=list(rendered_configs.keys())),
                 },

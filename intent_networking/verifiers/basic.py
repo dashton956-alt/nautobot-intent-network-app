@@ -246,11 +246,19 @@ class BasicVerifier:
         """Collect live state from device via Nornir."""
         from nautobot.dcim.models import Device  # noqa: PLC0415
         from nornir import InitNornir  # noqa: PLC0415
+        from nornir.core.plugins.inventory import InventoryPluginRegister  # noqa: PLC0415
         from nornir_netmiko.tasks import netmiko_send_command  # noqa: PLC0415
+
+        from nautobot_plugin_nornir.plugins.inventory.nautobot_orm import NautobotORMInventory  # noqa: PLC0415
+
+        try:
+            InventoryPluginRegister.register("nautobot-inventory", NautobotORMInventory)
+        except KeyError:
+            pass  # already registered
 
         nr = InitNornir(
             inventory={
-                "plugin": "NautobotORMInventory",
+                "plugin": "nautobot-inventory",
                 "options": {
                     "queryset": Device.objects.filter(name=device.name),
                 },
@@ -343,6 +351,7 @@ class BasicVerifier:
 
         try:
             from nornir import InitNornir  # noqa: PLC0415
+            from nornir.core.plugins.inventory import InventoryPluginRegister  # noqa: PLC0415
             from nornir_netmiko.tasks import netmiko_send_command  # noqa: PLC0415
         except ImportError:
             logger.warning("nornir/nornir_netmiko not installed — latency measurement skipped.")
@@ -351,9 +360,16 @@ class BasicVerifier:
         try:
             from nautobot.dcim.models import Device as DeviceModel  # noqa: PLC0415
 
+            from nautobot_plugin_nornir.plugins.inventory.nautobot_orm import NautobotORMInventory  # noqa: PLC0415
+
+            try:
+                InventoryPluginRegister.register("nautobot-inventory", NautobotORMInventory)
+            except KeyError:
+                pass  # already registered
+
             nr = InitNornir(
                 inventory={
-                    "plugin": "NautobotORMInventory",
+                    "plugin": "nautobot-inventory",
                     "options": {
                         "queryset": DeviceModel.objects.filter(name=device.name),
                     },

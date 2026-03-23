@@ -119,11 +119,17 @@ if not _TESTING:
 #
 
 # Enable installed Apps. Add the name of each App to the list.
-PLUGINS = ["intent_networking"]
+PLUGINS = ["nautobot_plugin_nornir", "intent_networking"]
 
 # Apps configuration settings. These settings are used by various Apps that the user may have installed.
 # Each key in the dictionary is the name of an installed App and its value is a dictionary of settings.
 PLUGINS_CONFIG = {
+    "nautobot_plugin_nornir": {
+        "use_config_context": {"secrets": False, "connection_options": True},
+        "nornir_settings": {
+            "credentials": "nautobot_plugin_nornir.plugins.credentials.nautobot_secrets.CredentialsNautobotSecrets",
+        },
+    },
     "intent_networking": {
         # --- Required settings ---
         "vrf_namespace": "Global",
