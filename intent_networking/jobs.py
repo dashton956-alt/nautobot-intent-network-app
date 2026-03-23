@@ -52,7 +52,6 @@ from intent_networking.models import (
 )
 from intent_networking.notifications import notify_slack, raise_github_issue
 from intent_networking.resolver import resolve_intent
-from intent_networking.secrets import get_device_credentials, get_nautobot_token
 
 logger = logging.getLogger(__name__)
 
@@ -658,17 +657,11 @@ class IntentDeploymentJob(Job):
                 )
 
         # ── Nornir / device-level push ────────────────────────────────────
-        username, password = get_device_credentials()
-
         nr = InitNornir(
             inventory={
-                "plugin": "NautobotInventory",
+                "plugin": "NautobotORMInventory",
                 "options": {
-                    "nautobot_url": _nautobot_url(),
-                    "nautobot_token": get_nautobot_token(),
-                    "filter_parameters": {"name__in": list(rendered_configs.keys())},
-                    "username": username,
-                    "password": password,
+                    "queryset": Device.objects.filter(name__in=list(rendered_configs.keys())),
                 },
             },
             logging={"enabled": False},

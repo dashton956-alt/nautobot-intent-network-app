@@ -17,8 +17,6 @@ import logging
 import os
 import re
 
-from intent_networking.secrets import get_device_credentials, get_nautobot_token
-
 logger = logging.getLogger(__name__)
 
 
@@ -246,20 +244,15 @@ class BasicVerifier:
 
     def _collect_device_state(self, device):
         """Collect live state from device via Nornir."""
+        from nautobot.dcim.models import Device  # noqa: PLC0415
         from nornir import InitNornir  # noqa: PLC0415
         from nornir_netmiko.tasks import netmiko_send_command  # noqa: PLC0415
 
-        username, password = get_device_credentials()
-
         nr = InitNornir(
             inventory={
-                "plugin": "NautobotInventory",
+                "plugin": "NautobotORMInventory",
                 "options": {
-                    "nautobot_url": _nautobot_url(),
-                    "nautobot_token": get_nautobot_token(),
-                    "filter_parameters": {"name": device.name},
-                    "username": username,
-                    "password": password,
+                    "queryset": Device.objects.filter(name=device.name),
                 },
             },
             logging={"enabled": False},
@@ -356,13 +349,13 @@ class BasicVerifier:
             return 0
 
         try:
+            from nautobot.dcim.models import Device as DeviceModel  # noqa: PLC0415
+
             nr = InitNornir(
                 inventory={
-                    "plugin": "NautobotInventory",
+                    "plugin": "NautobotORMInventory",
                     "options": {
-                        "nautobot_url": _nautobot_url(),
-                        "nautobot_token": get_nautobot_token(),
-                        "filter_parameters": {"name": device.name},
+                        "queryset": DeviceModel.objects.filter(name=device.name),
                     },
                 },
                 logging={"enabled": False},

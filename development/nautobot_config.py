@@ -136,8 +136,8 @@ PLUGINS_CONFIG = {
         # --- Secrets Group integration (recommended over plaintext) ---
         # Each setting names a Nautobot SecretsGroup. Create the SecretsGroup
         # in Nautobot (Secrets → Secrets Groups) then reference its name here.
-        # "device_secrets_group": "Network Device Credentials",
-        # "nautobot_api_secrets_group": "Nautobot API Token",
+        "device_secrets_group": "Network Device Credentials",
+        "nautobot_api_secrets_group": "Nautobot API Token",
         # "servicenow_secrets_group": "ServiceNow Credentials",
         # "github_secrets_group": "GitHub Token",
         # "slack_secrets_group": "Slack Webhook",
