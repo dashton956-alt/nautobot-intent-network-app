@@ -32,6 +32,7 @@ python = ">=3.10,<3.13"
 nautobot = ">=3.0.0,<4.0.0"
 requests = "^2.32.5"
 jinja2 = "^3.1.6"
+nautobot-plugin-nornir = "^3.0.0"
 nornir = "^3.5.0"
 nornir-netmiko = "^1.0.1"
 # Optional: extended verification via pyATS/Genie (requires Python <=3.12)

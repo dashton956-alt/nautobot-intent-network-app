@@ -309,3 +309,6 @@ public
 /compose.yaml
 /dump.sql
 /intent_networking/static/intent_networking/docs
+
+# Seed data (test/local seed scripts)
+development/seed_*_test.py
