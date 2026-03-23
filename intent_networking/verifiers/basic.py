@@ -265,6 +265,24 @@ class BasicVerifier:
             logging={"enabled": False},
         )
 
+        # Verify the device made it into the Nornir inventory
+        if device.name not in nr.inventory.hosts:
+            logger.error(
+                "Device '%s' not found in Nornir inventory. Hosts present: %s. "
+                "Check that the device has a Platform with network_driver set and "
+                "a Secrets Group with valid credentials.",
+                device.name,
+                list(nr.inventory.hosts.keys()),
+            )
+            return {
+                "vrfs": [],
+                "bgp_sessions": {},
+                "prefix_count": {},
+                "acls": [],
+                "ospf_neighbor_count": 0,
+                "vlans": [],
+            }
+
         state = {
             "vrfs": [],
             "bgp_sessions": {},
