@@ -872,6 +872,255 @@ INTENTS = [
             "replay_protection": True,
         },
     },
+    # ── Syslog Management ─────────────────────────────────────────────────
+    {
+        "intent_id": "lab-mgmt-syslog-001",
+        "intent_type": IntentTypeChoices.MGMT_SYSLOG,
+        "status": "Draft",
+        "version": 1,
+        "change_ticket": "CHG0050020",
+        "git_branch": "main",
+        "controller_type": "nornir",
+        "deployment_strategy": "all_at_once",
+        "verification_level": "basic",
+        "verification_trigger": "on_deploy",
+        "verification_fail_action": "alert",
+        "intent_data": {
+            "type": "mgmt_syslog",
+            "name": "Syslog Configuration",
+            "description": "Syslog forwarding to central collectors — all lab devices",
+            "scope": {"all_tenant_devices": True},
+            "servers": ["10.255.0.50", "10.255.0.51"],
+            "facility": "local7",
+            "severity": "informational",
+            "source_interface": "Management1",
+        },
+    },
+    # ── NetFlow / IPFIX ───────────────────────────────────────────────────
+    {
+        "intent_id": "lab-mgmt-netflow-001",
+        "intent_type": IntentTypeChoices.MGMT_NETFLOW,
+        "status": "Draft",
+        "version": 1,
+        "change_ticket": "CHG0050021",
+        "git_branch": "main",
+        "controller_type": "nornir",
+        "deployment_strategy": "all_at_once",
+        "verification_level": "basic",
+        "verification_trigger": "on_deploy",
+        "verification_fail_action": "alert",
+        "intent_data": {
+            "type": "mgmt_netflow",
+            "name": "NetFlow Export",
+            "description": "NetFlow v9 export from uplinks to central collector",
+            "scope": {"devices": ["lab-arista-sw01"]},
+            "collector_ip": "10.255.0.60",
+            "collector_port": 9995,
+            "source_interface": "Loopback0",
+            "sampler_rate": 1000,
+            "apply_interfaces": ["Ethernet49/1", "Ethernet50/1"],
+        },
+    },
+    # ── Streaming Telemetry ───────────────────────────────────────────────
+    {
+        "intent_id": "lab-mgmt-telemetry-001",
+        "intent_type": IntentTypeChoices.MGMT_TELEMETRY,
+        "status": "Draft",
+        "version": 1,
+        "change_ticket": "CHG0050022",
+        "git_branch": "main",
+        "controller_type": "nornir",
+        "deployment_strategy": "all_at_once",
+        "verification_level": "basic",
+        "verification_trigger": "on_deploy",
+        "verification_fail_action": "alert",
+        "intent_data": {
+            "type": "mgmt_telemetry",
+            "name": "gRPC Streaming Telemetry",
+            "description": "gRPC dial-out telemetry for interface and BGP counters",
+            "scope": {"devices": ["lab-arista-sw01"]},
+            "destination_ip": "10.255.0.70",
+            "destination_port": 57000,
+            "protocol": "grpc",
+            "encoding": "gpb",
+            "subscriptions": [
+                {"path": "/interfaces/interface/state/counters", "interval_ms": 10000},
+                {"path": "/network-instances/network-instance/protocols/protocol/bgp", "interval_ms": 30000},
+            ],
+            "source_interface": "Management1",
+        },
+    },
+    # ── SSH Access Control ────────────────────────────────────────────────
+    {
+        "intent_id": "lab-mgmt-ssh-001",
+        "intent_type": IntentTypeChoices.MGMT_SSH,
+        "status": "Draft",
+        "version": 1,
+        "change_ticket": "CHG0050023",
+        "git_branch": "main",
+        "controller_type": "nornir",
+        "deployment_strategy": "all_at_once",
+        "verification_level": "basic",
+        "verification_trigger": "on_deploy",
+        "verification_fail_action": "alert",
+        "intent_data": {
+            "type": "mgmt_ssh",
+            "name": "SSH Hardening",
+            "description": "SSH access restricted to management subnet — all lab devices",
+            "scope": {"all_tenant_devices": True},
+            "allowed_networks": ["10.255.0.0/24", "10.0.0.0/24"],
+            "timeout": 60,
+            "retries": 3,
+            "key_type": "rsa",
+            "key_size": 4096,
+            "acl_name": "SSH-MGMT-ONLY",
+        },
+    },
+    # ── NETCONF / RESTCONF ────────────────────────────────────────────────
+    {
+        "intent_id": "lab-mgmt-netconf-001",
+        "intent_type": IntentTypeChoices.MGMT_NETCONF,
+        "status": "Draft",
+        "version": 1,
+        "change_ticket": "CHG0050024",
+        "git_branch": "main",
+        "controller_type": "nornir",
+        "deployment_strategy": "all_at_once",
+        "verification_level": "basic",
+        "verification_trigger": "on_deploy",
+        "verification_fail_action": "alert",
+        "intent_data": {
+            "type": "mgmt_netconf",
+            "name": "NETCONF and RESTCONF Enablement",
+            "description": "Enable NETCONF and RESTCONF for automation — all lab devices",
+            "scope": {"all_tenant_devices": True},
+            "netconf_enabled": True,
+            "netconf_port": 830,
+            "netconf_vrf": "",
+            "restconf_enabled": True,
+            "restconf_port": 6020,
+            "gnmi_enabled": False,
+            "gnmi_port": 6030,
+        },
+    },
+    # ── DHCP Server ───────────────────────────────────────────────────────
+    {
+        "intent_id": "lab-mgmt-dhcp-server-001",
+        "intent_type": IntentTypeChoices.MGMT_DHCP_SERVER,
+        "status": "Draft",
+        "version": 1,
+        "change_ticket": "CHG0050025",
+        "git_branch": "main",
+        "controller_type": "nornir",
+        "deployment_strategy": "all_at_once",
+        "verification_level": "basic",
+        "verification_trigger": "on_deploy",
+        "verification_fail_action": "alert",
+        "intent_data": {
+            "type": "mgmt_dhcp_server",
+            "name": "DHCP Server — Server MGMT Pool",
+            "description": "DHCP pool for server management VLAN on lab-arista-sw01",
+            "scope": {"devices": ["lab-arista-sw01"]},
+            "pools": [
+                {
+                    "name": "SERVER-MGMT",
+                    "network": "10.20.3.0/24",
+                    "default_router": "10.20.3.1",
+                    "dns_server": "10.255.0.10",
+                    "lease_time": 86400,
+                    "domain_name": "mgmt.arista-lab.local",
+                },
+            ],
+            "excluded_addresses": [
+                {"start": "10.20.3.1", "end": "10.20.3.10"},
+            ],
+            "lease_time": 86400,
+        },
+    },
+    # ── DNS Configuration ─────────────────────────────────────────────────
+    {
+        "intent_id": "lab-mgmt-dns-001",
+        "intent_type": IntentTypeChoices.MGMT_DNS_DHCP,
+        "status": "Draft",
+        "version": 1,
+        "change_ticket": "CHG0050026",
+        "git_branch": "main",
+        "controller_type": "nornir",
+        "deployment_strategy": "all_at_once",
+        "verification_level": "basic",
+        "verification_trigger": "on_deploy",
+        "verification_fail_action": "alert",
+        "intent_data": {
+            "type": "mgmt_dns_dhcp",
+            "name": "DNS Resolver Configuration",
+            "description": "DNS resolvers and domain search list — all lab devices",
+            "scope": {"all_tenant_devices": True},
+            "dns_servers": ["10.255.0.10", "10.255.0.11"],
+            "domain_name": "arista-lab.local",
+            "domain_list": ["arista-lab.local", "dc1.arista-lab.local"],
+        },
+    },
+    # ── Firewall Rules ────────────────────────────────────────────────────
+    {
+        "intent_id": "lab-fw-rule-001",
+        "intent_type": IntentTypeChoices.FW_RULE,
+        "status": "Draft",
+        "version": 1,
+        "change_ticket": "CHG0050027",
+        "git_branch": "main",
+        "controller_type": "nornir",
+        "deployment_strategy": "all_at_once",
+        "verification_level": "basic",
+        "verification_trigger": "on_deploy",
+        "verification_fail_action": "alert",
+        "intent_data": {
+            "type": "fw_rule",
+            "name": "Server Ingress Firewall Rules",
+            "description": "Stateful firewall rules on server-facing interfaces",
+            "scope": {"devices": ["lab-arista-sw01"]},
+            "policy_name": "SERVER-INGRESS",
+            "firewall_type": "stateful",
+            "default_action": "deny",
+            "rules": [
+                {
+                    "description": "Allow SSH from management",
+                    "action": "permit",
+                    "protocol": "tcp",
+                    "source": "10.255.0.0/24",
+                    "destination": "10.20.0.0/16",
+                    "port": 22,
+                    "log": False,
+                },
+                {
+                    "description": "Allow HTTPS from any",
+                    "action": "permit",
+                    "protocol": "tcp",
+                    "source": "any",
+                    "destination": "10.20.0.0/24",
+                    "port": 443,
+                    "log": True,
+                },
+                {
+                    "description": "Allow ICMP",
+                    "action": "permit",
+                    "protocol": "icmp",
+                    "source": "any",
+                    "destination": "any",
+                    "log": False,
+                },
+                {
+                    "description": "Deny all other traffic",
+                    "action": "deny",
+                    "protocol": "ip",
+                    "source": "any",
+                    "destination": "any",
+                    "log": True,
+                },
+            ],
+            "apply_interfaces": ["Ethernet1", "Ethernet2"],
+            "direction": "in",
+        },
+    },
 ]
 
 intents = {}
@@ -902,11 +1151,19 @@ for data in INTENTS:
         },
     )
     if not created:
-        # Update intent_data for existing intents so resolver fields stay in sync
+        # Reset intent to Draft so user can re-test full lifecycle
         intent.intent_data = data["intent_data"]
-        intent.save(update_fields=["intent_data"])
+        intent.status = status_map["Draft"]
+        intent.version = 1
+        intent.deployed_at = None
+        intent.last_verified_at = None
+        intent.rendered_configs = {}
+        intent.save(update_fields=[
+            "intent_data", "status", "version",
+            "deployed_at", "last_verified_at", "rendered_configs",
+        ])
     intents[data["intent_id"]] = intent
-    print(f"  {'Created' if created else 'Updated'} intent: {data['intent_id']} [{data['status']}]")
+    print(f"  {'Created' if created else 'Reset  '} intent: {data['intent_id']} → Draft")
 
 # ── Set dependencies: L2VNI depends on fabric, L3VNI depends on fabric ────
 intents["lab-dc-l2vni-prod-001"].dependencies.add(intents["lab-dc-evpn-fabric-001"])
