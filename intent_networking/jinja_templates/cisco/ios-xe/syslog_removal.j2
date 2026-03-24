@@ -1,0 +1,12 @@
+{# syslog_removal.j2 — ios-xe #}
+! Remove Syslog Configuration
+! Intent: {{ intent_id }}
+!
+{% for server in servers %}
+no logging host {{ server }}
+{% endfor %}
+{% if source_interface %}
+no logging source-interface {{ source_interface }}
+{% endif %}
+no logging on
+!

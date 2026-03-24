@@ -1,0 +1,17 @@
+{# netflow_removal.j2 — arista-eos #}
+! Remove NetFlow / sFlow Configuration
+! Intent: {{ intent_id }}
+!
+{% for intf in apply_interfaces %}
+interface {{ intf }}
+   no sflow enable
+!
+{% endfor %}
+no sflow run
+{% if collector_ip %}
+no sflow destination {{ collector_ip }}
+{% endif %}
+{% if source_interface %}
+no sflow source-interface {{ source_interface }}
+{% endif %}
+!

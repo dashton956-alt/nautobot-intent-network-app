@@ -1,0 +1,12 @@
+{# netconf_removal.j2 — arista-eos #}
+! Remove NETCONF / RESTCONF Configuration
+! Intent: {{ intent_id }}
+!
+no management api netconf
+!
+{% if enable_restconf %}
+management api http-commands
+   shutdown
+!
+{% endif %}
+!

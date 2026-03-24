@@ -68,5 +68,8 @@ RUN if [ -z "${CI+x}" ]; then \
 # Install the app
 RUN poetry install --extras all --with dev
 
+# Pin setuptools < 71 so that napalm's "import pkg_resources" keeps working
+RUN pip install "setuptools<71"
+
 COPY development/nautobot_config.py ${NAUTOBOT_ROOT}/nautobot_config.py
 # !!! USE CAUTION WHEN MODIFYING LINES ABOVE

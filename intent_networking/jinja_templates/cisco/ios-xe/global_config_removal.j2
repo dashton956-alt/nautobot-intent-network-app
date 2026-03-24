@@ -1,0 +1,78 @@
+{# global_config_removal.j2 — ios-xe #}
+! ═══════════════════════════════════════════════════════════
+! Remove Global Configuration Bundle
+! Intent: {{ intent_id }}
+! ═══════════════════════════════════════════════════════════
+!
+{% for server in ntp_servers | default([]) %}
+no ntp server {{ server }}
+{% endfor %}
+{% if ntp_source_interface %}
+no ntp source {{ ntp_source_interface }}
+{% endif %}
+!
+{% for server in syslog_servers | default([]) %}
+no logging host {{ server }}
+{% endfor %}
+{% if syslog_source_interface %}
+no logging source-interface {{ syslog_source_interface }}
+{% endif %}
+!
+{% if snmp_version == "v3" %}
+{% for user in snmp_users | default([]) %}
+no snmp-server user {{ user.name }} {{ user.group }} v3
+{% endfor %}
+{% for group in snmp_groups | default([]) %}
+no snmp-server group {{ group.name }} v3 {{ group.security_level | default("priv") }}
+{% endfor %}
+{% for view in snmp_views | default([]) %}
+no snmp-server view {{ view.name }}
+{% endfor %}
+{% elif snmp_community %}
+no snmp-server community {{ snmp_community }}
+{% endif %}
+{% for target in snmp_trap_targets | default([]) %}
+no snmp-server host {{ target }}
+{% endfor %}
+{% if snmp_location %}
+no snmp-server location
+{% endif %}
+{% if snmp_contact %}
+no snmp-server contact
+{% endif %}
+!
+{% for server in dns_servers | default([]) %}
+no ip name-server {{ server }}
+{% endfor %}
+{% if domain_name %}
+no ip domain name {{ domain_name }}
+{% endif %}
+!
+{% if login_banner %}
+no banner login
+{% endif %}
+{% if motd_banner %}
+no banner motd
+{% endif %}
+!
+{% if enable_netconf %}
+no netconf-yang
+{% endif %}
+{% if enable_restconf %}
+no restconf
+{% endif %}
+!
+{% if enable_lldp is defined and enable_lldp %}
+no lldp run
+{% endif %}
+{% if enable_cdp is defined and enable_cdp %}
+no cdp run
+{% endif %}
+!
+{% for pool in dhcp_pools | default([]) %}
+no ip dhcp pool {{ pool.name }}
+{% for exclude in pool.excluded_addresses | default([]) %}
+no ip dhcp excluded-address {{ exclude }}
+{% endfor %}
+{% endfor %}
+!

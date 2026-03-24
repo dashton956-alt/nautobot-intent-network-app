@@ -1,0 +1,29 @@
+{# snmp_removal.j2 — arista-eos #}
+! Remove SNMP Configuration
+! Intent: {{ intent_id }}
+!
+{% if version == "v3" %}
+{% for user in users %}
+no snmp-server user {{ user.name }} {{ user.group }} v3
+{% endfor %}
+{% for group in groups %}
+no snmp-server group {{ group.name }} v3 {{ group.security_level | default("priv") }}
+{% endfor %}
+{% for view in views %}
+no snmp-server view {{ view.name }}
+{% endfor %}
+{% else %}
+{% if community %}
+no snmp-server community {{ community }}
+{% endif %}
+{% endif %}
+{% for target in trap_targets %}
+no snmp-server host {{ target }}
+{% endfor %}
+{% if location %}
+no snmp-server location
+{% endif %}
+{% if contact %}
+no snmp-server contact
+{% endif %}
+!

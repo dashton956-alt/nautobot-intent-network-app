@@ -1,0 +1,11 @@
+{# motd_removal.j2 — ios-xe #}
+! Remove Banner / MOTD Configuration
+! Intent: {{ intent_id }}
+!
+{% if login_banner %}
+no banner login
+{% endif %}
+{% if motd_banner %}
+no banner motd
+{% endif %}
+!

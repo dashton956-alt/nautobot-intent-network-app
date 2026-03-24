@@ -1,0 +1,14 @@
+{# dns_removal.j2 — arista-eos #}
+! Remove DNS Configuration
+! Intent: {{ intent_id }}
+!
+{% for server in servers %}
+no name-server {{ server }}
+{% endfor %}
+{% if domain_name %}
+no dns domain {{ domain_name }}
+{% endif %}
+{% for domain in domain_list %}
+no dns domain {{ domain }}
+{% endfor %}
+!

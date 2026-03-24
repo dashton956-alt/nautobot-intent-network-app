@@ -1,0 +1,9 @@
+{# dhcp_server_removal.j2 — arista-eos #}
+! Remove DHCP Server Configuration
+! Intent: {{ intent_id }}
+!
+{% for pool in pools %}
+no dhcp server
+!
+{% endfor %}
+!

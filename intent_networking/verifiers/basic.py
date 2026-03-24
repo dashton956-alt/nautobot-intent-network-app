@@ -245,6 +245,7 @@ class BasicVerifier:
     def _collect_device_state(self, device):
         """Collect live state from device via Nornir."""
         from nautobot.dcim.models import Device  # noqa: PLC0415
+        from nautobot_plugin_nornir.constants import PLUGIN_CFG  # noqa: PLC0415
         from nautobot_plugin_nornir.plugins.inventory.nautobot_orm import NautobotORMInventory  # noqa: PLC0415
         from nornir import InitNornir  # noqa: PLC0415
         from nornir.core.plugins.inventory import InventoryPluginRegister  # noqa: PLC0415
@@ -255,11 +256,16 @@ class BasicVerifier:
         except KeyError:
             pass  # already registered
 
+        creds_class = PLUGIN_CFG.get("nornir_settings", {}).get(
+            "credentials",
+            "nautobot_plugin_nornir.plugins.credentials.env_vars.CredentialsEnvVars",
+        )
         nr = InitNornir(
             inventory={
                 "plugin": "nautobot-inventory",
                 "options": {
                     "queryset": Device.objects.filter(name=device.name),
+                    "credentials_class": creds_class,
                 },
             },
             logging={"enabled": False},
@@ -294,14 +300,22 @@ class BasicVerifier:
         platform = device.platform.name if device.platform else ""
         is_arista = platform == "arista-eos"
 
+        def _host_result(agg_result, host_name):
+            """Safely retrieve a host's MultiResult from an AggregatedResult."""
+            if host_name not in agg_result:
+                logger.warning("Host '%s' not in task result (0 hosts selected — check credentials).", host_name)
+                return None
+            return agg_result[host_name]
+
         # Collect VRF list
         vrf_result = nr.run(
             task=netmiko_send_command,
             command_string="show vrf" if is_arista else "show vrf brief",
             use_textfsm=True,
         )
-        if not vrf_result[device.name].failed:
-            for row in vrf_result[device.name].result:
+        hr = _host_result(vrf_result, device.name)
+        if hr and not hr.failed and isinstance(hr.result, list):
+            for row in hr.result:
                 state["vrfs"].append(row.get("name", ""))
 
         # Collect BGP state
@@ -315,8 +329,9 @@ class BasicVerifier:
                 ),
                 use_textfsm=True,
             )
-            if not bgp_result[device.name].failed:
-                for neighbor in bgp_result[device.name].result:
+            hr = _host_result(bgp_result, device.name)
+            if hr and not hr.failed and isinstance(hr.result, list):
+                for neighbor in hr.result:
                     state["bgp_sessions"][self.plan.vrf_name] = {
                         "state": neighbor.get("state_pfxrcd", "Unknown"),
                         "prefixes": neighbor.get("state_pfxrcd", 0),
@@ -327,8 +342,9 @@ class BasicVerifier:
                 command_string="show ip bgp summary" if is_arista else "show bgp summary",
                 use_textfsm=True,
             )
-            if not bgp_result[device.name].failed:
-                for neighbor in bgp_result[device.name].result:
+            hr = _host_result(bgp_result, device.name)
+            if hr and not hr.failed and isinstance(hr.result, list):
+                for neighbor in hr.result:
                     state["bgp_sessions"]["global"] = {
                         "state": neighbor.get("state_pfxrcd", "Unknown"),
                         "prefixes": neighbor.get("state_pfxrcd", 0),
@@ -340,14 +356,16 @@ class BasicVerifier:
             command_string="show ip access-lists" if is_arista else "show access-lists",
             use_textfsm=True,
         )
-        if not acl_result[device.name].failed:
-            for acl in acl_result[device.name].result:
+        hr = _host_result(acl_result, device.name)
+        if hr and not hr.failed and isinstance(hr.result, list):
+            for acl in hr.result:
                 state["acls"].append(acl.get("name", ""))
 
         # Collect VLANs
         vlan_result = nr.run(task=netmiko_send_command, command_string="show vlan", use_textfsm=False)
-        if not vlan_result[device.name].failed:
-            output = str(vlan_result[device.name].result)
+        hr = _host_result(vlan_result, device.name)
+        if hr and not hr.failed:
+            output = str(hr.result)
             state["vlans"] = sorted({int(match.group(1)) for match in re.finditer(r"(?m)^\s*(\d+)\s+", output)})
 
         # Collect OSPF neighbor count
@@ -356,8 +374,9 @@ class BasicVerifier:
             command_string="show ip ospf neighbor" if is_arista else "show ip ospf neighbor brief",
             use_textfsm=True,
         )
-        if not ospf_result[device.name].failed:
-            state["ospf_neighbor_count"] = len(ospf_result[device.name].result)
+        hr = _host_result(ospf_result, device.name)
+        if hr and not hr.failed and isinstance(hr.result, list):
+            state["ospf_neighbor_count"] = len(hr.result)
 
         return state
 
@@ -376,6 +395,7 @@ class BasicVerifier:
 
         try:
             from nautobot.dcim.models import Device as DeviceModel  # noqa: PLC0415
+            from nautobot_plugin_nornir.constants import PLUGIN_CFG  # noqa: PLC0415
             from nautobot_plugin_nornir.plugins.inventory.nautobot_orm import NautobotORMInventory  # noqa: PLC0415
 
             try:
@@ -383,11 +403,16 @@ class BasicVerifier:
             except KeyError:
                 pass  # already registered
 
+            creds_class = PLUGIN_CFG.get("nornir_settings", {}).get(
+                "credentials",
+                "nautobot_plugin_nornir.plugins.credentials.env_vars.CredentialsEnvVars",
+            )
             nr = InitNornir(
                 inventory={
                     "plugin": "nautobot-inventory",
                     "options": {
                         "queryset": DeviceModel.objects.filter(name=device.name),
+                        "credentials_class": creds_class,
                     },
                 },
                 logging={"enabled": False},

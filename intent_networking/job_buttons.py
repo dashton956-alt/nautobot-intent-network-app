@@ -113,6 +113,26 @@ class VerifyIntentButton(JobButtonReceiver):
         self.logger.info("Verification job queued for %s", obj.intent_id)
 
 
+class ConfigPreviewIntentButton(JobButtonReceiver):
+    """Job button: render and cache config preview from the detail page."""
+
+    class Meta:
+        """Nautobot job metadata for ConfigPreviewIntentButton."""
+
+        name = "Config Preview Intent"
+        has_sensitive_variables = False
+
+    def receive_job_button(self, obj):
+        """Enqueue an IntentConfigPreviewJob for the clicked intent."""
+        if not isinstance(obj, Intent):
+            self.logger.failure("ConfigPreviewIntentButton only works on Intent objects.")
+            return
+
+        self.logger.info("Queuing config preview for %s", obj.intent_id)
+        _enqueue_job("IntentConfigPreviewJob", intent_id=obj.intent_id)
+        self.logger.info("Config preview job queued for %s", obj.intent_id)
+
+
 class RollbackIntentButton(JobButtonReceiver):
     """Job button: rollback an intent from its detail page."""
 
@@ -141,6 +161,7 @@ jobs = [
     ResolveIntentButton,
     DeployIntentButton,
     DryRunDeployIntentButton,
+    ConfigPreviewIntentButton,
     VerifyIntentButton,
     RollbackIntentButton,
 ]

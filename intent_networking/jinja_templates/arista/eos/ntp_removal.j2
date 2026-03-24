@@ -1,0 +1,14 @@
+{# ntp_removal.j2 — arista-eos #}
+! Remove NTP Configuration
+! Intent: {{ intent_id }}
+!
+{% for server in servers %}
+no ntp server {{ server }}
+{% endfor %}
+{% if source_interface %}
+no ntp local-interface {{ source_interface }}
+{% endif %}
+{% if authentication %}
+no ntp authenticate
+{% endif %}
+!

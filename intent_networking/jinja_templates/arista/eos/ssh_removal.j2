@@ -1,0 +1,11 @@
+{# ssh_removal.j2 — arista-eos #}
+! Remove SSH Configuration
+! Intent: {{ intent_id }}
+!
+management ssh
+   shutdown
+!
+{% if allowed_networks %}
+no ip access-list {{ acl_name | default("SSH-ACCESS") }}
+{% endif %}
+!

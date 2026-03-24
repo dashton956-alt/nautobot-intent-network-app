@@ -1,0 +1,16 @@
+{# fw_rule_removal.j2 — arista-eos #}
+! Remove Firewall Policy — {{ policy_name }} (Arista EOS)
+! Intent: {{ intent_id }}
+!
+{% for iface in apply_interfaces %}
+interface {{ iface }}
+{% if direction == "in" or direction == "both" %}
+   no ip access-group {{ policy_name }} in
+{% endif %}
+{% if direction == "out" or direction == "both" %}
+   no ip access-group {{ policy_name }} out
+{% endif %}
+!
+{% endfor %}
+no ip access-list {{ policy_name }}
+!

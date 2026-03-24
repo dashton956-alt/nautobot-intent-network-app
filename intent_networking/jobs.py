@@ -397,6 +397,30 @@ class IntentDeploymentJob(Job):
             self._mark_failed(intent)
             return
 
+        # ── Stale config removal ──────────────────────────────────────────
+        # If a previous plan was deployed, render negation commands for its
+        # primitives and prepend them so the device ends up with *only* the
+        # config described by the current plan.
+        previous_plan = (
+            ResolutionPlan.objects.filter(intent=intent, intent_version__lt=plan.intent_version)
+            .order_by("-intent_version")
+            .first()
+        )
+        if previous_plan:
+            try:
+                removal_configs = _render_removal_configs(previous_plan, self.logger)
+                for device_name, removal_cfg in removal_configs.items():
+                    if removal_cfg.strip():
+                        existing = rendered_configs.get(device_name, "")
+                        rendered_configs[device_name] = removal_cfg + "\n" + existing
+                        self.logger.info(
+                            "Prepending removal config for %s (cleaning v%s primitives)",
+                            device_name,
+                            previous_plan.intent_version,
+                        )
+            except Exception as exc:
+                self.logger.warning("Removal config rendering failed (continuing with additive deploy): %s", exc)
+
         # Dry-run mode is UI/lab-safe: render and store configs, but do not
         # attempt device connections or require credentials.
         if not commit:
@@ -657,6 +681,7 @@ class IntentDeploymentJob(Job):
                 )
 
         # ── Nornir / device-level push ────────────────────────────────────
+        from nautobot_plugin_nornir.constants import PLUGIN_CFG  # noqa: PLC0415
         from nautobot_plugin_nornir.plugins.inventory.nautobot_orm import NautobotORMInventory  # noqa: PLC0415
         from nornir.core.plugins.inventory import InventoryPluginRegister  # noqa: PLC0415
 
@@ -665,11 +690,16 @@ class IntentDeploymentJob(Job):
         except KeyError:
             pass  # already registered
 
+        creds_class = PLUGIN_CFG.get("nornir_settings", {}).get(
+            "credentials",
+            "nautobot_plugin_nornir.plugins.credentials.env_vars.CredentialsEnvVars",
+        )
         nr = InitNornir(
             inventory={
                 "plugin": "nautobot-inventory",
                 "options": {
                     "queryset": Device.objects.filter(name__in=list(rendered_configs.keys())),
+                    "credentials_class": creds_class,
                 },
             },
             logging={"enabled": False},
@@ -681,8 +711,9 @@ class IntentDeploymentJob(Job):
                 self.logger.info("DRY RUN — would push to %s:\n%s...", device_name, config[:200])
                 continue
 
-            result = nr.run(task=netmiko_send_config, hosts=[device_name], config_commands=config.splitlines())
-            if result[device_name].failed:
+            device_nr = nr.filter(name=device_name)
+            result = device_nr.run(task=netmiko_send_config, config_commands=config.splitlines())
+            if device_name not in result or result[device_name].failed:
                 err = str(result[device_name].exception)
                 errors.append(f"{device_name}: {err}")
                 self.logger.failure("Push failed on %s: %s", device_name, err)
@@ -967,55 +998,21 @@ class IntentRollbackJob(Job):
         self.logger.info("Rollback complete for %s", intent_id)
 
     def _push_removal_config(self, plan: ResolutionPlan, commit: bool):
-        """Generate and push negation commands to remove intent config from devices."""
-        from jinja2 import Environment, FileSystemLoader, StrictUndefined  # noqa: PLC0415
+        """Generate and push negation commands to remove intent config from devices.
 
-        bundled_templates = Path(__file__).resolve().parent / "jinja_templates"
-        templates_dir = os.environ.get("TEMPLATES_DIR", str(bundled_templates))
+        Uses per-primitive ``{type}_removal.j2`` templates so every primitive
+        type that ships a removal template is correctly negated — not just VRF.
+        """
+        rendered_configs = _render_removal_configs(plan, self.logger)
 
-        platform_map = {
-            "cisco-ios-xe": "cisco/ios-xe",
-            "cisco-ios-xr": "cisco/ios-xr",
-            "cisco-nxos": "cisco/nxos",
-            "juniper-junos": "juniper/junos",
-            "aruba-aos-cx": "aruba/aos-cx",
-            "arista-eos": "arista/eos",
-        }
-
-        rendered_configs = {}
-        default_bgp_asn = settings.PLUGINS_CONFIG.get("intent_networking", {}).get("default_bgp_asn", 65000)
-
-        for device in plan.affected_devices.all():
-            platform = device.platform.name if device.platform else "cisco-ios-xe"
-            platform_dir = platform_map.get(platform, "cisco/ios-xe")
-            template_path = Path(templates_dir) / platform_dir
-
-            env = Environment(  # noqa: S701
-                loader=FileSystemLoader(str(template_path)),
-                undefined=StrictUndefined,
-                trim_blocks=True,
-                lstrip_blocks=True,
-            )
-
-            acl_names = [
-                p.get("acl_name", "")
-                for p in plan.primitives
-                if p.get("device") == device.name and p.get("primitive_type") == "acl"
-            ]
-
-            try:
-                tpl = env.get_template("vrf_removal.j2")
-                rendered_configs[device.name] = tpl.render(
-                    vrf_name=plan.vrf_name,
-                    bgp_asn=default_bgp_asn,
-                    acl_name=acl_names[0] if acl_names else "",
-                )
-            except Exception as exc:
-                self.logger.warning("Removal template render error for %s: %s", device.name, exc)
+        # Filter out devices whose removal config is blank (no removal templates matched)
+        rendered_configs = {dev: cfg for dev, cfg in rendered_configs.items() if cfg.strip()}
 
         if rendered_configs:
             deploy_job = IntentDeploymentJob()
             deploy_job._push_configs(plan, rendered_configs, commit)  # pylint: disable=protected-access
+        else:
+            self.logger.info("No removal config generated — nothing to push.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1328,8 +1325,68 @@ def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
     return rendered
 
 
+def _render_removal_configs(plan: ResolutionPlan, job_logger=None) -> dict:
+    """Render negation commands for every primitive in a resolution plan.
+
+    Looks for ``{primitive_type}_removal.j2`` in the platform template
+    directory.  If no removal template exists for a primitive type the
+    primitive is silently skipped (not every type needs explicit removal).
+
+    Returns:
+        dict: device_name → rendered removal config string  (may be empty).
+    """
+    from jinja2 import Environment, FileSystemLoader, StrictUndefined, TemplateNotFound  # noqa: PLC0415
+
+    bundled_templates = Path(__file__).resolve().parent / "jinja_templates"
+    templates_dir = os.environ.get("TEMPLATES_DIR", str(bundled_templates))
+    platform_map = {
+        "cisco-ios-xe": "cisco/ios-xe",
+        "cisco-ios-xr": "cisco/ios-xr",
+        "cisco-nxos": "cisco/nxos",
+        "juniper-junos": "juniper/junos",
+        "aruba-aos-cx": "aruba/aos-cx",
+        "arista-eos": "arista/eos",
+    }
+
+    rendered = {}
+    for device in plan.affected_devices.all():
+        platform = device.platform.name if device.platform else "cisco-ios-xe"
+        platform_dir = platform_map.get(platform, "cisco/ios-xe")
+        template_path = Path(templates_dir) / platform_dir
+
+        env = Environment(  # noqa: S701
+            loader=FileSystemLoader(str(template_path)),
+            undefined=StrictUndefined,
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+
+        device_primitives = [p for p in plan.primitives if p.get("device") == device.name]
+        sections = []
+        for primitive in device_primitives:
+            ptype = primitive.get("primitive_type")
+            if not ptype:
+                continue
+            removal_tname = f"{ptype}_removal.j2"
+            try:
+                tpl = env.get_template(removal_tname)
+                sections.append(tpl.render(**primitive))
+            except TemplateNotFound:
+                # No removal template for this primitive type — skip silently
+                pass
+            except Exception as exc:
+                if job_logger:
+                    job_logger.warning("Removal template render error for %s/%s: %s", device.name, ptype, exc)
+
+        rendered[device.name] = "\n".join(sections)
+
+    return rendered
+
+
 def _enqueue_job(job_class_name: str, **job_kwargs) -> None:
     """Look up a Job in the DB by class name and enqueue it via JobResult."""
+    from django.contrib.auth import get_user_model  # noqa: PLC0415
+
     try:
         job_model = JobModel.objects.get(
             module_name="intent_networking.jobs",
@@ -1339,7 +1396,13 @@ def _enqueue_job(job_class_name: str, **job_kwargs) -> None:
         logger.error("Job '%s' not found in Nautobot registry — cannot enqueue.", job_class_name)
         return
 
-    JobResult.enqueue_job(job_model, None, **job_kwargs)
+    User = get_user_model()
+    user = User.objects.filter(is_superuser=True).first()
+    if not user:
+        logger.error("No superuser found — cannot enqueue '%s'.", job_class_name)
+        return
+
+    JobResult.enqueue_job(job_model, user, **job_kwargs)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
