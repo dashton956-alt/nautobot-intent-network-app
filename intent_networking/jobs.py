@@ -763,9 +763,9 @@ class IntentDeploymentJob(Job):
 class IntentVerificationJob(Job):
     """Verifies that a deployed intent is actually satisfied on the network.
 
-    Routes to BasicVerifier or PyATSVerifier based on the intent's
+    Routes to BasicVerifier or NutsVerifier based on the intent's
     verification_level setting. Supports auto-escalation from basic
-    to extended when basic passes with warnings.
+    to nuts when basic passes with warnings.
 
     Called after deployment and by the reconciliation scheduler.
     """
@@ -796,29 +796,24 @@ class IntentVerificationJob(Job):
         if intent.verification_level == "basic":
             result = BasicVerifier(intent).run()
 
-            # Auto-escalate if basic passes with warnings
+            # Auto-escalate if basic passes with warnings and NUTS tests are defined
             if result["passed"] and result.get("has_warnings"):
-                self.logger.warning(
-                    "Basic verification passed with warnings for intent %s — escalating to extended. Reasons: %s",
-                    intent.intent_id,
-                    result["warning_reasons"],
-                )
-                extended_result = self._run_extended(intent)
-                if extended_result is not None:
-                    extended_result["verification_engine"] = "escalated"
-                    extended_result["escalation_reason"] = "; ".join(result["warning_reasons"])
-                    result = extended_result
+                nuts_result = self._run_nuts(intent)
+                if nuts_result is not None:
+                    nuts_result["verification_engine"] = "escalated"
+                    nuts_result["escalation_reason"] = "; ".join(result["warning_reasons"])
+                    result = nuts_result
                 else:
                     result["verification_engine"] = "basic"
             else:
                 result["verification_engine"] = "basic"
         else:
-            extended_result = self._run_extended(intent)
-            if extended_result is not None:
-                result = extended_result
-                result["verification_engine"] = "extended"
+            nuts_result = self._run_nuts(intent)
+            if nuts_result is not None:
+                result = nuts_result
+                result["verification_engine"] = "nuts"
             else:
-                # Fallback to basic if extended is unavailable
+                # Fallback to basic if NUTS is unavailable
                 result = BasicVerifier(intent).run()
                 result["verification_engine"] = "basic"
 
@@ -841,16 +836,15 @@ class IntentVerificationJob(Job):
 
         return {"passed": result["passed"], "checks": result.get("checks", [])}
 
-    def _run_extended(self, intent):
-        """Attempt to run PyATSVerifier; return None if pyATS is not installed."""
+    def _run_nuts(self, intent):
+        """Attempt to run NutsVerifier; return None if NUTS is not installed."""
         try:
-            from intent_networking.verifiers.extended import PyATSVerifier  # noqa: PLC0415
+            from intent_networking.verifiers.extended import NutsVerifier  # noqa: PLC0415
 
-            return PyATSVerifier(intent).run()
+            return NutsVerifier(intent).run()
         except ImportError:
             self.logger.warning(
-                "pyATS not installed — cannot run extended verification for %s. "
-                'Install with: pip install -e ".[extended]"',
+                "NUTS not installed — cannot run extended verification for %s. " "Install with: pip install nuts",
                 intent.intent_id,
             )
             return None
@@ -866,7 +860,7 @@ class IntentVerificationJob(Job):
             measured_latency_ms=measured_latency,
             verification_engine=result.get("verification_engine", "basic"),
             escalation_reason=result.get("escalation_reason", ""),
-            pyats_diff_output=result.get("pyats_diff_output", ""),
+            nuts_output=result.get("nuts_output", ""),
         )
 
         # Back up verification report to Git if the user opted in
@@ -1067,17 +1061,17 @@ class IntentReconciliationJob(Job):
                     "Basic verification passed with warnings for %s — escalating to extended",
                     intent.intent_id,
                 )
-            elif intent.verification_trigger in ("both",) and intent.verification_level == "extended":
+            elif intent.verification_trigger in ("both",) and intent.verification_level == "nuts":
                 run_extended = True
 
             if run_extended:
-                extended_result = self._run_extended_safe(intent)
-                if extended_result is not None:
-                    engine = "escalated" if basic_result.get("has_warnings") else "extended"
-                    extended_result["verification_engine"] = engine
+                nuts_result = self._run_nuts_safe(intent)
+                if nuts_result is not None:
+                    engine = "escalated" if basic_result.get("has_warnings") else "nuts"
+                    nuts_result["verification_engine"] = engine
                     if basic_result.get("has_warnings"):
-                        extended_result["escalation_reason"] = "; ".join(basic_result.get("warning_reasons", []))
-                    verify_result = extended_result
+                        nuts_result["escalation_reason"] = "; ".join(basic_result.get("warning_reasons", []))
+                    verify_result = nuts_result
                 else:
                     basic_result["verification_engine"] = "basic"
                     verify_result = basic_result
@@ -1094,7 +1088,7 @@ class IntentReconciliationJob(Job):
                 measured_latency_ms=verify_result.get("measured_latency_ms"),
                 verification_engine=verify_result.get("verification_engine", "basic"),
                 escalation_reason=verify_result.get("escalation_reason", ""),
-                pyats_diff_output=verify_result.get("pyats_diff_output", ""),
+                nuts_output=verify_result.get("nuts_output", ""),
             )
 
             # Back up verification report to Git if the user opted in
@@ -1134,15 +1128,15 @@ class IntentReconciliationJob(Job):
         )
         return results
 
-    def _run_extended_safe(self, intent):
-        """Attempt to run PyATSVerifier; return None if unavailable."""
+    def _run_nuts_safe(self, intent):
+        """Attempt to run NutsVerifier; return None if unavailable."""
         try:
-            from intent_networking.verifiers.extended import PyATSVerifier  # noqa: PLC0415
+            from intent_networking.verifiers.extended import NutsVerifier  # noqa: PLC0415
 
-            return PyATSVerifier(intent).run()
+            return NutsVerifier(intent).run()
         except ImportError:
             self.logger.warning(
-                "pyATS not installed — skipping extended verification for %s",
+                "NUTS not installed — skipping extended verification for %s",
                 intent.intent_id,
             )
             return None

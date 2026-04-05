@@ -147,14 +147,17 @@ class JinjaTemplateDirectoryTest(SimpleTestCase):
 class EnqueueJobTest(SimpleTestCase):
     """Test _enqueue_job helper."""
 
+    @patch("django.contrib.auth.get_user_model")
     @patch("intent_networking.jobs.JobResult")
     @patch("intent_networking.jobs.JobModel")
-    def test_enqueue_calls_job_result(self, mock_jm, mock_jr):
+    def test_enqueue_calls_job_result(self, mock_jm, mock_jr, mock_get_user):
         """Successful enqueue calls JobResult.enqueue_job."""
         from intent_networking.jobs import _enqueue_job
 
         mock_job_model = MagicMock()
         mock_jm.objects.get.return_value = mock_job_model
+        mock_user = MagicMock()
+        mock_get_user.return_value.objects.filter.return_value.first.return_value = mock_user
 
         _enqueue_job("IntentResolutionJob", intent_id="test-001")
 

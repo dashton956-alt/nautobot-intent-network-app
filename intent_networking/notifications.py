@@ -95,7 +95,7 @@ def raise_github_issue(intent, drift_details: list) -> str:
 
 
 def backup_verification_to_git(intent, verification_result) -> bool:
-    """Commit a pyATS verification report to the intent's Git repository.
+    """Commit a verification report to the intent's Git repository.
 
     Creates a Markdown file at ``verification-results/<intent_id>/<timestamp>.md``
     in the repository, similar to how golden-config backs up device configs.
@@ -191,13 +191,13 @@ def _render_verification_report(intent, vr):
             lines.append(f"| {i} | `{device}` | {check_name} | {result_icon} | {detail} |")
         lines.append("")
 
-    # pyATS diff output
-    if vr.pyats_diff_output:
+    # NUTS output
+    if vr.nuts_output:
         lines += [
-            "## pyATS Diff Output",
+            "## NUTS Output",
             "",
             "```",
-            vr.pyats_diff_output,
+            vr.nuts_output,
             "```",
             "",
         ]

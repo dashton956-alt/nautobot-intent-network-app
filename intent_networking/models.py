@@ -216,7 +216,7 @@ class VerificationLevel(models.TextChoices):
     """Verification depth for an intent."""
 
     BASIC = "basic", "Basic"
-    EXTENDED = "extended", "Extended"
+    NUTS = "nuts", "NUTS"
 
 
 class VerificationTrigger(models.TextChoices):
@@ -948,11 +948,11 @@ class VerificationResult(BaseModel):
     # ── Verification engine metadata ───────────────────────────────────────
     verification_engine = models.CharField(
         max_length=20,
-        choices=[("basic", "Basic"), ("extended", "Extended"), ("escalated", "Escalated")],
+        choices=[("basic", "Basic"), ("nuts", "NUTS"), ("escalated", "Escalated")],
         default="basic",
     )
     escalation_reason = models.TextField(blank=True, default="")
-    pyats_diff_output = models.TextField(blank=True, default="")
+    nuts_output = models.TextField(blank=True, default="")
 
     # ── Drift detail ──────────────────────────────────────────────────────
     drift_details = models.JSONField(

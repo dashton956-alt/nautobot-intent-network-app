@@ -64,8 +64,8 @@ Git Repository (YAML intents)
     - Per-device live ARP, routing table, and BGP neighbour data
 - **Continuous reconciliation** — scheduled job detects drift, auto-remediates or raises GitHub issues for manual review
 - **Automated rollback** — failed deployments trigger automatic re-deployment of the previous intent version
-- **pyATS extended verification** — optional two-tier verification (basic → extended) using pyATS/Genie for deep device-state validation with 10 check types (interface, BGP, OSPF, VLAN, VRF, ARP, NTP, ACL, route-map, LLDP/CDP)
-- **Dashboard pyATS panel** — last 15 extended/escalated verification results displayed on the dashboard with pass/fail, engine label, and escalation details
+- **NUTS verification** — optional two-tier verification (basic → NUTS) using the Network Unit Testing System with NAPALM/Netmiko for multi-vendor device-state validation supporting 20+ test classes (BGP, OSPF, interfaces, VLANs, VRFs, ARP, LLDP/CDP, ping, users, config drift)
+- **Dashboard NUTS panel** — last 15 NUTS/escalated verification results displayed on the dashboard with pass/fail, engine label, and escalation details
 - **Git-backed verification reports** — per-intent toggle to commit Markdown verification reports to Git, similar to golden-config backup
 - **Slack + GitHub notifications** — deployment events notify via Slack webhook; non-remediable drift automatically creates GitHub issues with full context
 
@@ -90,7 +90,7 @@ Git Repository (YAML intents)
 | Dependency | Minimum version | Purpose |
 |------------|----------------|---------|
 | Nautobot | 3.0.0 | Platform (Nautobot 3.x required) |
-| Python | 3.10–3.12 | Runtime (pyATS/Genie do not yet publish wheels for Python 3.13+) |
+| Python | 3.10–3.12 | Runtime |
 | nautobot-golden-config | 2.0.0 | Config rendering and compliance |
 | Nornir | 3.3.0 | Device connection and config push |
 | nornir-nautobot | 3.0.0 | Nautobot inventory plugin for Nornir |
@@ -119,10 +119,10 @@ poetry add nautobot-app-intent-networking[meraki]
 # With both Cisco controllers
 poetry add nautobot-app-intent-networking[cisco]
 
-# With pyATS extended verification (requires Python 3.12 or below)
-poetry add nautobot-app-intent-networking[extended]
+# With NUTS verification (multi-vendor device-state testing)
+poetry add nautobot-app-intent-networking[nuts]
 
-# Everything (requires Python 3.12 or below for pyATS)
+# Everything
 poetry add nautobot-app-intent-networking[all]
 ```
 

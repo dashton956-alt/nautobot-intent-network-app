@@ -100,4 +100,4 @@ class IntentAPIViewTest(APIViewTestCases.APIViewTestCase):
             if url.status_code == 200:
                 self.assertIn("verification_engine", data)
                 self.assertIn("escalation_reason", data)
-                self.assertIn("pyats_diff_output", data)
+                self.assertIn("nuts_output", data)

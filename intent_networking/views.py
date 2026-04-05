@@ -80,13 +80,13 @@ class DashboardView(TemplateView):
         # ── Recent intents ────────────────────────────────────────────────
         context["recent_intents"] = Intent.objects.select_related("tenant", "status").order_by("-last_updated")[:10]
 
-        # ── pyATS verification results for last 15 intents ────────────────
-        recent_pyats = (
-            VerificationResult.objects.filter(verification_engine__in=("extended", "escalated"))
+        # ── NUTS verification results for last 15 intents ────────────────
+        recent_nuts = (
+            VerificationResult.objects.filter(verification_engine__in=("nuts", "escalated"))
             .select_related("intent", "intent__status")
             .order_by("-verified_at")[:15]
         )
-        context["recent_pyats_results"] = recent_pyats
+        context["recent_nuts_results"] = recent_nuts
 
         # ── Nautobot native VRF / RT / Namespace counts ────────────────
         context["vrf_count"] = VRF.objects.count()

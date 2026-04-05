@@ -162,10 +162,10 @@
                 </table>
             </div>
 
-    {# ── pyATS Extended Verification Results (last 15) ─────────────────── #}
+    {# ── NUTS Verification Results (last 15) ─────────────────── #}
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <strong><i class="mdi mdi-flask-outline"></i> Recent pyATS / Extended Verifications</strong>
+                    <strong><i class="mdi mdi-flask-outline"></i> Recent NUTS Verifications</strong>
                     <a href="{% url 'plugins:intent_networking:verificationresult_list' %}" class="pull-right text-muted" style="font-size: 12px;">View all →</a>
                 </div>
                 <table class="table table-hover table-condensed" style="margin-bottom: 0;">
@@ -180,12 +180,12 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for v in recent_pyats_results %}
+                        {% for v in recent_nuts_results %}
                             <tr style="{% if not v.passed %}background: #fdf2f2;{% endif %}">
                                 <td>{% if v.passed %}✅{% else %}❌{% endif %}</td>
                                 <td><a href="{{ v.intent.get_absolute_url }}"><strong>{{ v.intent.intent_id }}</strong></a></td>
                                 <td>
-                                    <span class="label {% if v.verification_engine == 'extended' %}label-info{% elif v.verification_engine == 'escalated' %}label-warning{% else %}label-default{% endif %}">
+                                    <span class="label {% if v.verification_engine == 'nuts' %}label-info{% elif v.verification_engine == 'escalated' %}label-warning{% else %}label-default{% endif %}">
                                         {{ v.verification_engine|title }}
                                     </span>
                                 </td>
@@ -211,14 +211,14 @@
                                 <td><span class="text-muted">{{ v.verified_at|timesince }} ago</span></td>
                             </tr>
                         {% empty %}
-                            <tr><td colspan="6" class="text-muted text-center">No extended/pyATS verifications yet. Set an intent's verification level to "Extended" to start.</td></tr>
+                            <tr><td colspan="6" class="text-muted text-center">No NUTS verifications yet. Set an intent's verification level to "NUTS" to start.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                {% if recent_pyats_results %}
+                {% if recent_nuts_results %}
                     <div class="panel-footer text-muted" style="font-size: 12px; padding: 8px 15px;">
-                        Showing last {{ recent_pyats_results|length }} extended/escalated verification runs.
-                        <span class="label label-info">Extended</span> = user-requested &middot;
+                        Showing last {{ recent_nuts_results|length }} NUTS/escalated verification runs.
+                        <span class="label label-info">NUTS</span> = user-requested &middot;
                         <span class="label label-warning">Escalated</span> = auto-triggered from basic warnings.
                     </div>
                 {% endif %}
