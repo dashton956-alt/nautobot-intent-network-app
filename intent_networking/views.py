@@ -339,3 +339,109 @@ class IntentRejectView(View):
         messages.warning(request, f"Intent '{intent.intent_id}' rejected.")
         logger.info("Intent %s rejected by %s via UI.", intent.intent_id, request.user.username)
         return redirect(intent.get_absolute_url())
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Bulk Intent Actions (Dry-Run, Preview, Deploy, Validate)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class _BulkIntentJobView(View):
+    """Base view for bulk intent job actions from the list page.
+
+    Subclasses set ``job_class_name``, ``action_label``, and optionally
+    override ``get_extra_kwargs()`` and ``validate_intent()``.
+    """
+
+    http_method_names = ["post"]
+    job_class_name = None
+    action_label = "action"
+
+    def get_extra_kwargs(self, intent):
+        """Return extra keyword arguments to pass to _enqueue_job."""
+        return {}
+
+    def validate_intent(self, intent):  # pylint: disable=no-self-use
+        """Return an error string if the intent cannot be actioned, or None."""
+        return None
+
+    def post(self, request):
+        """Enqueue jobs for all selected intents and redirect back to the list."""
+        from intent_networking.jobs import _enqueue_job  # noqa: PLC0415
+
+        return_url = request.POST.get("return_url", "/plugins/intent-networking/intents/")
+
+        pk_list = request.POST.getlist("pk")
+        if not pk_list:
+            messages.warning(request, "No intents were selected.")
+            return redirect(return_url)
+
+        intents = Intent.objects.filter(pk__in=pk_list)
+        queued = 0
+        skipped = 0
+        for intent in intents:
+            error = self.validate_intent(intent)  # pylint: disable=assignment-from-none
+            if error:
+                messages.warning(request, f"Skipped '{intent.intent_id}': {error}")
+                skipped += 1
+                continue
+            extra = self.get_extra_kwargs(intent)
+            _enqueue_job(self.job_class_name, intent_id=intent.intent_id, **extra)
+            queued += 1
+
+        if queued:
+            messages.success(request, f"{self.action_label} queued for {queued} intent(s).")
+        if skipped:
+            messages.warning(request, f"Skipped {skipped} intent(s) — see warnings above.")
+        return redirect(return_url)
+
+
+class IntentBulkDryRunView(_BulkIntentJobView):
+    """Bulk dry-run deploy for selected intents (commit=False)."""
+
+    job_class_name = "IntentDeploymentJob"
+    action_label = "Dry-run"
+
+    def get_extra_kwargs(self, intent):
+        """Pass commit=False for dry-run."""
+        return {
+            "commit_sha": intent.git_commit_sha or "dry-run",
+            "commit": False,
+        }
+
+
+class IntentBulkPreviewView(_BulkIntentJobView):
+    """Bulk config preview for selected intents."""
+
+    job_class_name = "IntentConfigPreviewJob"
+    action_label = "Config preview"
+
+
+class IntentBulkDeployView(_BulkIntentJobView):
+    """Bulk deploy for selected intents."""
+
+    job_class_name = "IntentDeploymentJob"
+    action_label = "Deploy"
+
+    def validate_intent(self, intent):
+        """Only allow deploy from Validated or Rolled Back status."""
+        if not intent.status or intent.status.name.lower() not in ("validated", "rolled back"):
+            return f"status is '{intent.status}' — must be 'Validated' or 'Rolled Back'"
+        return None
+
+    def get_extra_kwargs(self, intent):
+        """Pass commit_sha for real deploy."""
+        return {
+            "commit_sha": intent.git_commit_sha or "manual-deploy",
+        }
+
+
+class IntentBulkValidateView(_BulkIntentJobView):
+    """Bulk verify for selected intents."""
+
+    job_class_name = "IntentVerificationJob"
+    action_label = "Validation"
+
+    def get_extra_kwargs(self, intent):
+        """Pass triggered_by for manual verification."""
+        return {"triggered_by": "manual"}

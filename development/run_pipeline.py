@@ -2,8 +2,6 @@
 
 import json
 import time
-import traceback
-from datetime import datetime
 
 from django.contrib.auth import get_user_model
 from nautobot.extras.models import Job, JobResult
@@ -24,9 +22,7 @@ for jcn in [
     "IntentDeploymentJob",
     "IntentVerificationJob",
 ]:
-    JOBS[jcn] = Job.objects.get(
-        module_name="intent_networking.jobs", job_class_name=jcn
-    )
+    JOBS[jcn] = Job.objects.get(module_name="intent_networking.jobs", job_class_name=jcn)
 
 intents = list(Intent.objects.all().order_by("intent_id"))
 print(f"Processing {len(intents)} intents through pipeline\n")
@@ -60,9 +56,9 @@ def run_job_sync(job, data_dict, timeout=120):
         return True, jr
     else:
         # Get log entries for error details
-        log_entries = jr.job_log_entries.filter(
-            log_level__in=["error", "critical", "warning"]
-        ).values_list("message", flat=True)
+        log_entries = jr.job_log_entries.filter(log_level__in=["error", "critical", "warning"]).values_list(
+            "message", flat=True
+        )
         error_msg = "; ".join(log_entries[:5]) if log_entries else f"Job status: {jr.status}"
         return False, error_msg
 
@@ -81,12 +77,12 @@ for idx, intent in enumerate(intents, 1):
     print(f"{'='*60}")
 
     # ── Step 1: Resolution ──
-    print(f"  Step 1: Resolution...")
+    print("  Step 1: Resolution...")
     try:
         ok, result = run_job_sync(JOBS["IntentResolutionJob"], {"intent_id": iid})
         if ok:
             results["resolution"]["success"].append(iid)
-            print(f"  Resolution: OK")
+            print("  Resolution: OK")
         else:
             results["resolution"]["failed"].append(iid)
             log_error(iid, "resolution", result)
@@ -102,7 +98,7 @@ for idx, intent in enumerate(intents, 1):
     print(f"  Status after resolution: {intent.status.name}")
 
     # ── Step 2: Config Preview ──
-    print(f"  Step 2: Config Preview...")
+    print("  Step 2: Config Preview...")
     try:
         ok, result = run_job_sync(JOBS["IntentConfigPreviewJob"], {"intent_id": iid})
         if ok:
@@ -118,7 +114,7 @@ for idx, intent in enumerate(intents, 1):
         log_error(iid, "preview", f"{type(e).__name__}: {e}")
 
     # ── Step 3: Dry-Run Deploy ──
-    print(f"  Step 3: Dry-Run Deploy...")
+    print("  Step 3: Dry-Run Deploy...")
     try:
         ok, result = run_job_sync(
             JOBS["IntentDeploymentJob"],
@@ -126,7 +122,7 @@ for idx, intent in enumerate(intents, 1):
         )
         if ok:
             results["dryrun"]["success"].append(iid)
-            print(f"  Dry-Run: OK")
+            print("  Dry-Run: OK")
         else:
             results["dryrun"]["failed"].append(iid)
             log_error(iid, "dryrun", result)
@@ -135,7 +131,7 @@ for idx, intent in enumerate(intents, 1):
         log_error(iid, "dryrun", f"{type(e).__name__}: {e}")
 
     # ── Step 4: Approve ──
-    print(f"  Step 4: Approval...")
+    print("  Step 4: Approval...")
     try:
         approval, created = IntentApproval.objects.get_or_create(
             intent=intent,
@@ -156,7 +152,7 @@ for idx, intent in enumerate(intents, 1):
         log_error(iid, "approval", f"{type(e).__name__}: {e}")
 
     # ── Step 5: Deploy (commit=True) ──
-    print(f"  Step 5: Deploy...")
+    print("  Step 5: Deploy...")
     try:
         ok, result = run_job_sync(
             JOBS["IntentDeploymentJob"],

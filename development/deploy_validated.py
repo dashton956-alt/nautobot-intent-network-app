@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Deploy all Validated+Approved intents. No resolve/preview needed."""
-import sys
+
 import time
+
 import requests
 
 API = "http://localhost:8080/api"
-TOKEN = "0123456789abcdef0123456789abcdef01234567"
+TOKEN = "0123456789abcdef0123456789abcdef01234567"  # noqa: S105
 HEADERS = {
     "Authorization": f"Token {TOKEN}",
     "Content-Type": "application/json",
@@ -39,12 +40,14 @@ PRIORITY_ORDER = [
 
 
 def get_status_name(status_obj):
+    """Extract status name from a status dict or string."""
     if isinstance(status_obj, dict):
         return status_obj.get("name", status_obj.get("value", status_obj.get("label", "unknown")))
     return str(status_obj)
 
 
 def run_job(job_id, intent_id, extra_data=None):
+    """Enqueue a job and poll until completion."""
     data = {"intent_id": intent_id}
     if extra_data:
         data.update(extra_data)
@@ -74,11 +77,12 @@ def run_job(job_id, intent_id, extra_data=None):
                     return jr_data
         except Exception as e:
             print(f"    Poll error: {e}")
-    print(f"    TIMEOUT waiting for job")
+    print("    TIMEOUT waiting for job")
     return None
 
 
 def get_intent_status(intent_id):
+    """Return the current status name for an intent."""
     url = f"{API}/plugins/intent-networking/intents/?intent_id={intent_id}&depth=1"
     resp = requests.get(url, headers=HEADERS, timeout=15)
     if resp.status_code == 200:
@@ -89,11 +93,12 @@ def get_intent_status(intent_id):
 
 
 def main():
+    """Deploy all validated and approved intents."""
     # Get validated intents
     url = f"{API}/plugins/intent-networking/intents/?limit=50&depth=1"
     resp = requests.get(url, headers=HEADERS, timeout=15)
     all_intents = resp.json().get("results", [])
-    
+
     validated = {}
     for i in all_intents:
         s = get_status_name(i.get("status", {}))
@@ -116,11 +121,11 @@ def main():
         print(f"{'='*60}")
 
         jr = run_job(DEPLOY_JOB, intent_id, extra_data={"commit_sha": "manual-lab-deploy", "commit": True})
-        
+
         if jr:
             jr_status = get_status_name(jr.get("status", {}))
             print(f"  Job status: {jr_status}")
-            
+
             # Print log summary if failure
             if jr_status == "FAILURE":
                 jr_id = jr.get("id", "")
@@ -150,8 +155,8 @@ def main():
     print(f"\n\n{'='*60}")
     print("DEPLOY RESULTS SUMMARY")
     print(f"{'='*60}")
-    total_deployed = len(results['deployed']) + 9  # 9 already deployed
-    print(f"Previously Deployed: 9")
+    total_deployed = len(results["deployed"]) + 9  # 9 already deployed
+    print("Previously Deployed: 9")
     print(f"Newly Deployed:      {len(results['deployed'])}")
     print(f"Total Deployed:      {total_deployed}/27")
     for i in results["deployed"]:

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Seed L2 access + trunk port intents for Arista Lab, then run full pipeline."""
 
-import json
 import time
+
 import requests
 
 API = "http://localhost:8080/api"
-TOKEN = "0123456789abcdef0123456789abcdef01234567"
+TOKEN = "0123456789abcdef0123456789abcdef01234567"  # noqa: S105
 HEADERS = {
     "Authorization": f"Token {TOKEN}",
     "Content-Type": "application/json",
@@ -15,7 +15,7 @@ HEADERS = {
 
 RESOLVE_JOB = "492d6643-3a3a-4e43-b5b0-251bc3159a05"
 PREVIEW_JOB = "bc5cabcf-8d7b-489f-88f4-f38fef24f50a"
-DEPLOY_JOB  = "4b639452-b25d-4090-86ec-9e5c967a6d56"
+DEPLOY_JOB = "4b639452-b25d-4090-86ec-9e5c967a6d56"
 
 L2_INTENTS = [
     # Access ports
@@ -110,12 +110,14 @@ L2_INTENTS = [
 
 
 def get_status_name(status_obj):
+    """Extract status name from a status dict or string."""
     if isinstance(status_obj, dict):
         return status_obj.get("name", status_obj.get("value", str(status_obj)))
     return str(status_obj)
 
 
 def get_tenant_id():
+    """Fetch the Arista Lab tenant ID from the API."""
     resp = requests.get(f"{API}/tenancy/tenants/?name=Arista+Lab", headers=HEADERS, timeout=10)
     results = resp.json().get("results", [])
     if results:
@@ -124,6 +126,7 @@ def get_tenant_id():
 
 
 def run_job(job_id, intent_id, extra_data=None):
+    """Enqueue a job and poll until completion."""
     data = {"intent_id": intent_id}
     if extra_data:
         data.update(extra_data)
@@ -157,6 +160,7 @@ def run_job(job_id, intent_id, extra_data=None):
 
 
 def get_intent_status(intent_id):
+    """Return the current status name for an intent."""
     url = f"{API}/plugins/intent-networking/intents/?intent_id={intent_id}&depth=1"
     resp = requests.get(url, headers=HEADERS, timeout=15)
     if resp.status_code == 200:
@@ -181,22 +185,24 @@ def main():
         # Check if already exists
         check = requests.get(
             f"{API}/plugins/intent-networking/intents/?intent_id={iid}",
-            headers=HEADERS, timeout=10,
+            headers=HEADERS,
+            timeout=10,
         )
         existing = check.json().get("results", [])
         if existing:
             print(f"  EXISTS: {iid} (status={get_status_name(existing[0].get('status', {}))})")
             # Reset to Draft for re-deploy
             intent_uuid = existing[0]["id"]
-            draft_status = requests.get(
-                f"{API}/extras/statuses/?name=Draft", headers=HEADERS, timeout=10
-            ).json()["results"][0]["id"]
+            draft_status = requests.get(f"{API}/extras/statuses/?name=Draft", headers=HEADERS, timeout=10).json()[
+                "results"
+            ][0]["id"]
             requests.patch(
                 f"{API}/plugins/intent-networking/intents/{intent_uuid}/",
-                headers=HEADERS, json={"status": draft_status, "intent_data": idata["intent_data"]},
+                headers=HEADERS,
+                json={"status": draft_status, "intent_data": idata["intent_data"]},
                 timeout=10,
             )
-            print(f"    → Reset to Draft")
+            print("    → Reset to Draft")
             created_ids.append(iid)
             continue
 
@@ -215,7 +221,9 @@ def main():
         }
         resp = requests.post(
             f"{API}/plugins/intent-networking/intents/",
-            headers=HEADERS, json=payload, timeout=15,
+            headers=HEADERS,
+            json=payload,
+            timeout=15,
         )
         if resp.status_code in (200, 201):
             print(f"  CREATED: {iid}")
@@ -242,7 +250,7 @@ def main():
         print("  Resolving...")
         jr = run_job(RESOLVE_JOB, iid)
         if not jr or get_status_name(jr.get("status", {})) != "SUCCESS":
-            print(f"  RESOLVE FAILED")
+            print("  RESOLVE FAILED")
             results["failed"].append((iid, "resolve"))
             continue
         print(f"  Resolved OK → status: {get_intent_status(iid)}")
@@ -251,7 +259,7 @@ def main():
         print("  Previewing...")
         jr = run_job(PREVIEW_JOB, iid)
         if not jr or get_status_name(jr.get("status", {})) != "SUCCESS":
-            print(f"  PREVIEW FAILED")
+            print("  PREVIEW FAILED")
             results["failed"].append((iid, "preview"))
             continue
         print(f"  Preview OK → status: {get_intent_status(iid)}")
@@ -263,7 +271,7 @@ def main():
         final = get_intent_status(iid)
         if final == "Deployed":
             results["deployed"].append(iid)
-            print(f"  DEPLOYED ✓")
+            print("  DEPLOYED ✓")
         else:
             results["failed"].append((iid, f"deploy ({final})"))
             print(f"  DEPLOY RESULT: {final}")
@@ -274,7 +282,8 @@ def main():
                 if jr_id:
                     logs_resp = requests.get(
                         f"{API}/extras/job-results/{jr_id}/logs/",
-                        headers=HEADERS, timeout=15,
+                        headers=HEADERS,
+                        timeout=15,
                     )
                     if logs_resp.status_code == 200:
                         logs = logs_resp.json()

@@ -9,23 +9,33 @@ from intent_networking.topology_view import TopologyViewerView
 router = NautobotUIViewSetRouter()
 router.register("intents", views.IntentUIViewSet)
 
-urlpatterns = router.urls + [
-    # ── Dashboard ─────────────────────────────────────────────────────────
-    path("", views.DashboardView.as_view(), name="dashboard"),
-    # ── Topology Viewer ───────────────────────────────────────────────────
-    path("topology/", TopologyViewerView.as_view(), name="topology_viewer"),
-    # ── Approve / Reject (UI buttons) ────────────────────────────────────
-    path("intents/<uuid:pk>/approve/", views.IntentApproveView.as_view(), name="intent_approve"),
-    path("intents/<uuid:pk>/reject/", views.IntentRejectView.as_view(), name="intent_reject"),
-    # ── Resolution Plans (read-only UI) ───────────────────────────────────
-    path("resolution-plans/", views.ResolutionPlanListView.as_view(), name="resolutionplan_list"),
-    path("resolution-plans/<uuid:pk>/", views.ResolutionPlanDetailView.as_view(), name="resolutionplan"),
-    # ── Verification Results (read-only UI) ───────────────────────────────
-    path("verifications/", views.VerificationResultListView.as_view(), name="verificationresult_list"),
-    path("verifications/<uuid:pk>/", views.VerificationResultDetailView.as_view(), name="verificationresult"),
-    # ── Audit Trail (#4) ─────────────────────────────────────────────────
-    path("audit-trail/", views.AuditTrailListView.as_view(), name="intentauditentry_list"),
-    path("audit-trail/<uuid:pk>/", views.AuditTrailDetailView.as_view(), name="intentauditentry"),
-    # ── Config Preview (#1) ──────────────────────────────────────────────
-    path("config-preview/<str:intent_id>/", views.ConfigPreviewView.as_view(), name="config_preview"),
-]
+urlpatterns = (
+    [
+        # ── Bulk Intent Actions (must precede router to avoid <pk> capture) ──
+        path("intents/bulk-dry-run/", views.IntentBulkDryRunView.as_view(), name="intent_bulk_dry_run"),
+        path("intents/bulk-preview/", views.IntentBulkPreviewView.as_view(), name="intent_bulk_preview"),
+        path("intents/bulk-deploy/", views.IntentBulkDeployView.as_view(), name="intent_bulk_deploy"),
+        path("intents/bulk-validate/", views.IntentBulkValidateView.as_view(), name="intent_bulk_validate"),
+    ]
+    + router.urls
+    + [
+        # ── Dashboard ─────────────────────────────────────────────────────────
+        path("", views.DashboardView.as_view(), name="dashboard"),
+        # ── Topology Viewer ───────────────────────────────────────────────────
+        path("topology/", TopologyViewerView.as_view(), name="topology_viewer"),
+        # ── Approve / Reject (UI buttons) ────────────────────────────────────
+        path("intents/<uuid:pk>/approve/", views.IntentApproveView.as_view(), name="intent_approve"),
+        path("intents/<uuid:pk>/reject/", views.IntentRejectView.as_view(), name="intent_reject"),
+        # ── Resolution Plans (read-only UI) ───────────────────────────────────
+        path("resolution-plans/", views.ResolutionPlanListView.as_view(), name="resolutionplan_list"),
+        path("resolution-plans/<uuid:pk>/", views.ResolutionPlanDetailView.as_view(), name="resolutionplan"),
+        # ── Verification Results (read-only UI) ───────────────────────────────
+        path("verifications/", views.VerificationResultListView.as_view(), name="verificationresult_list"),
+        path("verifications/<uuid:pk>/", views.VerificationResultDetailView.as_view(), name="verificationresult"),
+        # ── Audit Trail (#4) ─────────────────────────────────────────────────
+        path("audit-trail/", views.AuditTrailListView.as_view(), name="intentauditentry_list"),
+        path("audit-trail/<uuid:pk>/", views.AuditTrailDetailView.as_view(), name="intentauditentry"),
+        # ── Config Preview (#1) ──────────────────────────────────────────────
+        path("config-preview/<str:intent_id>/", views.ConfigPreviewView.as_view(), name="config_preview"),
+    ]
+)

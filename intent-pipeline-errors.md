@@ -63,6 +63,7 @@ interface Ethernet2
 **Root Cause:** All 27 intents were deployed in rapid succession. The cEOS device's SSH server was overwhelmed by concurrent connections, causing `paramiko.ssh_exception.SSHException: Error reading SSH protocol banner [Errno 104] Connection reset by peer`. The auto-rollback mechanism then set these intents to "Rolled Back."
 
 **Affected Intents:**
+
 - lab-acl-server-segment-001
 - lab-bgp-underlay-001
 - lab-dc-evpn-fabric-001

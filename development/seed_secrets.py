@@ -1,8 +1,8 @@
 """Create Secrets Group and assign to all lab Arista devices."""
 
-from nautobot.extras.models import Secret, SecretsGroup, SecretsGroupAssociation
-from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
 from nautobot.dcim.models import Device
+from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
+from nautobot.extras.models import Secret, SecretsGroup, SecretsGroupAssociation
 
 # Create Secrets for username and password using environment variables
 username_secret, created = Secret.objects.get_or_create(

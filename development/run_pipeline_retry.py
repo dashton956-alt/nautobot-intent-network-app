@@ -8,9 +8,9 @@ import time
 
 import requests
 from django.contrib.auth import get_user_model
+from nautobot.extras.models.statuses import Status
 
 from intent_networking.models import Intent, IntentApproval
-from nautobot.extras.models.statuses import Status
 
 API = "http://localhost:8080/api"
 HDR = {
@@ -43,6 +43,7 @@ for intent in targets:
         f"{API}/extras/jobs/{RESOLVE_JOB}/run/",
         headers=HDR,
         json={"data": {"intent_id": intent.intent_id, "force_re_resolve": True}},
+        timeout=30,
     )
     print(f"  Resolve {intent.intent_id}: {r.status_code}")
     time.sleep(3)
@@ -55,6 +56,7 @@ for intent in targets:
         f"{API}/extras/jobs/{PREVIEW_JOB}/run/",
         headers=HDR,
         json={"data": {"intent_id": intent.intent_id}},
+        timeout=30,
     )
     print(f"  Preview {intent.intent_id}: {r.status_code}")
     time.sleep(2)
@@ -83,6 +85,7 @@ for intent in targets:
         f"{API}/extras/jobs/{DEPLOY_JOB}/run/",
         headers=HDR,
         json={"data": {"intent_id": intent.intent_id, "commit_sha": "retry-2", "commit": True}},
+        timeout=30,
     )
     print(f"    API: {r.status_code}")
     time.sleep(20)
@@ -99,7 +102,7 @@ for intent in Intent.objects.all().order_by("intent_id"):
     results.setdefault(status, []).append(intent.intent_id)
     print(f"  {intent.intent_id:40s} → {intent.status}")
 
-print(f"\n  Summary:")
+print("\n  Summary:")
 for status, ids in sorted(results.items()):
     print(f"    {status}: {len(ids)}")
 print("=" * 60)

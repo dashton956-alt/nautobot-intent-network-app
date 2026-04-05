@@ -26,6 +26,7 @@ DEPLOY_DELAY = 10  # seconds between each deploy
 
 
 def run_job_sync(job, data_dict, timeout=180):
+    """Enqueue a job and block until it completes or times out."""
     jr = JobResult.enqueue_job(job, user, **data_dict)
     elapsed = 0
     while elapsed < timeout:
@@ -38,9 +39,9 @@ def run_job_sync(job, data_dict, timeout=180):
         return False, f"Timeout after {timeout}s (status={jr.status})"
     if jr.status == "SUCCESS":
         return True, jr
-    log_entries = jr.job_log_entries.filter(
-        log_level__in=["error", "critical", "warning"]
-    ).values_list("message", flat=True)
+    log_entries = jr.job_log_entries.filter(log_level__in=["error", "critical", "warning"]).values_list(
+        "message", flat=True
+    )
     return False, "; ".join(log_entries[:5]) if log_entries else f"Job status: {jr.status}"
 
 
@@ -55,7 +56,7 @@ for idx, intent in enumerate(intents, 1):
         print(f"  Resolution FAILED: {str(r)[:100]}")
         results["failed"].append(iid)
         continue
-    print(f"  Resolved OK")
+    print("  Resolved OK")
 
     # Step 2: Preview
     ok, r = run_job_sync(JOBS["IntentConfigPreviewJob"], {"intent_id": iid})
@@ -63,7 +64,7 @@ for idx, intent in enumerate(intents, 1):
         errors.append((iid, "preview", str(r)[:300]))
         print(f"  Preview FAILED: {str(r)[:100]}")
     else:
-        print(f"  Preview OK")
+        print("  Preview OK")
 
     # Step 3: Approve (ensure approval exists)
     IntentApproval.objects.get_or_create(
@@ -94,7 +95,9 @@ for idx, intent in enumerate(intents, 1):
         log_entries = []
         if not ok:
             log_entries.append(str(r)[:300])
-        errors.append((iid, "deploy", "; ".join(log_entries) if log_entries else f"Rolled back (status={final_status})"))
+        errors.append(
+            (iid, "deploy", "; ".join(log_entries) if log_entries else f"Rolled back (status={final_status})")
+        )
     elif final_status == "Failed":
         results["failed"].append(iid)
         errors.append((iid, "deploy", str(r)[:300] if not ok else "Failed"))
@@ -122,7 +125,7 @@ for cat, ids in results.items():
             print(f"    - {i}")
 
 if errors:
-    print(f"\n  ERRORS:")
+    print("\n  ERRORS:")
     for iid, step, msg in errors:
         print(f"    [{step}] {iid}: {msg[:200]}")
 

@@ -37,6 +37,7 @@ for intent in all_intents:
         f"{API}/extras/jobs/{RESOLVE_JOB}/run/",
         headers=HDR,
         json={"data": {"intent_id": intent.intent_id, "force_re_resolve": True}},
+        timeout=30,
     )
     print(f"  Resolve {intent.intent_id}: {r.status_code}")
     time.sleep(3)
@@ -57,6 +58,7 @@ for intent in all_intents:
         f"{API}/extras/jobs/{PREVIEW_JOB}/run/",
         headers=HDR,
         json={"data": {"intent_id": intent.intent_id}},
+        timeout=30,
     )
     print(f"  Preview {intent.intent_id}: {r.status_code}")
     time.sleep(2)
@@ -73,6 +75,7 @@ for intent in all_intents:
         f"{API}/extras/jobs/{DEPLOY_JOB}/run/",
         headers=HDR,
         json={"data": {"intent_id": intent.intent_id, "commit_sha": "pipeline-test", "commit": False}},
+        timeout=30,
     )
     print(f"  Dry-run {intent.intent_id}: {r.status_code}")
     time.sleep(2)
@@ -108,6 +111,7 @@ for intent in all_intents:
         f"{API}/extras/jobs/{DEPLOY_JOB}/run/",
         headers=HDR,
         json={"data": {"intent_id": intent.intent_id, "commit_sha": "pipeline-deploy-full", "commit": True}},
+        timeout=30,
     )
     print(f"    API: {r.status_code}")
     time.sleep(15)
@@ -125,7 +129,7 @@ for intent in all_intents:
     results.setdefault(status, []).append(intent.intent_id)
     print(f"  {intent.intent_id:40s} → {intent.status}")
 
-print(f"\n  Summary:")
+print("\n  Summary:")
 for status, ids in sorted(results.items()):
     print(f"    {status}: {len(ids)}")
 print("=" * 60)

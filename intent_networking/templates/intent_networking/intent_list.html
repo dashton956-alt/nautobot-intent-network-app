@@ -1,0 +1,25 @@
+{% extends 'generic/object_list.html' %}
+
+{% block bulk_buttons %}
+    {{ block.super }}
+    <button type="submit"
+            formaction="{% url 'plugins:intent_networking:intent_bulk_dry_run' %}"
+            class="btn btn-sm btn-secondary">
+        <span class="mdi mdi-play-outline" aria-hidden="true"></span> Dry-Run
+    </button>
+    <button type="submit"
+            formaction="{% url 'plugins:intent_networking:intent_bulk_preview' %}"
+            class="btn btn-sm btn-info">
+        <span class="mdi mdi-file-document-outline" aria-hidden="true"></span> Preview
+    </button>
+    <button type="submit"
+            formaction="{% url 'plugins:intent_networking:intent_bulk_deploy' %}"
+            class="btn btn-sm btn-success">
+        <span class="mdi mdi-rocket-launch" aria-hidden="true"></span> Deploy
+    </button>
+    <button type="submit"
+            formaction="{% url 'plugins:intent_networking:intent_bulk_validate' %}"
+            class="btn btn-sm btn-primary">
+        <span class="mdi mdi-check-decagram" aria-hidden="true"></span> Validate
+    </button>
+{% endblock bulk_buttons %}

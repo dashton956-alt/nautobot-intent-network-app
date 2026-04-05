@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""
-Run the intent pipeline for all Draft intents from the HOST machine.
+"""Run the intent pipeline for all Draft intents from the HOST machine.
+
 Uses the Nautobot API via localhost:8080 (Docker port mapping).
 Pipeline: Resolve → Preview → Approve → Deploy (with delays between steps).
 """
+
 import sys
 import time
+
 import requests
-import json
 
 API = "http://localhost:8080/api"
-TOKEN = "0123456789abcdef0123456789abcdef01234567"
+TOKEN = "0123456789abcdef0123456789abcdef01234567"  # noqa: S105
 HEADERS = {
     "Authorization": f"Token {TOKEN}",
     "Content-Type": "application/json",
@@ -80,7 +81,7 @@ def run_job(job_id, intent_id, extra_data=None):
         if jr_id:
             job_result_url = f"{API}/extras/job-results/{jr_id}/"
         else:
-            print(f"    WARNING: No job result URL in response")
+            print("    WARNING: No job result URL in response")
             return result
 
     # Poll for completion
@@ -96,7 +97,7 @@ def run_job(job_id, intent_id, extra_data=None):
         except Exception as e:
             print(f"    Poll error: {e}")
             continue
-    print(f"    TIMEOUT waiting for job")
+    print("    TIMEOUT waiting for job")
     return None
 
 
@@ -128,6 +129,7 @@ def approve_intent(intent_id):
 
 
 def main():
+    """Run the full pipeline for all Draft intents."""
     # Get all Draft intents
     url = f"{API}/plugins/intent-networking/intents/?limit=50&depth=1"
     resp = requests.get(url, headers=HEADERS, timeout=15)
@@ -160,7 +162,7 @@ def main():
         print(f"{'='*60}")
 
         # Step 1: Resolve (force re-resolve since we reset to Draft)
-        print(f"  Step 1: Resolving...")
+        print("  Step 1: Resolving...")
         jr = run_job(RESOLVE_JOB, intent_id, extra_data={"force_re_resolve": True})
         if jr and jr.get("status") not in ("SUCCESS", {"value": "SUCCESS"}):
             status_val = jr.get("status")
@@ -176,26 +178,26 @@ def main():
         current = get_intent_status(intent_id)
         print(f"  Status after resolve: {current}")
         if current != "Validated":
-            print(f"  Skipping (not Validated after resolve)")
+            print("  Skipping (not Validated after resolve)")
             results["failed"].append(intent_id)
             continue
 
         # Step 2: Preview
-        print(f"  Step 2: Previewing...")
+        print("  Step 2: Previewing...")
         jr = run_job(PREVIEW_JOB, intent_id)
         time.sleep(STEP_DELAY)
 
         # Step 3: Approve
-        print(f"  Step 3: Approving...")
+        print("  Step 3: Approving...")
         ok = approve_intent(intent_id)
         if not ok:
-            print(f"  APPROVE FAILED")
+            print("  APPROVE FAILED")
             results["failed"].append(intent_id)
             continue
         time.sleep(5)
 
         # Step 4: Deploy
-        print(f"  Step 4: Deploying...")
+        print("  Step 4: Deploying...")
         jr = run_job(DEPLOY_JOB, intent_id, extra_data={"commit_sha": "manual-lab-deploy", "commit": True})
         time.sleep(STEP_DELAY)
 
