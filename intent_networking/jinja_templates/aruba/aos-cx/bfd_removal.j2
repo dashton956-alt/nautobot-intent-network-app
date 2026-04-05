@@ -1,0 +1,5 @@
+{# bfd_removal.j2 — aos-cx #}
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+    no bfd
+{% endfor %}

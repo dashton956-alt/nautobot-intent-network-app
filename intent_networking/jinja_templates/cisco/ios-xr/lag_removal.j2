@@ -1,0 +1,10 @@
+{# lag_removal.j2 — ios-xr #}
+! Remove LAG
+! Intent: {{ intent_id }}
+!
+{% for iface in member_interfaces | default([]) %}
+interface {{ iface }}
+ no bundle id
+{% endfor %}
+no interface Bundle-Ether{{ channel_id }}
+!

@@ -1,0 +1,10 @@
+{# lag_removal.j2 — ios-xe #}
+! Remove LAG
+! Intent: {{ intent_id }}
+!
+{% for iface in member_interfaces | default([]) %}
+interface {{ iface }}
+ no channel-group
+{% endfor %}
+no interface Port-channel{{ channel_id }}
+!

@@ -1,10 +1,7 @@
 {# service_insertion.j2 — junos #}
-! Primitive: service_insertion
+! Service Insertion (Service Chaining)
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for service_insertion on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for chain in chains | default([]) %}
+set services service-set {{ chain.name }} interface-service service-interface {{ chain.interface | default("ms-0/0/0") }}
+{% endfor %}

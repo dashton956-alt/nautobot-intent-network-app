@@ -1,0 +1,9 @@
+{# lldp_cdp_removal.j2 — ios-xr #}
+! Remove LLDP
+! Intent: {{ intent_id }}
+!
+no lldp
+{% if cdp_global | default(false) %}
+no cdp
+{% endif %}
+!

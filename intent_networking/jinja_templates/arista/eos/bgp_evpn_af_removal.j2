@@ -1,0 +1,10 @@
+{# bgp_evpn_af_removal.j2 — arista-eos #}
+! Remove BGP EVPN Address Family Configuration
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+{% for neighbor in neighbors | default([]) %}
+   no neighbor {{ neighbor.ip }}
+{% endfor %}
+   no address-family evpn
+!

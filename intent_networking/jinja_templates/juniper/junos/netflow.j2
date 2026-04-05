@@ -1,10 +1,15 @@
 {# netflow.j2 — junos #}
-! Primitive: netflow
+! NetFlow (J-Flow)
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for netflow on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set forwarding-options sampling instance {{ instance_name | default("JFLOW") }} input rate {{ sample_rate | default(1000) }}
+{% for collector in collectors | default([]) %}
+set forwarding-options sampling instance {{ instance_name | default("JFLOW") }} family inet output flow-server {{ collector.ip }} port {{ collector.port | default(9995) }}
+set forwarding-options sampling instance {{ instance_name | default("JFLOW") }} family inet output flow-server {{ collector.ip }} version {{ version | default(9) }}
+{% endfor %}
+{% if source_address | default("") %}
+set forwarding-options sampling instance {{ instance_name | default("JFLOW") }} family inet output source-address {{ source_address }}
+{% endif %}
+{% for iface in interfaces | default([]) %}
+set interfaces {{ iface }} unit 0 family inet sampling input
+{% endfor %}

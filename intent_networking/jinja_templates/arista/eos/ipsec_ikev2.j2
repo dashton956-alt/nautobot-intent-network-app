@@ -1,0 +1,23 @@
+{# ipsec_ikev2.j2 — arista-eos #}
+! IPsec IKEv2 Configuration
+! Intent: {{ intent_id }}
+!
+{% if proposal %}
+crypto ikev2 proposal {{ proposal.name | default("IKEv2-PROPOSAL") }}
+   encryption {{ proposal.encryption | default("aes256") }}
+   integrity {{ proposal.integrity | default("sha256") }}
+   group {{ proposal.dh_group | default(14) }}
+!
+{% endif %}
+{% if policy %}
+crypto ikev2 policy {{ policy.name | default("IKEv2-POLICY") }}
+   proposal {{ proposal.name | default("IKEv2-PROPOSAL") }}
+!
+{% endif %}
+{% if profile %}
+crypto ikev2 profile {{ profile.name | default("IKEv2-PROFILE") }}
+   match identity remote address {{ peer_ip }}
+   authentication remote pre-share key {{ pre_shared_key }}
+   authentication local pre-share key {{ pre_shared_key }}
+!
+{% endif %}

@@ -1,0 +1,22 @@
+{# gre_tunnel.j2 — arista-eos #}
+! GRE Tunnel Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ tunnel_interface | default("Tunnel1") }}
+{% if description %}
+   description {{ description }}
+{% endif %}
+   ip address {{ tunnel_ip }}
+   tunnel source {{ tunnel_source }}
+   tunnel destination {{ tunnel_destination }}
+{% if tunnel_key %}
+   tunnel key {{ tunnel_key }}
+{% endif %}
+{% if keepalive %}
+   keepalive {{ keepalive.interval | default(10) }} {{ keepalive.retries | default(3) }}
+{% endif %}
+{% if mtu %}
+   mtu {{ mtu }}
+{% endif %}
+   no shutdown
+!

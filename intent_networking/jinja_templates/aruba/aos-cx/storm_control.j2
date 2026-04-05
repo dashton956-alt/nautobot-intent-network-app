@@ -1,10 +1,16 @@
 {# storm_control.j2 — aos-cx #}
-! Primitive: storm_control
+! Storm Control
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for storm_control on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+{% if broadcast_level | default("") %}
+    storm-control broadcast level {{ broadcast_level }}
+{% endif %}
+{% if multicast_level | default("") %}
+    storm-control multicast level {{ multicast_level }}
+{% endif %}
+{% if unicast_level | default("") %}
+    storm-control unicast level {{ unicast_level }}
+{% endif %}
+{% endfor %}

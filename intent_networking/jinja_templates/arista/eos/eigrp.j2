@@ -1,0 +1,18 @@
+{# eigrp.j2 — arista-eos #}
+! EIGRP Configuration
+! Intent: {{ intent_id }}
+!
+router eigrp {{ asn }}
+{% if router_id %}
+   router-id {{ router_id }}
+{% endif %}
+{% for net in networks | default([]) %}
+   network {{ net }}
+{% endfor %}
+{% for iface in passive_interfaces | default([]) %}
+   passive-interface {{ iface }}
+{% endfor %}
+{% for r in redistribute | default([]) %}
+   redistribute {{ r }}
+{% endfor %}
+!

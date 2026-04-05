@@ -1,10 +1,11 @@
 {# dhcp_relay.j2 — ios-xr #}
-! Primitive: dhcp_relay
+! DHCP Relay
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for dhcp_relay on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+dhcp ipv4
+ interface {{ interface }} relay profile RELAY-1
+!
+dhcp ipv4
+ profile RELAY-1 relay
+  helper-address vrf default {{ helper_address }}
 !

@@ -1,10 +1,17 @@
 {# telemetry.j2 — ios-xr #}
-! Primitive: telemetry
+! Streaming Telemetry
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for telemetry on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+telemetry model-driven
+ destination-group {{ destination_group | default("DG1") }}
+  address-family ipv4 {{ destination_ip }} port {{ destination_port }}
+   encoding {{ encoding | default("self-describing-gpb") }}
+   protocol {{ protocol | default("grpc") }} no-tls
+{% for sub in subscriptions | default([]) %}
+ sensor-group {{ sub.sensor_group | default("SG" ~ loop.index) }}
+  sensor-path {{ sub.path }}
+ subscription {{ sub.name | default("SUB" ~ loop.index) }}
+  sensor-group-id {{ sub.sensor_group | default("SG" ~ loop.index) }} sample-interval {{ sub.interval | default(10000) }}
+  destination-id {{ destination_group | default("DG1") }}
+{% endfor %}
 !

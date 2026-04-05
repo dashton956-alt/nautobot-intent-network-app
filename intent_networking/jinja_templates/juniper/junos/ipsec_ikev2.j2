@@ -1,10 +1,14 @@
 {# ipsec_ikev2.j2 — junos #}
-! Primitive: ipsec_ikev2
+! IPsec IKEv2
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for ipsec_ikev2 on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set security ike proposal {{ proposal_name | default("IKEv2-PROP") }} authentication-method pre-shared-keys
+set security ike proposal {{ proposal_name | default("IKEv2-PROP") }} dh-group {{ dh_group | default("group14") }}
+set security ike proposal {{ proposal_name | default("IKEv2-PROP") }} authentication-algorithm {{ integrity | default("sha-256") }}
+set security ike proposal {{ proposal_name | default("IKEv2-PROP") }} encryption-algorithm {{ encryption | default("aes-256-cbc") }}
+set security ike policy {{ policy_name | default("IKEv2-POL") }} mode main
+set security ike policy {{ policy_name | default("IKEv2-POL") }} proposals {{ proposal_name | default("IKEv2-PROP") }}
+set security ike policy {{ policy_name | default("IKEv2-POL") }} pre-shared-key ascii-text "{{ psk }}"
+set security ike gateway {{ gw_name | default("IKEv2-GW") }} ike-policy {{ policy_name | default("IKEv2-POL") }}
+set security ike gateway {{ gw_name | default("IKEv2-GW") }} address {{ peer_ip }}
+set security ike gateway {{ gw_name | default("IKEv2-GW") }} version v2-only

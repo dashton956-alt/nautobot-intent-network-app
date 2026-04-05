@@ -1,10 +1,10 @@
 {# dai.j2 — junos #}
-! Primitive: dai
+! Dynamic ARP Inspection
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for dai on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for vlan_item in vlans | default([]) %}
+set vlans VLAN{{ vlan_item }} forwarding-options dhcp-security arp-inspection
+{% endfor %}
+{% for iface in trusted_interfaces | default([]) %}
+set ethernet-switching-options secure-access-port interface {{ iface }} no-dhcp-trusted
+{% endfor %}

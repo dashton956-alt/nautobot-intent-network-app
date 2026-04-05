@@ -1,0 +1,10 @@
+{# qos_shaping.j2 — junos #}
+! QoS Shaping
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+set class-of-service interfaces {{ iface.name }} shaping-rate {{ iface.rate | default("100m") }}
+{% if iface.scheduler_map | default("") %}
+set class-of-service interfaces {{ iface.name }} scheduler-map {{ iface.scheduler_map }}
+{% endif %}
+{% endfor %}

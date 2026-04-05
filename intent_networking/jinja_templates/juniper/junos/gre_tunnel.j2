@@ -1,10 +1,13 @@
 {# gre_tunnel.j2 — junos #}
-! Primitive: gre_tunnel
+! GRE Tunnel
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for gre_tunnel on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set interfaces {{ tunnel_interface | default("gr-0/0/0") }} unit {{ tunnel_id | default(0) }} tunnel source {{ tunnel_source }}
+set interfaces {{ tunnel_interface | default("gr-0/0/0") }} unit {{ tunnel_id | default(0) }} tunnel destination {{ tunnel_destination }}
+set interfaces {{ tunnel_interface | default("gr-0/0/0") }} unit {{ tunnel_id | default(0) }} family inet address {{ tunnel_ip }}/{{ prefix_len | default(30) }}
+{% if description | default("") %}
+set interfaces {{ tunnel_interface | default("gr-0/0/0") }} unit {{ tunnel_id | default(0) }} description "{{ description }}"
+{% endif %}
+{% if mtu | default("") %}
+set interfaces {{ tunnel_interface | default("gr-0/0/0") }} unit {{ tunnel_id | default(0) }} family inet mtu {{ mtu }}
+{% endif %}

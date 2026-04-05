@@ -1,0 +1,15 @@
+{# l2_port_removal.j2 — ios-xe #}
+! Remove L2 Port — {{ interface }}
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+ no description
+ no switchport mode
+ no switchport access vlan
+ no switchport trunk allowed vlan
+{% if voice_vlan | default("") %}
+ no switchport voice vlan
+{% endif %}
+ no spanning-tree portfast
+ no spanning-tree bpduguard enable
+!

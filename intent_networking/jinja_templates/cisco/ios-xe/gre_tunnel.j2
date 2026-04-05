@@ -1,10 +1,23 @@
 {# gre_tunnel.j2 — ios-xe #}
-! Primitive: gre_tunnel
+! GRE Tunnel
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for gre_tunnel on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+interface Tunnel{{ tunnel_id }}
+{% if description | default("") %}
+ description {{ description }}
+{% endif %}
+ ip address {{ tunnel_ip }} {{ tunnel_mask | default("255.255.255.252") }}
+ tunnel source {{ tunnel_source }}
+ tunnel destination {{ tunnel_destination }}
+{% if tunnel_key | default("") %}
+ tunnel key {{ tunnel_key }}
+{% endif %}
+{% if ipsec_profile | default("") %}
+ tunnel protection ipsec profile {{ ipsec_profile }}
+{% endif %}
+{% if keepalive | default(false) %}
+ keepalive {{ keepalive_interval | default(10) }} {{ keepalive_retries | default(3) }}
+{% endif %}
+ ip mtu {{ mtu | default(1400) }}
+ ip tcp adjust-mss {{ tcp_mss | default(1360) }}
 !

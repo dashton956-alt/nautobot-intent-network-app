@@ -1,10 +1,13 @@
 {# l2vpn_vpls.j2 — junos #}
-! Primitive: l2vpn_vpls
+! L2VPN VPLS
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for l2vpn_vpls on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set routing-instances {{ instance_name | default("VPLS-1") }} instance-type vpls
+set routing-instances {{ instance_name | default("VPLS-1") }} route-distinguisher {{ rd | default("") }}
+set routing-instances {{ instance_name | default("VPLS-1") }} vrf-target target:{{ rt | default("") }}
+{% for peer in peers | default([]) %}
+set routing-instances {{ instance_name | default("VPLS-1") }} protocols vpls neighbor {{ peer.ip }}
+{% endfor %}
+{% if site_id | default("") %}
+set routing-instances {{ instance_name | default("VPLS-1") }} protocols vpls site {{ site_name | default("SITE-1") }} site-identifier {{ site_id }}
+{% endif %}

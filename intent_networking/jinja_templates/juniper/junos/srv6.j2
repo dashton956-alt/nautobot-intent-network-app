@@ -1,10 +1,6 @@
 {# srv6.j2 — junos #}
-! Primitive: srv6
+! SRv6 Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for srv6 on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set routing-options source-packet-routing srv6
+set routing-options source-packet-routing srv6 locator {{ locator_name | default("MAIN") }} {{ locator_prefix }}

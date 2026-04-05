@@ -1,0 +1,31 @@
+{# l2_port.j2 — nxos #}
+! L2 Port Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+  no shutdown
+{% if description | default("") %}
+  description {{ description }}
+{% endif %}
+  switchport
+{% if mode == 'access' %}
+  switchport mode access
+  switchport access vlan {{ access_vlan }}
+{% if voice_vlan | default("") %}
+  switchport voice vlan {{ voice_vlan }}
+{% endif %}
+{% if portfast | default(false) %}
+  spanning-tree port type edge
+{% endif %}
+{% if bpdu_guard | default(false) %}
+  spanning-tree bpduguard enable
+{% endif %}
+{% elif mode == 'trunk' %}
+  switchport mode trunk
+{% if allowed_vlans | default([]) %}
+  switchport trunk allowed vlan {{ allowed_vlans | join(',') }}
+{% endif %}
+{% if native_vlan | default("") %}
+  switchport trunk native vlan {{ native_vlan }}
+{% endif %}
+{% endif %}

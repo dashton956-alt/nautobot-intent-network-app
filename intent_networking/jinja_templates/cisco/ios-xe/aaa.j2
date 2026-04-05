@@ -1,10 +1,25 @@
 {# aaa.j2 — ios-xe #}
-! Primitive: aaa
+! AAA Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for aaa on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+aaa new-model
+!
+{% for group in server_groups | default([]) %}
+aaa group server {{ group.type | default("tacacs+") }} {{ group.name }}
+{% for server in group.servers | default([]) %}
+ server name {{ server }}
+{% endfor %}
+{% endfor %}
+!
+{% for auth in authentication | default([]) %}
+aaa authentication {{ auth.type }} {{ auth.list_name | default("default") }} group {{ auth.group }}{% if auth.local_fallback | default(false) %} local{% endif %}
+
+{% endfor %}
+{% for authz in authorization | default([]) %}
+aaa authorization {{ authz.type }} {{ authz.list_name | default("default") }} group {{ authz.group }}{% if authz.local_fallback | default(false) %} local{% endif %}
+
+{% endfor %}
+{% for acct in accounting | default([]) %}
+aaa accounting {{ acct.type }} {{ acct.list_name | default("default") }} start-stop group {{ acct.group }}
+{% endfor %}
 !

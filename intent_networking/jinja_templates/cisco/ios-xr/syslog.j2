@@ -1,10 +1,16 @@
 {# syslog.j2 — ios-xr #}
-! Primitive: syslog
+! Syslog Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for syslog on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if source_interface | default("") %}
+logging source-interface {{ source_interface }}
+{% endif %}
+{% for server in servers | default([]) %}
+logging {{ server }}
+{% endfor %}
+{% if facility | default("") %}
+logging facility {{ facility }}
+{% endif %}
+logging trap {{ severity | default("informational") }}
+service timestamps log datetime msec
 !

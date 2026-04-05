@@ -1,0 +1,13 @@
+{# copp.j2 — nxos #}
+! Control Plane Policing
+! Intent: {{ intent_id }}
+!
+{% for cls in classes | default([]) %}
+ip access-list {{ cls.acl_name }}
+{% for rule in cls.rules | default([]) %}
+  {{ rule.seq | default(loop.index * 10) }} {{ rule.action }} {{ rule.protocol }} {{ rule.source }} {{ rule.destination }}{% if rule.port | default("") %} eq {{ rule.port }}{% endif %}
+
+{% endfor %}
+{% endfor %}
+!
+copp profile strict

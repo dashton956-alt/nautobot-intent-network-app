@@ -1,0 +1,14 @@
+{# dhcp_snooping_removal.j2 — arista-eos #}
+! Remove DHCP Snooping Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in trusted_interfaces | default([]) %}
+interface {{ iface }}
+   no ip dhcp snooping trust
+!
+{% endfor %}
+{% for vlan in vlans | default([]) %}
+no ip dhcp snooping vlan {{ vlan }}
+{% endfor %}
+no ip dhcp snooping
+!

@@ -1,10 +1,11 @@
 {# loopback.j2 — junos #}
-! Primitive: loopback
+! Loopback Interface
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for loopback on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set interfaces lo0 unit {{ unit | default(0) }} family inet address {{ ip_address }}/32
+{% if description | default("") %}
+set interfaces lo0 unit {{ unit | default(0) }} description "{{ description }}"
+{% endif %}
+{% if vrf | default("") %}
+set routing-instances {{ vrf }} interface lo0.{{ unit | default(0) }}
+{% endif %}

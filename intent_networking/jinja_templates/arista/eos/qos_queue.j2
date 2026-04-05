@@ -1,0 +1,26 @@
+{# qos_queue.j2 — arista-eos #}
+! QoS Queuing Configuration
+! Intent: {{ intent_id }}
+!
+policy-map {{ policy_map }}
+{% for q in queues | default([]) %}
+   class {{ q.class_name }}
+{% if q.bandwidth_percent %}
+      bandwidth percent {{ q.bandwidth_percent }}
+{% endif %}
+{% if q.priority %}
+      priority
+{% endif %}
+{% if q.shape_rate %}
+      shape rate {{ q.shape_rate }}
+{% endif %}
+{% if q.queue_limit %}
+      queue-length {{ q.queue_limit }}
+{% endif %}
+{% endfor %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+   service-policy {{ direction | default("output") }} {{ policy_map }}
+!
+{% endfor %}

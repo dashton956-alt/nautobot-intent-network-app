@@ -1,10 +1,24 @@
 {# ipsec_tunnel.j2 — aos-cx #}
-! Primitive: ipsec_tunnel
+! IPsec Tunnel
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for ipsec_tunnel on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+crypto ipsec transform-set {{ transform_name | default("IPSEC-XFORM") }} esp-{{ encryption | default("aes256") }} esp-{{ hash | default("sha256") }}
 !
+crypto ipsec profile {{ profile_name | default("IPSEC-PROF") }}
+    transform-set {{ transform_name | default("IPSEC-XFORM") }}
+!
+crypto isakmp policy {{ isakmp_priority | default(10) }}
+    encryption {{ encryption | default("aes256") }}
+    hash {{ hash | default("sha256") }}
+    authentication pre-share
+    group {{ dh_group | default(14) }}
+!
+crypto isakmp key "{{ psk }}" address {{ peer_ip }}
+!
+interface tunnel {{ tunnel_id | default(1) }}
+    ip address {{ tunnel_ip }}/{{ prefix_len | default(30) }}
+    tunnel source {{ tunnel_source }}
+    tunnel destination {{ peer_ip }}
+    tunnel mode ipsec ipv4
+    tunnel protection ipsec profile {{ profile_name | default("IPSEC-PROF") }}
+    no shutdown

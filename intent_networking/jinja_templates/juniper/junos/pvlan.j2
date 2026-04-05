@@ -1,10 +1,13 @@
 {# pvlan.j2 — junos #}
-! Primitive: pvlan
+! Private VLAN
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for pvlan on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% if primary_vlan | default("") %}
+set vlans {{ primary_vlan_name | default("PRIMARY") }} vlan-id {{ primary_vlan }}
+set vlans {{ primary_vlan_name | default("PRIMARY") }} private-vlan trunk
+{% for secondary in secondary_vlans | default([]) %}
+set vlans {{ secondary.name | default("SEC-" ~ loop.index) }} vlan-id {{ secondary.id }}
+set vlans {{ secondary.name | default("SEC-" ~ loop.index) }} private-vlan {{ secondary.type | default("isolated") }}
+set vlans {{ primary_vlan_name | default("PRIMARY") }} private-vlan {{ secondary.type | default("isolated") }} {{ secondary.name | default("SEC-" ~ loop.index) }}
+{% endfor %}
+{% endif %}

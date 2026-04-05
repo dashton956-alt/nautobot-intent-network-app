@@ -1,10 +1,13 @@
 {# ipv6_interface.j2 — ios-xr #}
-! Primitive: ipv6_interface
+! IPv6 Interface
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for ipv6_interface on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+interface {{ interface }}
+ ipv6 address {{ ipv6_address }}
+{% if link_local | default("") %}
+ ipv6 address {{ link_local }} link-local
+{% endif %}
+{% if description | default("") %}
+ description {{ description }}
+{% endif %}
 !

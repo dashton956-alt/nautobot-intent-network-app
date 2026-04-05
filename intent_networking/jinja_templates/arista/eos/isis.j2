@@ -1,0 +1,31 @@
+{# isis.j2 — arista-eos #}
+! IS-IS Configuration
+! Intent: {{ intent_id }}
+!
+router isis {{ process_tag }}
+   net {{ net }}
+{% if level %}
+   is-type {{ level }}
+{% endif %}
+{% if metric_style %}
+   metric-style {{ metric_style }}
+{% endif %}
+{% if authentication %}
+   authentication mode {{ authentication.mode | default("md5") }}
+   authentication key {{ authentication.key }}
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+   isis enable {{ process_tag }}
+{% if iface.metric %}
+   isis metric {{ iface.metric }}
+{% endif %}
+{% if iface.network_type %}
+   isis network {{ iface.network_type }}
+{% endif %}
+{% if iface.passive %}
+   isis passive
+{% endif %}
+!
+{% endfor %}

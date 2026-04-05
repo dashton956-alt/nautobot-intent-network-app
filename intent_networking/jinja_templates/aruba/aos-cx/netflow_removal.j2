@@ -1,0 +1,4 @@
+{# netflow_removal.j2 — aos-cx #}
+{% for collector in collectors | default([]) %}
+no sflow {{ collector.ip }}
+{% endfor %}

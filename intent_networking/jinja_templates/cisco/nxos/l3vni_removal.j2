@@ -1,0 +1,16 @@
+{# l3vni_removal.j2 — nxos #}
+! Remove L3 VNI
+! Intent: {{ intent_id }}
+!
+router bgp {{ bgp_asn | default(65000) }}
+  no vrf {{ vrf_name }}
+!
+interface nve1
+  no member vni {{ l3vni }}
+!
+{% if vlan_id | default("") %}
+no interface Vlan{{ vlan_id }}
+no vlan {{ vlan_id }}
+{% endif %}
+no vrf context {{ vrf_name }}
+!

@@ -1,0 +1,17 @@
+{# evpn_multisite.j2 — arista-eos #}
+! EVPN Multi-Site / DCI Configuration
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+   address-family evpn
+{% for neighbor in dci_neighbors | default([]) %}
+      neighbor {{ neighbor.ip }} remote-as {{ neighbor.remote_asn }}
+      neighbor {{ neighbor.ip }} update-source {{ neighbor.update_source | default("Loopback0") }}
+      neighbor {{ neighbor.ip }} ebgp-multihop {{ neighbor.multihop | default(3) }}
+      neighbor {{ neighbor.ip }} send-community extended
+      neighbor {{ neighbor.ip }} activate
+{% endfor %}
+{% if site_id %}
+!
+{% endif %}
+!

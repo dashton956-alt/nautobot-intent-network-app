@@ -11,11 +11,18 @@ hostname {{ hostname }}
 {% if domain_name %}
 dns domain {{ domain_name }}
 {% endif %}
+{% for domain in dns_domain_list | default([]) %}
+dns domain {{ domain }}
+{% endfor %}
 {% for server in dns_servers | default([]) %}
 name-server {{ server }}
 {% endfor %}
 !
 ! ── NTP ───────────────────────────────────────────────────
+{% if timezone %}
+clock timezone {{ timezone }}{% if timezone_offset %} {{ timezone_offset }}{% endif %}
+
+{% endif %}
 {% for server in ntp_servers | default([]) %}
 {% if server == ntp_prefer %}
 ntp server {{ server }} prefer
@@ -36,7 +43,7 @@ logging host {{ server }}
 {% endfor %}
 {% if syslog_servers %}
 logging facility {{ syslog_facility | default("local7") }}
-logging trap {{ syslog_severity | default("informational") }}
+logging trap {{ syslog_trap_level | default("informational") }}
 logging on
 {% endif %}
 !

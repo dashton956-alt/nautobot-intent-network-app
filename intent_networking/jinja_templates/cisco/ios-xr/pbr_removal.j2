@@ -1,0 +1,6 @@
+{# pbr_removal.j2 — ios-xr #}
+! Remove PBR
+! Intent: {{ intent_id }}
+!
+no vrf-policy {{ route_map_name | default("PBR-POLICY") }}
+!

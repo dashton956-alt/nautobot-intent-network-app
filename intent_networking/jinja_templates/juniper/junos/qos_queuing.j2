@@ -1,0 +1,11 @@
+{# qos_queuing.j2 — junos #}
+! QoS Queuing
+! Intent: {{ intent_id }}
+!
+{% for queue in queues | default([]) %}
+set class-of-service forwarding-classes class {{ queue.name }} queue-num {{ queue.id }}
+set class-of-service schedulers {{ queue.scheduler | default(queue.name) }} transmit-rate percent {{ queue.bandwidth_percent | default(25) }}
+{% if queue.priority | default(false) %}
+set class-of-service schedulers {{ queue.scheduler | default(queue.name) }} priority strict-high
+{% endif %}
+{% endfor %}

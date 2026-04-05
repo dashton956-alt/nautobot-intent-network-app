@@ -1,0 +1,14 @@
+{# l2vpn_vpls.j2 — nxos #}
+! L2VPN VPLS Configuration
+! Intent: {{ intent_id }}
+!
+feature mpls l2vpn
+!
+l2vpn vfi context {{ vpls_id }}
+  vpn id {{ vpls_id }}
+  rd {{ route_distinguisher }}
+  route-target import {{ route_target }}
+  route-target export {{ route_target }}
+{% for pw in pseudowires | default([]) %}
+  member {{ pw.neighbor }} vc-id {{ pw.vc_id }}
+{% endfor %}

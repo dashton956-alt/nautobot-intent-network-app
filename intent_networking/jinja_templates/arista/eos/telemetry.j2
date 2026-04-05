@@ -5,9 +5,32 @@
 management api gnmi
    transport grpc default
       port {{ destination_port | default(6030) }}
+{% if source_interface %}
+      ip access-group source-interface {{ source_interface }}
+{% endif %}
    provider eos-native
 !
-{% for sub in subscriptions %}
-! Subscription: {{ sub.path }}
+{% if destination_ip %}
+monitor telemetry
+   destination {{ destination_ip }}
+{% if destination_port %}
+      port {{ destination_port }}
+{% endif %}
+{% if protocol %}
+      protocol {{ protocol }}
+{% endif %}
+{% if encoding %}
+      encoding {{ encoding }}
+{% endif %}
+!
+{% endif %}
+{% for sub in subscriptions | default([]) %}
+{% if sub.path %}
+   subscription {{ sub.name | default(sub.path | replace("/", "-")) }}
+      sensor-path {{ sub.path }}
+{% if sub.interval %}
+      sample-interval {{ sub.interval }}
+{% endif %}
+{% endif %}
 {% endfor %}
 !

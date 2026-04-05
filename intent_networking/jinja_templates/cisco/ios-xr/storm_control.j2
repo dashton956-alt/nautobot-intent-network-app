@@ -1,10 +1,12 @@
 {# storm_control.j2 — ios-xr #}
-! Primitive: storm_control
+! Storm Control
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for storm_control on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+ storm-control broadcast level {{ broadcast_level | default(1.0) }}
+{% if multicast_level | default("") %}
+ storm-control multicast level {{ multicast_level }}
+{% endif %}
+{% endfor %}
 !

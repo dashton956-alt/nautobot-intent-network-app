@@ -1,10 +1,8 @@
 {# bfd.j2 — aos-cx #}
-! Primitive: bfd
+! BFD Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for bfd on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+    bfd interval {{ iface.interval | default(300) }} min_rx {{ iface.min_rx | default(300) }} multiplier {{ iface.multiplier | default(3) }}
+{% endfor %}

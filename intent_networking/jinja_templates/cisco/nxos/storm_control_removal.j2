@@ -1,0 +1,11 @@
+{# storm_control_removal.j2 — nxos #}
+! Remove Storm Control
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+  no storm-control broadcast level
+  no storm-control multicast level
+  no storm-control unicast level
+{% endfor %}
+!

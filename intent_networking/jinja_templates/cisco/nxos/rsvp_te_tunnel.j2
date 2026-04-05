@@ -1,0 +1,25 @@
+{# rsvp_te_tunnel.j2 — nxos #}
+! RSVP-TE Tunnel Configuration
+! Intent: {{ intent_id }}
+!
+feature mpls traffic-eng
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+  ip rsvp bandwidth {{ rsvp_bandwidth | default(1000000) }}
+{% endfor %}
+!
+interface {{ tunnel_interface }}
+  ip unnumbered {{ unnumbered_interface | default('Loopback0') }}
+  tunnel mode mpls traffic-eng
+  tunnel destination {{ tunnel_destination }}
+  tunnel mpls traffic-eng priority {{ setup_priority | default(7) }} {{ hold_priority | default(7) }}
+{% if bandwidth | default("") %}
+  tunnel mpls traffic-eng bandwidth {{ bandwidth }}
+{% endif %}
+{% if explicit_path | default("") %}
+  tunnel mpls traffic-eng path-option 10 explicit name {{ explicit_path }}
+{% else %}
+  tunnel mpls traffic-eng path-option 10 dynamic
+{% endif %}
+  no shutdown

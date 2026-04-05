@@ -1,0 +1,28 @@
+{# pvlan.j2 — nxos #}
+! Private VLAN Configuration
+! Intent: {{ intent_id }}
+!
+feature private-vlan
+!
+vlan {{ primary_vlan }}
+  private-vlan primary
+  private-vlan association {{ secondary_vlans | join(',') }}
+!
+{% for sv in secondary_vlans | default([]) %}
+vlan {{ sv }}
+  private-vlan {{ secondary_type | default('isolated') }}
+{% endfor %}
+!
+{% for iface in promiscuous_interfaces | default([]) %}
+interface {{ iface }}
+  switchport
+  switchport mode private-vlan promiscuous
+  switchport private-vlan mapping {{ primary_vlan }} {{ secondary_vlans | join(',') }}
+{% endfor %}
+!
+{% for iface in host_interfaces | default([]) %}
+interface {{ iface }}
+  switchport
+  switchport mode private-vlan host
+  switchport private-vlan host-association {{ primary_vlan }} {{ secondary_vlans | first }}
+{% endfor %}

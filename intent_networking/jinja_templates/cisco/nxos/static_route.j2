@@ -1,0 +1,12 @@
+{# static_route.j2 — nxos #}
+! Static Route
+! Intent: {{ intent_id }}
+!
+{% if vrf | default("") %}
+vrf context {{ vrf }}
+  ip route {{ prefix }} {{ next_hop }}{% if exit_interface | default("") %} {{ exit_interface }}{% endif %}{% if admin_distance | default("") %} {{ admin_distance }}{% endif %}{% if tag | default("") %} tag {{ tag }}{% endif %}{% if name | default("") %} name {{ name }}{% endif %}
+
+{% else %}
+ip route {{ prefix }} {{ next_hop }}{% if exit_interface | default("") %} {{ exit_interface }}{% endif %}{% if admin_distance | default("") %} {{ admin_distance }}{% endif %}{% if tag | default("") %} tag {{ tag }}{% endif %}{% if name | default("") %} name {{ name }}{% endif %}
+
+{% endif %}

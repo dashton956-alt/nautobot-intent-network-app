@@ -1,10 +1,44 @@
 {# ospf.j2 — ios-xr #}
-! Primitive: ospf
+! OSPF Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for ospf on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router ospf {{ process_id }}
+{% if router_id | default("") %}
+ router-id {{ router_id }}
+{% endif %}
+{% if reference_bandwidth | default("") %}
+ auto-cost reference-bandwidth {{ reference_bandwidth }}
+{% endif %}
+{% for area in areas | default([]) %}
+ area {{ area.id }}
+{% for iface in area.interfaces | default([]) %}
+  interface {{ iface.name }}
+{% if iface.cost | default("") %}
+   cost {{ iface.cost }}
+{% endif %}
+{% if iface.network_type | default("") %}
+   network {{ iface.network_type }}
+{% endif %}
+{% if iface.passive | default(false) %}
+   passive enable
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% for iface in interfaces | default([]) %}
+ area {{ iface.area | default("0.0.0.0") }}
+  interface {{ iface.name }}
+{% if iface.cost | default("") %}
+   cost {{ iface.cost }}
+{% endif %}
+{% if iface.network_type | default("") %}
+   network {{ iface.network_type }}
+{% endif %}
+{% if iface.passive | default(false) %}
+   passive enable
+{% endif %}
+{% endfor %}
+{% if default_originate | default(false) %}
+ default-information originate{% if always | default(false) %} always{% endif %}
+
+{% endif %}
 !

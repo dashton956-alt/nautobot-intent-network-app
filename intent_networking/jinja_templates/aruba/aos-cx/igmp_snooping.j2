@@ -1,10 +1,12 @@
 {# igmp_snooping.j2 — aos-cx #}
-! Primitive: igmp_snooping
+! IGMP Snooping
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for igmp_snooping on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for vlan_item in vlans | default([]) %}
+vlan {{ vlan_item }}
+    ip igmp snooping
+{% endfor %}
+{% if querier | default(false) %}
+vlan {{ querier_vlan | default(1) }}
+    ip igmp snooping querier
+{% endif %}

@@ -1,10 +1,15 @@
 {# dhcp_pool.j2 — ios-xr #}
-! Primitive: dhcp_pool
+! DHCP Pool
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for dhcp_pool on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+dhcp ipv4
+ profile {{ pool_name }} server
+  network {{ network }}
+{% if default_router | default("") %}
+  default-router {{ default_router }}
+{% endif %}
+{% if dns_server | default("") %}
+  dns-server {{ dns_server }}
+{% endif %}
+  lease {{ lease_days | default(1) }} {{ lease_hours | default(0) }} {{ lease_minutes | default(0) }}
 !

@@ -1,0 +1,11 @@
+{# fhrp_removal.j2 — ios-xr #}
+! Remove FHRP
+! Intent: {{ intent_id }}
+!
+{% for group in groups | default([]) %}
+router hsrp
+ interface {{ group.interface }}
+  no address-family ipv4
+   no hsrp {{ group.group_id }}
+{% endfor %}
+!

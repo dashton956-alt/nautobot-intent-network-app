@@ -1,0 +1,16 @@
+{# qos_shape.j2 — arista-eos #}
+! QoS Shaping Configuration
+! Intent: {{ intent_id }}
+!
+policy-map {{ policy_map }}
+   class class-default
+      shape rate {{ rate_bps }}
+{% if child_policy %}
+      service-policy {{ child_policy }}
+{% endif %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+   service-policy output {{ policy_map }}
+!
+{% endfor %}

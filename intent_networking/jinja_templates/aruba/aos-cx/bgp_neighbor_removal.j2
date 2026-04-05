@@ -1,0 +1,5 @@
+{# bgp_neighbor_removal.j2 — aos-cx #}
+router bgp {{ local_asn }}
+{% for neighbor in neighbors | default([]) %}
+    no neighbor {{ neighbor.ip }}
+{% endfor %}

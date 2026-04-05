@@ -1,0 +1,15 @@
+{# fhrp_removal.j2 — ios-xe #}
+! Remove FHRP
+! Intent: {{ intent_id }}
+!
+{% for group in groups | default([]) %}
+interface {{ group.interface }}
+{% if protocol | default("hsrp") == "hsrp" %}
+ no standby {{ group.group_id }}
+{% elif protocol == "vrrp" %}
+ no vrrp {{ group.group_id }}
+{% elif protocol == "glbp" %}
+ no glbp {{ group.group_id }}
+{% endif %}
+{% endfor %}
+!

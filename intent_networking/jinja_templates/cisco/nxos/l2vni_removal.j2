@@ -1,0 +1,12 @@
+{# l2vni_removal.j2 — nxos #}
+! Remove L2 VNI
+! Intent: {{ intent_id }}
+!
+router bgp {{ bgp_asn | default(65000) }}
+  no vlan {{ vlan_id }}
+!
+interface nve1
+  no member vni {{ vni_id }}
+!
+no vlan {{ vlan_id }}
+!

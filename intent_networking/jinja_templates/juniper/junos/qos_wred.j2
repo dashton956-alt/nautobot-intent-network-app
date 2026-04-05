@@ -1,0 +1,12 @@
+{# qos_wred.j2 — junos #}
+! QoS WRED (RED Drop Profiles)
+! Intent: {{ intent_id }}
+!
+{% for profile in profiles | default([]) %}
+set class-of-service drop-profiles {{ profile.name }} fill-level {{ profile.min_threshold | default(50) }} drop-probability {{ profile.probability | default(100) }}
+{% endfor %}
+{% for queue in queues | default([]) %}
+{% if queue.drop_profile | default("") %}
+set class-of-service schedulers {{ queue.scheduler | default(queue.name) }} drop-profile-map loss-priority any protocol any drop-profile {{ queue.drop_profile }}
+{% endif %}
+{% endfor %}

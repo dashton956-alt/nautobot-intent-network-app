@@ -1,0 +1,19 @@
+{# fhrp.j2 — arista-eos #}
+! FHRP (VRRP) Configuration
+! Intent: {{ intent_id }}
+!
+{% for group in groups %}
+interface {{ group.interface }}
+   vrrp {{ group.group_id }} priority {{ group.priority | default(100) }}
+   vrrp {{ group.group_id }} ipv4 {{ group.virtual_ip }}
+{% if group.preempt %}
+   vrrp {{ group.group_id }} preempt
+{% endif %}
+{% if group.track_interface %}
+   vrrp {{ group.group_id }} tracked-object {{ group.track_interface }} decrement {{ group.track_decrement | default(10) }}
+{% endif %}
+{% if group.authentication %}
+   vrrp {{ group.group_id }} authentication {{ group.authentication }}
+{% endif %}
+!
+{% endfor %}

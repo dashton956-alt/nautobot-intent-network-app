@@ -1,0 +1,14 @@
+{# syslog.j2 — nxos #}
+! Syslog Configuration
+! Intent: {{ intent_id }}
+!
+{% if source_interface | default("") %}
+logging source-interface {{ source_interface }}
+{% endif %}
+{% for server in servers | default([]) %}
+logging server {{ server }}
+{% endfor %}
+{% if facility | default("") %}
+logging level {{ facility }} {{ severity | default(6) }}
+{% endif %}
+logging timestamp milliseconds

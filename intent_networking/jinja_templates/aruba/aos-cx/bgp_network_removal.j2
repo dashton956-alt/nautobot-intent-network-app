@@ -1,0 +1,7 @@
+{# bgp_network_removal.j2 — aos-cx #}
+router bgp {{ local_asn }}
+    address-family ipv4 unicast
+{% for net in networks | default([]) %}
+        no network {{ net }}
+{% endfor %}
+    exit-address-family

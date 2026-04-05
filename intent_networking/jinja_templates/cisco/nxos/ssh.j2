@@ -1,0 +1,16 @@
+{# ssh.j2 — nxos #}
+! SSH Configuration
+! Intent: {{ intent_id }}
+!
+feature ssh
+!
+ssh login-attempts {{ retries | default(3) }}
+{% if timeout | default("") %}
+ssh idle-timeout {{ timeout }}
+{% endif %}
+{% if key_type | default("rsa") == "rsa" and key_size | default("") %}
+ssh key rsa {{ key_size }}
+{% endif %}
+{% if acl_name | default("") %}
+ssh access-list {{ acl_name }}
+{% endif %}

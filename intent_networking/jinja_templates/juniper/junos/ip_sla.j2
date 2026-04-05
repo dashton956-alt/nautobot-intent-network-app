@@ -1,10 +1,13 @@
 {# ip_sla.j2 — junos #}
-! Primitive: ip_sla
+! RPM (IP SLA equivalent)
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for ip_sla on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for probe in probes | default([]) %}
+set services rpm probe {{ probe.name | default("SLA-" ~ loop.index) }} test {{ probe.test_name | default("ICMP-TEST") }} probe-type icmp-ping
+set services rpm probe {{ probe.name | default("SLA-" ~ loop.index) }} test {{ probe.test_name | default("ICMP-TEST") }} target address {{ probe.target }}
+set services rpm probe {{ probe.name | default("SLA-" ~ loop.index) }} test {{ probe.test_name | default("ICMP-TEST") }} probe-interval {{ probe.frequency | default(60) }}
+set services rpm probe {{ probe.name | default("SLA-" ~ loop.index) }} test {{ probe.test_name | default("ICMP-TEST") }} probe-count {{ probe.count | default(5) }}
+{% if probe.threshold | default("") %}
+set services rpm probe {{ probe.name | default("SLA-" ~ loop.index) }} test {{ probe.test_name | default("ICMP-TEST") }} thresholds successive-loss {{ probe.threshold }}
+{% endif %}
+{% endfor %}

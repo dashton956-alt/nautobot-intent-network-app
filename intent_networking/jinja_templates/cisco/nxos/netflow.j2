@@ -1,0 +1,24 @@
+{# netflow.j2 — nxos #}
+! NetFlow Configuration
+! Intent: {{ intent_id }}
+!
+feature netflow
+!
+flow exporter {{ exporter_name }}
+  destination {{ collector_ip }}
+  transport udp {{ collector_port | default(9996) }}
+{% if source_interface | default("") %}
+  source {{ source_interface }}
+{% endif %}
+  version {{ version | default(9) }}
+!
+flow monitor FLOW-MONITOR
+  exporter {{ exporter_name }}
+{% if sampler_rate | default("") %}
+  record netflow-original
+{% endif %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+  ip flow monitor FLOW-MONITOR input
+{% endfor %}

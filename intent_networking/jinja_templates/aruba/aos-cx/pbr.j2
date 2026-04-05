@@ -1,10 +1,18 @@
 {# pbr.j2 — aos-cx #}
-! Primitive: pbr
+! Policy-Based Routing
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for pbr on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for entry in entries | default([]) %}
+route-map {{ route_map_name | default("PBR-MAP") }} {{ entry.action | default("permit") }} {{ entry.sequence | default(loop.index * 10) }}
+{% if entry.match_acl | default("") %}
+    match ip address {{ entry.match_acl }}
+{% endif %}
+{% if entry.set_next_hop | default("") %}
+    set ip next-hop {{ entry.set_next_hop }}
+{% endif %}
+{% endfor %}
 !
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+    ip policy route-map {{ route_map_name | default("PBR-MAP") }}
+{% endfor %}

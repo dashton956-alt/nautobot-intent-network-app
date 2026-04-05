@@ -1,10 +1,17 @@
 {# wan_uplink.j2 — junos #}
-! Primitive: wan_uplink
+! WAN Uplink
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for wan_uplink on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set interfaces {{ interface }} unit 0 family inet address {{ ip_address }}/{{ prefix_len | default(30) }}
+{% if description | default("") %}
+set interfaces {{ interface }} description "{{ description }}"
+{% endif %}
+{% if bandwidth | default("") %}
+set interfaces {{ interface }} speed {{ bandwidth }}
+{% endif %}
+{% if mtu | default("") %}
+set interfaces {{ interface }} mtu {{ mtu }}
+{% endif %}
+{% if vrf | default("") %}
+set routing-instances {{ vrf }} interface {{ interface }}.0
+{% endif %}

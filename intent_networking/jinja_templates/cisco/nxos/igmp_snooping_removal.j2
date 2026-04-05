@@ -1,0 +1,8 @@
+{# igmp_snooping_removal.j2 — nxos #}
+! Remove IGMP Snooping
+! Intent: {{ intent_id }}
+!
+{% for vlan in vlans | default([]) %}
+no ip igmp snooping vlan {{ vlan }}
+{% endfor %}
+!

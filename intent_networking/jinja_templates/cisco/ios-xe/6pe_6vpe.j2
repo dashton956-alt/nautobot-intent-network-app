@@ -1,10 +1,12 @@
 {# 6pe_6vpe.j2 — ios-xe #}
-! Primitive: 6pe_6vpe
+! 6PE/6VPE Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for 6pe_6vpe on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router bgp {{ local_asn }}
+ address-family ipv6 unicast
+{% for neighbor in neighbors | default([]) %}
+  neighbor {{ neighbor.ip }} activate
+  neighbor {{ neighbor.ip }} send-label
+{% endfor %}
+ exit-address-family
 !

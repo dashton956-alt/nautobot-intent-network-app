@@ -1,0 +1,19 @@
+{# mvpn.j2 — arista-eos #}
+! MVPN Configuration
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+   address-family ipv4 multicast
+{% for neighbor in neighbors | default([]) %}
+      neighbor {{ neighbor.ip }} activate
+{% endfor %}
+!
+{% if vrf %}
+   vrf {{ vrf }}
+      address-family ipv4 multicast
+         redistribute connected
+{% if mdt_default %}
+         mdt default {{ mdt_default }}
+{% endif %}
+!
+{% endif %}

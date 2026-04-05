@@ -1,0 +1,15 @@
+{# qinq.j2 — nxos #}
+! Q-in-Q / Double Tagging Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+  no shutdown
+{% if iface.description | default("") %}
+  description {{ iface.description }}
+{% endif %}
+  switchport
+  switchport mode dot1q-tunnel
+  switchport access vlan {{ iface.outer_vlan }}
+  spanning-tree port type edge
+{% endfor %}

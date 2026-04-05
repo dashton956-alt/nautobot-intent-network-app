@@ -1,0 +1,14 @@
+{# vtep_removal.j2 — arista-eos #}
+! Remove VXLAN VTEP Configuration
+! Intent: {{ intent_id }}
+!
+{% for vni in l2_vni | default([]) %}
+interface {{ nve_interface | default("Vxlan1") }}
+   no vxlan vlan {{ vni.vlan_id }} vni
+{% endfor %}
+{% for vni in l3_vni | default([]) %}
+interface {{ nve_interface | default("Vxlan1") }}
+   no vxlan vrf {{ vni.vrf_name }} vni
+{% endfor %}
+no interface {{ nve_interface | default("Vxlan1") }}
+!

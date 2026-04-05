@@ -1,10 +1,11 @@
 {# qos_queue.j2 — junos #}
-! Primitive: qos_queue
+! QoS Queuing
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for qos_queue on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for queue in queues | default([]) %}
+set class-of-service forwarding-classes class {{ queue.name }} queue-num {{ queue.id }}
+set class-of-service schedulers {{ queue.scheduler | default(queue.name) }} transmit-rate percent {{ queue.bandwidth_percent | default(25) }}
+{% if queue.priority | default(false) %}
+set class-of-service schedulers {{ queue.scheduler | default(queue.name) }} priority strict-high
+{% endif %}
+{% endfor %}

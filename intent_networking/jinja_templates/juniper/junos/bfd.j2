@@ -1,10 +1,8 @@
 {# bfd.j2 — junos #}
-! Primitive: bfd
+! BFD Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for bfd on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+set protocols ospf area {{ iface.area | default("0.0.0.0") }} interface {{ iface.name }} bfd-liveness-detection minimum-interval {{ iface.interval | default(300) }}
+set protocols ospf area {{ iface.area | default("0.0.0.0") }} interface {{ iface.name }} bfd-liveness-detection multiplier {{ iface.multiplier | default(3) }}
+{% endfor %}

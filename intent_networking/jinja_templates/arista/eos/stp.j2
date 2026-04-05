@@ -1,0 +1,21 @@
+{# stp.j2 — arista-eos #}
+! Spanning Tree Configuration
+! Intent: {{ intent_id }}
+!
+spanning-tree mode {{ mode | default("mstp") }}
+{% if priority %}
+spanning-tree priority {{ priority }}
+{% endif %}
+{% if portfast_default %}
+spanning-tree edge-port default
+{% endif %}
+{% if bpdu_guard_default %}
+spanning-tree guard root default
+{% endif %}
+{% if loopguard_default %}
+spanning-tree guard loop default
+{% endif %}
+{% for vlan in vlans | default([]) %}
+spanning-tree vlan {{ vlan }} priority {{ priority | default(32768) }}
+{% endfor %}
+!

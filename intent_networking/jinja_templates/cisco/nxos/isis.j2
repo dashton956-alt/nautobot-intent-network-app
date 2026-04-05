@@ -1,0 +1,30 @@
+{# isis.j2 — nxos #}
+! IS-IS Configuration
+! Intent: {{ intent_id }}
+!
+feature isis
+!
+router isis {{ process_tag }}
+  net {{ net }}
+  is-type {{ level | default('level-2') }}
+{% if metric_style | default("wide") == "wide" %}
+  metric-style transition
+{% endif %}
+{% if authentication | default("") %}
+  authentication-type md5
+  authentication key-chain {{ authentication }}
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+  ip router isis {{ process_tag }}
+{% if iface.passive | default(false) %}
+  isis passive-interface level-1-2
+{% endif %}
+{% if iface.network_type | default("") == "point-to-point" %}
+  isis network point-to-point
+{% endif %}
+{% if iface.metric | default("") %}
+  isis metric {{ iface.metric }}
+{% endif %}
+{% endfor %}

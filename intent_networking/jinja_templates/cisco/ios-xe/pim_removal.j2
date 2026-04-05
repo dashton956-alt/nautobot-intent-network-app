@@ -1,0 +1,13 @@
+{# pim_removal.j2 — ios-xe #}
+! Remove PIM
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+ no ip pim sparse-mode
+{% endfor %}
+{% if rp_address | default("") %}
+no ip pim rp-address {{ rp_address }}
+{% endif %}
+no ip multicast-routing
+!

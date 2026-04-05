@@ -1,0 +1,11 @@
+{# ntp_removal.j2 — ios-xr #}
+! Remove NTP
+! Intent: {{ intent_id }}
+!
+{% for server in servers | default([]) %}
+no ntp server {{ server }}
+{% endfor %}
+{% if source_interface | default("") %}
+no ntp source {{ source_interface }}
+{% endif %}
+!

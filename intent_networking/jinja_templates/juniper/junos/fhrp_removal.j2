@@ -1,0 +1,4 @@
+{# fhrp_removal.j2 — junos #}
+{% for group in groups | default([]) %}
+delete interfaces {{ group.interface }} unit 0 family inet address {{ group.real_ip | default("") }} vrrp-group {{ group.group_id }}
+{% endfor %}

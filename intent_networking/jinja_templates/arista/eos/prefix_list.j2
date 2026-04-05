@@ -1,0 +1,9 @@
+{# prefix_list.j2 — arista-eos #}
+! Prefix List Configuration
+! Intent: {{ intent_id }}
+!
+{% for entry in entries %}
+ip prefix-list {{ list_name }} seq {{ entry.seq | default(loop.index * 10) }} {{ entry.action | default("permit") }} {{ entry.prefix }}{% if entry.le is defined %} le {{ entry.le }}{% endif %}{% if entry.ge is defined %} ge {{ entry.ge }}{% endif %}
+
+{% endfor %}
+!

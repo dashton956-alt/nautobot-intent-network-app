@@ -1,0 +1,7 @@
+{# ip_sla_removal.j2 — arista-eos #}
+! Remove IP SLA Configuration
+! Intent: {{ intent_id }}
+!
+monitor connectivity
+   no host {{ sla_id }}
+!

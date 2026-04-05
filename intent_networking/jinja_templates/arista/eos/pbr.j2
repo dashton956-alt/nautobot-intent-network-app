@@ -1,0 +1,22 @@
+{# pbr.j2 — arista-eos #}
+! Policy-Based Routing Configuration
+! Intent: {{ intent_id }}
+!
+{% for entry in entries %}
+route-map {{ policy_name }} {{ entry.action | default("permit") }} {{ entry.seq | default(loop.index * 10) }}
+{% if entry.match_acl %}
+   match ip address {{ entry.match_acl }}
+{% endif %}
+{% if entry.set_next_hop %}
+   set ip next-hop {{ entry.set_next_hop }}
+{% endif %}
+{% if entry.set_vrf %}
+   set vrf {{ entry.set_vrf }}
+{% endif %}
+!
+{% endfor %}
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+   ip policy route-map {{ policy_name }}
+!
+{% endfor %}

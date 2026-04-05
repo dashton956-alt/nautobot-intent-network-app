@@ -1,10 +1,17 @@
 {# dns.j2 — ios-xe #}
-! Primitive: dns
+! DNS Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for dns on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if domain_name | default("") %}
+ip domain name {{ domain_name }}
+{% endif %}
+{% for domain in domain_list | default([]) %}
+ip domain list {{ domain }}
+{% endfor %}
+{% for server in servers | default([]) %}
+ip name-server {{ server }}
+{% endfor %}
+{% if source_interface | default("") %}
+ip domain lookup source-interface {{ source_interface }}
+{% endif %}
 !

@@ -1,0 +1,16 @@
+{# ldp.j2 — nxos #}
+! LDP Configuration
+! Intent: {{ intent_id }}
+!
+feature mpls ldp
+!
+mpls ldp
+  router-id {{ router_id }}
+{% if password | default("") %}
+  password required {{ password }}
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+  mpls ip
+{% endfor %}

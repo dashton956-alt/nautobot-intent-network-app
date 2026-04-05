@@ -1,0 +1,27 @@
+{# dhcp_pool.j2 — nxos #}
+! DHCP Pool Configuration
+! Intent: {{ intent_id }}
+!
+feature dhcp
+service dhcp
+!
+{% for addr in excluded_addresses | default([]) %}
+ip dhcp excluded-address {{ addr }}
+{% endfor %}
+!
+ip dhcp pool {{ pool_name }}
+  network {{ network }}
+{% if default_router | default("") %}
+  default-router {{ default_router }}
+{% endif %}
+{% if dns_server | default("") %}
+  dns-server {{ dns_server }}
+{% endif %}
+{% if lease_time | default("") %}
+  lease {{ lease_time // 86400 }}
+{% else %}
+  lease 1
+{% endif %}
+{% for range in ranges | default([]) %}
+  address {{ range.start }} {{ range.end }}
+{% endfor %}

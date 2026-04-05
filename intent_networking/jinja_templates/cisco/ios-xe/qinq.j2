@@ -1,10 +1,17 @@
 {# qinq.j2 — ios-xe #}
-! Primitive: qinq
+! Q-in-Q / 802.1ad
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for qinq on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if dot1q_tunnel_ethertype | default("") %}
+system dot1q-tunnel ethertype {{ dot1q_tunnel_ethertype }}
+{% endif %}
+!
+interface {{ interface }}
+ switchport mode dot1q-tunnel
+ switchport access vlan {{ outer_vlan }}
+{% if l2protocol_tunnel | default(false) %}
+ l2protocol-tunnel cdp
+ l2protocol-tunnel stp
+ l2protocol-tunnel vtp
+{% endif %}
 !

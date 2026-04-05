@@ -1,0 +1,23 @@
+{# evpn_mpls.j2 — nxos #}
+! EVPN over MPLS Configuration
+! Intent: {{ intent_id }}
+!
+feature bgp
+feature mpls evpn
+!
+router bgp {{ local_asn }}
+  address-family l2vpn evpn
+{% for neighbor in neighbors | default([]) %}
+  neighbor {{ neighbor.ip }}
+    remote-as {{ local_asn }}
+    update-source Loopback0
+    address-family l2vpn evpn
+      send-community extended
+{% endfor %}
+{% for inst in evpn_instances | default([]) %}
+evpn
+  vni {{ inst.route_distinguisher | default('auto') }} l2
+    rd {{ inst.route_distinguisher | default('auto') }}
+    route-target import {{ inst.route_target }}
+    route-target export {{ inst.route_target }}
+{% endfor %}

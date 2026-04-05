@@ -1,0 +1,25 @@
+{# lldp_cdp.j2 — nxos #}
+! LLDP / CDP Configuration
+! Intent: {{ intent_id }}
+!
+{% if lldp_global | default(false) %}
+feature lldp
+{% else %}
+no feature lldp
+{% endif %}
+{% if cdp_global | default(false) %}
+cdp enable
+{% else %}
+no cdp enable
+{% endif %}
+!
+{% for iface in disable_on | default([]) %}
+interface {{ iface }}
+{% if lldp_global | default(false) %}
+  no lldp transmit
+  no lldp receive
+{% endif %}
+{% if cdp_global | default(false) %}
+  no cdp enable
+{% endif %}
+{% endfor %}

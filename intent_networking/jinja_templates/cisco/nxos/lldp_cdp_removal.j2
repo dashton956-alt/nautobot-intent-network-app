@@ -1,0 +1,11 @@
+{# lldp_cdp_removal.j2 — nxos #}
+! Remove LLDP/CDP
+! Intent: {{ intent_id }}
+!
+{% if lldp_global | default(false) %}
+no feature lldp
+{% endif %}
+{% if cdp_global | default(false) %}
+no cdp enable
+{% endif %}
+!

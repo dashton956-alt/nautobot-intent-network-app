@@ -1,0 +1,23 @@
+{# pbr.j2 — nxos #}
+! Policy-Based Routing
+! Intent: {{ intent_id }}
+!
+feature pbr
+!
+{% for entry in entries | default([]) %}
+route-map {{ policy_name }} {{ entry.action }} {{ entry.seq }}
+{% if entry.match_acl | default("") %}
+  match ip address {{ entry.match_acl }}
+{% endif %}
+{% if entry.set_next_hop | default("") %}
+  set ip next-hop {{ entry.set_next_hop }}
+{% endif %}
+{% if entry.set_vrf | default("") %}
+  set vrf {{ entry.set_vrf }}
+{% endif %}
+{% endfor %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+  ip policy route-map {{ policy_name }}
+{% endfor %}

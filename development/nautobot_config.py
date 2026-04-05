@@ -134,6 +134,7 @@ PLUGINS_CONFIG = {
         # --- Required settings ---
         "vrf_namespace": "Global",
         "default_bgp_asn": 65000,
+        "vni_pool_name": "lab-vni-pool",
         # --- Optional settings (shown with their defaults) ---
         "max_vrfs_per_tenant": 100,
         "max_prefixes_per_vrf": 500,

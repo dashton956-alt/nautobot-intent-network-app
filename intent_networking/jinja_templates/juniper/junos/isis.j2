@@ -1,10 +1,20 @@
 {# isis.j2 — junos #}
-! Primitive: isis
+! IS-IS Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for isis on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set protocols isis level {{ level | default(2) }} wide-metrics-only
+{% if net | default("") %}
+set routing-options router-id {{ router_id | default("") }}
+{% endif %}
+{% for iface in interfaces | default([]) %}
+set protocols isis interface {{ iface.name }}
+{% if iface.metric | default("") %}
+set protocols isis interface {{ iface.name }} level {{ level | default(2) }} metric {{ iface.metric }}
+{% endif %}
+{% if iface.passive | default(false) %}
+set protocols isis interface {{ iface.name }} passive
+{% endif %}
+{% if iface.network_type | default("point-to-point") == "point-to-point" %}
+set protocols isis interface {{ iface.name }} point-to-point
+{% endif %}
+{% endfor %}

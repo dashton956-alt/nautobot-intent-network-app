@@ -1,10 +1,17 @@
 {# bgp_evpn_af.j2 — ios-xe #}
-! Primitive: bgp_evpn_af
+! BGP EVPN Address Family
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for bgp_evpn_af on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router bgp {{ local_asn }}
+ address-family l2vpn evpn
+{% for neighbor in neighbors | default([]) %}
+  neighbor {{ neighbor.ip }} activate
+{% if neighbor.send_community | default(true) %}
+  neighbor {{ neighbor.ip }} send-community both
+{% endif %}
+{% if neighbor.route_reflector_client | default(false) %}
+  neighbor {{ neighbor.ip }} route-reflector-client
+{% endif %}
+{% endfor %}
+ exit-address-family
 !

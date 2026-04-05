@@ -1,0 +1,10 @@
+{# pbr_removal.j2 — ios-xe #}
+! Remove PBR
+! Intent: {{ intent_id }}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+ no ip policy route-map {{ route_map_name }}
+{% endfor %}
+no route-map {{ route_map_name }}
+!

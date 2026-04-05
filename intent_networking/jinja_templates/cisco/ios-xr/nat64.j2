@@ -1,10 +1,12 @@
 {# nat64.j2 — ios-xr #}
-! Primitive: nat64
+! NAT64 Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for nat64 on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+service cgn {{ cgn_instance | default("NAT64") }}
+ service-type nat64 stateful
+  nat64 stateful {{ prefix }}
+{% if v4_pool | default("") %}
+  inside-vrf {{ inside_vrf | default("default") }}
+   ipv4 pool {{ v4_pool.name }} {{ v4_pool.start }} {{ v4_pool.end }}
+{% endif %}
 !

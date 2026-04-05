@@ -1,0 +1,2 @@
+{# loopback_removal.j2 — junos #}
+delete interfaces lo0 unit {{ unit | default(0) }} family inet address {{ ip_address }}/32

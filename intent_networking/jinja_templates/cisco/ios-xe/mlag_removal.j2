@@ -1,0 +1,12 @@
+{# mlag_removal.j2 — ios-xe #}
+! Remove MLAG/StackWise
+! Intent: {{ intent_id }}
+!
+{% if stackwise_virtual | default(false) %}
+no stackwise-virtual
+{% endif %}
+{% for iface in peer_link_interfaces | default([]) %}
+interface {{ iface }}
+ no channel-group
+{% endfor %}
+!

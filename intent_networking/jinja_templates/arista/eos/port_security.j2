@@ -1,0 +1,19 @@
+{# port_security.j2 — arista-eos #}
+! Port Security Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+   switchport port-security
+{% if max_mac %}
+   switchport port-security maximum {{ max_mac }}
+{% endif %}
+{% if violation_action %}
+   switchport port-security violation {{ violation_action }}
+{% endif %}
+{% if sticky %}
+   switchport port-security mac-address sticky
+{% endif %}
+{% if aging_time %}
+   switchport port-security aging time {{ aging_time }}
+{% endif %}
+!

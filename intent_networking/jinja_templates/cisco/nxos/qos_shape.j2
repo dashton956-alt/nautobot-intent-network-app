@@ -1,0 +1,15 @@
+{# qos_shape.j2 — nxos #}
+! QoS Traffic Shaping
+! Intent: {{ intent_id }}
+!
+policy-map type queuing {{ policy_map }}
+  class type queuing class-default
+    shape min {{ rate_bps }}
+{% if child_policy | default("") %}
+    service-policy type queuing {{ child_policy }}
+{% endif %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+  service-policy type queuing output {{ policy_map }}
+{% endfor %}

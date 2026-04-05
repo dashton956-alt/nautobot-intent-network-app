@@ -1,10 +1,16 @@
 {# bgp_ipv6_af.j2 — ios-xr #}
-! Primitive: bgp_ipv6_af
+! BGP IPv6 Address Family
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for bgp_ipv6_af on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router bgp {{ local_asn }}
+{% for neighbor in neighbors | default([]) %}
+ neighbor {{ neighbor.ip }}
+  address-family ipv6 unicast
+{% if neighbor.route_policy_in | default("") %}
+   route-policy {{ neighbor.route_policy_in }} in
+{% endif %}
+{% if neighbor.route_policy_out | default("") %}
+   route-policy {{ neighbor.route_policy_out }} out
+{% endif %}
+{% endfor %}
 !

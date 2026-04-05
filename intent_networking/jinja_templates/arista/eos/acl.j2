@@ -1,0 +1,37 @@
+{# acl.j2 — arista-eos #}
+! ACL Configuration
+! Intent: {{ intent_id }}
+!
+{% if address_family == "ipv6" %}
+{% if acl_type == "standard" %}
+ipv6 access-list standard {{ acl_name }}
+{% for entry in entries %}
+   {{ entry.seq | default(loop.index * 10) }} {{ entry.action }} {{ entry.source | default("any") }}
+{% endfor %}
+{% else %}
+ipv6 access-list {{ acl_name }}
+{% for entry in entries %}
+   {{ entry.seq | default(loop.index * 10) }} {{ entry.action }} {{ entry.protocol | default("ipv6") }} {{ entry.source | default("any") }}{% if entry.source_port is defined %} eq {{ entry.source_port }}{% endif %} {{ entry.destination | default("any") }}{% if entry.port is defined %} eq {{ entry.port }}{% endif %}{% if entry.log | default(false) %} log{% endif %}
+
+{% endfor %}
+{% endif %}
+{% else %}
+{% if acl_type == "standard" %}
+ip access-list standard {{ acl_name }}
+{% for entry in entries %}
+   {{ entry.seq | default(loop.index * 10) }} {{ entry.action }} {{ entry.source | default("any") }}
+{% endfor %}
+{% else %}
+ip access-list {{ acl_name }}
+{% for entry in entries %}
+   {{ entry.seq | default(loop.index * 10) }} {{ entry.action }} {{ entry.protocol | default("ip") }} {{ entry.source | default("any") }}{% if entry.source_port is defined %} eq {{ entry.source_port }}{% endif %} {{ entry.destination | default("any") }}{% if entry.port is defined %} eq {{ entry.port }}{% endif %}{% if entry.log | default(false) %} log{% endif %}
+
+{% endfor %}
+{% endif %}
+{% endif %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+   ip access-group {{ acl_name }} {{ direction | default("in") }}
+{% endfor %}
+!

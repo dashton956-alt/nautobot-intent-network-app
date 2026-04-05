@@ -1,0 +1,30 @@
+{# macsec.j2 — arista-eos #}
+! MACsec Configuration
+! Intent: {{ intent_id }}
+!
+{% if key_chain %}
+key chain {{ key_chain }} macsec
+   key {{ key_id | default("01") }}
+      lifetime local unlimited
+{% endif %}
+!
+{% if policy_name %}
+mac security profile {{ policy_name }}
+{% if cipher_suite %}
+   cipher {{ cipher_suite }}
+{% endif %}
+{% if replay_protection %}
+   sci
+{% if replay_window %}
+   replay-protection window {{ replay_window }}
+{% endif %}
+{% endif %}
+{% if key_chain %}
+   key {{ key_chain }}
+{% endif %}
+!
+{% endif %}
+!
+interface {{ interface }}
+   mac security profile {{ policy_name }}
+!

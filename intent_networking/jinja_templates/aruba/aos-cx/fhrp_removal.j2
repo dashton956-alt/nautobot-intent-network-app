@@ -1,0 +1,5 @@
+{# fhrp_removal.j2 — aos-cx #}
+{% for group in groups | default([]) %}
+interface {{ group.interface }}
+    no vrrp {{ group.group_id }}
+{% endfor %}

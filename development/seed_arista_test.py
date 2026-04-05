@@ -114,7 +114,7 @@ print("\n[4/14] Creating Arista device...")
 arista, _ = Manufacturer.objects.get_or_create(name="Arista")
 
 platform, _ = Platform.objects.get_or_create(
-    name="arista_eos",
+    name="arista-eos",
     defaults={
         "manufacturer": arista,
         "network_driver": "arista_eos",
@@ -144,6 +144,54 @@ device, created = Device.objects.get_or_create(
 )
 print(f"  {'Created' if created else 'Exists '} device: lab-arista-sw01 (DCS-7280SR-48C6) @ LAB-DC1")
 
+# ── Additional devices for spine-leaf fabric ─────────────────────────
+spine_role, _ = Role.objects.get_or_create(name="Spine Switch")
+spine_role.content_types.add(device_ct)
+
+dt_7500, _ = DeviceType.objects.get_or_create(
+    model="DCS-7500R3-36CQ",
+    defaults={"manufacturer": arista},
+)
+
+device2, created = Device.objects.get_or_create(
+    name="lab-arista-sw02",
+    defaults={
+        "device_type": dt_7280,
+        "role": leaf_role,
+        "location": site,
+        "status": active_status,
+        "tenant": tenant,
+        "platform": platform,
+    },
+)
+print(f"  {'Created' if created else 'Exists '} device: lab-arista-sw02 (DCS-7280SR-48C6) @ LAB-DC1")
+
+spine1, created = Device.objects.get_or_create(
+    name="lab-spine-01",
+    defaults={
+        "device_type": dt_7500,
+        "role": spine_role,
+        "location": site,
+        "status": active_status,
+        "tenant": tenant,
+        "platform": platform,
+    },
+)
+print(f"  {'Created' if created else 'Exists '} device: lab-spine-01 (DCS-7500R3-36CQ) @ LAB-DC1")
+
+spine2, created = Device.objects.get_or_create(
+    name="lab-spine-02",
+    defaults={
+        "device_type": dt_7500,
+        "role": spine_role,
+        "location": site,
+        "status": active_status,
+        "tenant": tenant,
+        "platform": platform,
+    },
+)
+print(f"  {'Created' if created else 'Exists '} device: lab-spine-02 (DCS-7500R3-36CQ) @ LAB-DC1")
+
 # ═════════════════════════════════════════════════════════════════════════════
 # 5. Interfaces & Management IP
 # ═════════════════════════════════════════════════════════════════════════════
@@ -162,6 +210,8 @@ PREFIXES = [
     "10.20.2.0/24",  # Server VLAN 200 — STORAGE
     "10.20.3.0/24",  # Server VLAN 300 — MGMT
     "10.30.0.0/24",  # Guest network
+    "10.10.1.0/24",  # Inter-spine P2P links
+    "172.20.20.0/24",  # containerlab management
     "192.168.100.0/24",  # IPSec endpoints
 ]
 for pfx_str in PREFIXES:
@@ -176,6 +226,8 @@ def _get_parent_prefix(ip_str):
     host = ip_str.split("/")[0]
     if host.startswith("192.168.100."):
         return Prefix.objects.get(prefix="192.168.100.0/24")
+    if host.startswith("172.20.20."):
+        return Prefix.objects.get(prefix="172.20.20.0/24")
     if host.startswith("10.30."):
         return Prefix.objects.get(prefix="10.30.0.0/24")
     if host.startswith("10.20.3."):
@@ -186,6 +238,8 @@ def _get_parent_prefix(ip_str):
         return Prefix.objects.get(prefix="10.20.1.0/24")
     if host.startswith("10.20.0."):
         return Prefix.objects.get(prefix="10.20.0.0/24")
+    if host.startswith("10.10.1."):
+        return Prefix.objects.get(prefix="10.10.1.0/24")
     if host.startswith("10.10."):
         return Prefix.objects.get(prefix="10.10.0.0/24")
     if host.startswith("10.255."):
@@ -209,30 +263,30 @@ def _get_or_create_ip(ip_str):
         return ip_obj, True
 
 
-# Arista EOS interface naming:
-# Management1, Loopback0, Ethernet1-48, Ethernet49/1-54/1 (uplinks), Vlan*, Port-Channel*
+# Arista cEOS interface naming (containerlab — no breakout ports):
+# Management0, Loopback0, Ethernet1-48, Ethernet49-54 (uplinks), Vlan*, Port-Channel*
 INTERFACES = [
     # (name, type, enabled, ip, description, mtu, mac, speed_kbps)
     ("Loopback0", "virtual", True, "10.0.0.100/32", "Router-ID / VTEP source", None, None, None),
     ("Loopback1", "virtual", True, "10.0.0.101/32", "VXLAN VTEP loopback", None, None, None),
-    ("Management1", "1000base-t", True, "10.255.0.100/24", "OOB Management", 1500, "00:1C:73:01:00:00", 1000000),
+    ("Management0", "1000base-t", True, "172.20.20.3/24", "OOB Management", 1500, "00:1C:73:01:00:00", 1000000),
     # Uplinks to spines
     (
-        "Ethernet49/1",
+        "Ethernet49",
         "100gbase-x-qsfp28",
         True,
         "10.10.0.1/31",
-        "TO lab-spine-01 Ethernet1/1",
+        "TO lab-spine-01 Ethernet1",
         9214,
         "00:1C:73:01:00:31",
         100000000,
     ),
     (
-        "Ethernet50/1",
+        "Ethernet50",
         "100gbase-x-qsfp28",
         True,
         "10.10.0.3/31",
-        "TO lab-spine-02 Ethernet1/1",
+        "TO lab-spine-02 Ethernet1",
         9214,
         "00:1C:73:01:00:32",
         100000000,
@@ -247,8 +301,8 @@ INTERFACES = [
     ("Ethernet7", "10gbase-x-sfpp", False, None, "SPARE — not provisioned", 9000, "00:1C:73:01:00:07", 10000000),
     ("Ethernet8", "10gbase-x-sfpp", False, None, "SPARE — not provisioned", 9000, "00:1C:73:01:00:08", 10000000),
     # MLAG peer-link
-    ("Ethernet51/1", "100gbase-x-qsfp28", True, None, "MLAG peer-link member", 9214, "00:1C:73:01:00:33", 100000000),
-    ("Ethernet52/1", "100gbase-x-qsfp28", True, None, "MLAG peer-link member", 9214, "00:1C:73:01:00:34", 100000000),
+    ("Ethernet51", "100gbase-x-qsfp28", True, None, "MLAG peer-link member", 9214, "00:1C:73:01:00:33", 100000000),
+    ("Ethernet52", "100gbase-x-qsfp28", True, None, "MLAG peer-link member", 9214, "00:1C:73:01:00:34", 100000000),
     # Port-Channels
     ("Port-Channel1", "lag", True, None, "MLAG peer-link", 9214, None, None),
     ("Port-Channel10", "lag", True, None, "Server-01 bond (LACP)", 9000, None, None),
@@ -280,7 +334,7 @@ for iface_name, iface_type, enabled, ip_str, desc, mtu, mac, speed in INTERFACES
     if ip_str:
         ip_obj, ip_created = _get_or_create_ip(ip_str)
         IPAddressToInterface.objects.get_or_create(ip_address=ip_obj, interface=iface)
-        if iface_name == "Management1":
+        if iface_name == "Management0":
             mgmt_ip_obj = ip_obj
     tag = "Created" if ic else "Exists "
     print(f"  {tag} interface: {iface_name}")
@@ -288,7 +342,99 @@ for iface_name, iface_type, enabled, ip_str, desc, mtu, mac, speed in INTERFACES
 if mgmt_ip_obj and not device.primary_ip4:
     device.primary_ip4 = mgmt_ip_obj
     device.validated_save()
-    print("  Set primary_ip4 → 10.255.0.100")
+    print("  Set primary_ip4 → 172.20.20.3")
+
+# ── Interfaces for lab-arista-sw02 (leaf-02) ─────────────────────────────
+print("\n[5b/14] Creating interfaces for lab-arista-sw02...")
+INTERFACES_SW02 = [
+    ("Loopback0", "virtual", True, "10.0.0.102/32", "Router-ID / VTEP source", None, None, None),
+    ("Loopback1", "virtual", True, "10.0.0.103/32", "VXLAN VTEP loopback", None, None, None),
+    ("Management0", "1000base-t", True, "172.20.20.4/24", "OOB Management", 1500, None, 1000000),
+    ("Ethernet49", "100gbase-x-qsfp28", True, "10.10.0.5/31", "TO lab-spine-01 Ethernet2", 9214, None, 100000000),
+    ("Ethernet50", "100gbase-x-qsfp28", True, "10.10.0.7/31", "TO lab-spine-02 Ethernet2", 9214, None, 100000000),
+    ("Ethernet1", "10gbase-x-sfpp", True, None, "Server-06 NIC1 — PROD", 9000, None, 10000000),
+    ("Ethernet2", "10gbase-x-sfpp", True, None, "Server-07 NIC1 — PROD", 9000, None, 10000000),
+    ("Ethernet3", "10gbase-x-sfpp", True, None, "Server-08 NIC1 — DEV", 9000, None, 10000000),
+    ("Ethernet4", "10gbase-x-sfpp", True, None, "Server-09 NIC1 — STORAGE", 9000, None, 10000000),
+    ("Ethernet5", "10gbase-x-sfpp", True, None, "Server-10 NIC1 — MGMT", 9000, None, 10000000),
+    ("Ethernet51", "100gbase-x-qsfp28", True, None, "MLAG peer-link member", 9214, None, 100000000),
+    ("Ethernet52", "100gbase-x-qsfp28", True, None, "MLAG peer-link member", 9214, None, 100000000),
+    ("Port-Channel1", "lag", True, None, "MLAG peer-link", 9214, None, None),
+    ("Vxlan1", "virtual", True, None, "VXLAN tunnel interface", None, None, None),
+    ("Vlan100", "virtual", True, "10.20.0.2/24", "SVI — SERVERS-PROD", 9000, None, None),
+    ("Vlan101", "virtual", True, "10.20.1.2/24", "SVI — SERVERS-DEV", 9000, None, None),
+]
+sw02_mgmt_ip = None
+for iface_name, iface_type, enabled, ip_str, desc, mtu, mac, speed in INTERFACES_SW02:
+    iface, ic = Interface.objects.get_or_create(
+        device=device2, name=iface_name,
+        defaults={"type": iface_type, "enabled": enabled, "status": active_status,
+                  "description": desc or "", "mtu": mtu, "mac_address": mac, "speed": speed},
+    )
+    if ip_str:
+        ip_obj, _ = _get_or_create_ip(ip_str)
+        IPAddressToInterface.objects.get_or_create(ip_address=ip_obj, interface=iface)
+        if iface_name == "Management0":
+            sw02_mgmt_ip = ip_obj
+    print(f"  {'Created' if ic else 'Exists '} interface: sw02/{iface_name}")
+if sw02_mgmt_ip and not device2.primary_ip4:
+    device2.primary_ip4 = sw02_mgmt_ip
+    device2.validated_save()
+    print("  Set sw02 primary_ip4 → 172.20.20.4")
+
+# ── Interfaces for lab-spine-01 ──────────────────────────────────────────
+print("\n[5c/14] Creating interfaces for lab-spine-01...")
+INTERFACES_SPINE1 = [
+    ("Loopback0", "virtual", True, "10.0.0.200/32", "Router-ID", None, None, None),
+    ("Management0", "1000base-t", True, "172.20.20.5/24", "OOB Management", 1500, None, 1000000),
+    ("Ethernet1", "100gbase-x-qsfp28", True, "10.10.0.0/31", "TO lab-arista-sw01 Ethernet49", 9214, None, 100000000),
+    ("Ethernet2", "100gbase-x-qsfp28", True, "10.10.0.4/31", "TO lab-arista-sw02 Ethernet49", 9214, None, 100000000),
+    ("Ethernet3", "100gbase-x-qsfp28", True, "10.10.1.0/31", "TO lab-spine-02 Ethernet3", 9214, None, 100000000),
+]
+spine1_mgmt_ip = None
+for iface_name, iface_type, enabled, ip_str, desc, mtu, mac, speed in INTERFACES_SPINE1:
+    iface, ic = Interface.objects.get_or_create(
+        device=spine1, name=iface_name,
+        defaults={"type": iface_type, "enabled": enabled, "status": active_status,
+                  "description": desc or "", "mtu": mtu, "mac_address": mac, "speed": speed},
+    )
+    if ip_str:
+        ip_obj, _ = _get_or_create_ip(ip_str)
+        IPAddressToInterface.objects.get_or_create(ip_address=ip_obj, interface=iface)
+        if iface_name == "Management0":
+            spine1_mgmt_ip = ip_obj
+    print(f"  {'Created' if ic else 'Exists '} interface: spine1/{iface_name}")
+if spine1_mgmt_ip and not spine1.primary_ip4:
+    spine1.primary_ip4 = spine1_mgmt_ip
+    spine1.validated_save()
+    print("  Set spine1 primary_ip4 → 172.20.20.5")
+
+# ── Interfaces for lab-spine-02 ──────────────────────────────────────────
+print("\n[5d/14] Creating interfaces for lab-spine-02...")
+INTERFACES_SPINE2 = [
+    ("Loopback0", "virtual", True, "10.0.0.201/32", "Router-ID", None, None, None),
+    ("Management0", "1000base-t", True, "172.20.20.6/24", "OOB Management", 1500, None, 1000000),
+    ("Ethernet1", "100gbase-x-qsfp28", True, "10.10.0.2/31", "TO lab-arista-sw01 Ethernet50", 9214, None, 100000000),
+    ("Ethernet2", "100gbase-x-qsfp28", True, "10.10.0.6/31", "TO lab-arista-sw02 Ethernet50", 9214, None, 100000000),
+    ("Ethernet3", "100gbase-x-qsfp28", True, "10.10.1.1/31", "TO lab-spine-01 Ethernet3", 9214, None, 100000000),
+]
+spine2_mgmt_ip = None
+for iface_name, iface_type, enabled, ip_str, desc, mtu, mac, speed in INTERFACES_SPINE2:
+    iface, ic = Interface.objects.get_or_create(
+        device=spine2, name=iface_name,
+        defaults={"type": iface_type, "enabled": enabled, "status": active_status,
+                  "description": desc or "", "mtu": mtu, "mac_address": mac, "speed": speed},
+    )
+    if ip_str:
+        ip_obj, _ = _get_or_create_ip(ip_str)
+        IPAddressToInterface.objects.get_or_create(ip_address=ip_obj, interface=iface)
+        if iface_name == "Management0":
+            spine2_mgmt_ip = ip_obj
+    print(f"  {'Created' if ic else 'Exists '} interface: spine2/{iface_name}")
+if spine2_mgmt_ip and not spine2.primary_ip4:
+    spine2.primary_ip4 = spine2_mgmt_ip
+    spine2.validated_save()
+    print("  Set spine2 primary_ip4 → 172.20.20.6")
 
 # ═════════════════════════════════════════════════════════════════════════════
 # 6. Intents — broad coverage of intent types all targeting lab-arista-sw01
@@ -323,7 +469,7 @@ INTENTS = [
             "fabric": {
                 "name": "lab-dc1-fabric",
                 "spines": ["lab-spine-01", "lab-spine-02"],
-                "leaves": ["lab-arista-sw01"],
+                "leaves": ["lab-arista-sw01", "lab-arista-sw02"],
                 "underlay_protocol": "ebgp",
                 "spine_asn": 65000,
                 "leaf_asn_start": 65001,
@@ -450,7 +596,7 @@ INTENTS = [
             "local_asn": 65001,
             "neighbor_ip": "10.10.0.0",
             "neighbor_asn": 65000,
-            "peer_description": "lab-spine-01 Ethernet1/1",
+            "peer_description": "lab-spine-01 Ethernet1",
             "bfd": True,
             "max_prefix": 100,
         },
@@ -478,7 +624,7 @@ INTENTS = [
             "name": "Leaf MLAG Pair",
             "description": "MLAG between lab-arista-sw01 and lab-arista-sw02",
             "scope": {"sites": ["LAB-DC1"]},
-            "peer_link_interfaces": ["Ethernet51/1", "Ethernet52/1"],
+            "peer_link_interfaces": ["Ethernet51", "Ethernet52"],
             "domain_id": "MLAG-LAB-01",
             "peer_address": "10.10.255.2",
             "keepalive_vlan": 4094,
@@ -556,7 +702,7 @@ INTENTS = [
             "scope": {"all_tenant_devices": True},
             "servers": ["10.255.0.1", "10.255.0.2", "pool.ntp.org"],
             "prefer": "10.255.0.1",
-            "source_interface": "Management1",
+            "source_interface": "Management0",
         },
     },
     # ── SNMP Management ───────────────────────────────────────────────────
@@ -583,7 +729,9 @@ INTENTS = [
             "description": "SNMPv3 — all lab devices — trap to central collector",
             "scope": {"all_tenant_devices": True},
             "version": "v3",
-            "users": [{"name": "labmonitor", "auth": "sha256", "priv": "aes256"}],
+            "views": [{"name": "labview", "oid": "1.3.6.1"}],
+            "groups": [{"name": "labgroup", "security_level": "priv", "read_view": "labview", "write_view": "labview"}],
+            "users": [{"name": "labmonitor", "group": "labgroup", "auth_protocol": "sha256", "auth_password": "AuthP@ss123!", "priv_protocol": "aes256", "priv_password": "PrivP@ss123!"}],
             "trap_targets": ["10.255.0.50", "10.255.0.51"],
             "location": "LAB-DC1",
             "contact": "noc@arista-lab.local",
@@ -667,7 +815,7 @@ INTENTS = [
                 {"name": "DEV-BEST-EFFORT", "match_type": "ip_destination", "match_value": "10.20.1.0/24"},
             ],
             "policy_map": "QOS-POLICY",
-            "apply_interfaces": ["Ethernet49/1", "Ethernet50/1"],
+            "apply_interfaces": ["Ethernet49", "Ethernet50"],
             "direction": "input",
         },
     },
@@ -784,7 +932,7 @@ INTENTS = [
             "description": "Enable DHCP snooping on server VLANs — trust uplinks only",
             "scope": {"devices": ["lab-arista-sw01"]},
             "vlans": [100, 101, 200],
-            "trusted_interfaces": ["Ethernet49/1", "Ethernet50/1", "Port-Channel1"],
+            "trusted_interfaces": ["Ethernet49", "Ethernet50", "Port-Channel1"],
         },
     },
     # ── Storm Control ─────────────────────────────────────────────────────
@@ -866,7 +1014,7 @@ INTENTS = [
             "name": "MACsec on Spine Uplinks",
             "description": "MACsec encryption on spine-facing uplinks (rolled back — key mismatch)",
             "scope": {"devices": ["lab-arista-sw01"]},
-            "interfaces": ["Ethernet49/1", "Ethernet50/1"],
+            "interfaces": ["Ethernet49", "Ethernet50"],
             "cipher_suite": "GCM-AES-256",
             "policy_name": "MACSEC-UPLINK",
             "replay_protection": True,
@@ -893,7 +1041,7 @@ INTENTS = [
             "servers": ["10.255.0.50", "10.255.0.51"],
             "facility": "local7",
             "severity": "informational",
-            "source_interface": "Management1",
+            "source_interface": "Management0",
         },
     },
     # ── NetFlow / IPFIX ───────────────────────────────────────────────────
@@ -918,7 +1066,7 @@ INTENTS = [
             "collector_port": 9995,
             "source_interface": "Loopback0",
             "sampler_rate": 1000,
-            "apply_interfaces": ["Ethernet49/1", "Ethernet50/1"],
+            "apply_interfaces": ["Ethernet49", "Ethernet50"],
         },
     },
     # ── Streaming Telemetry ───────────────────────────────────────────────
@@ -947,7 +1095,7 @@ INTENTS = [
                 {"path": "/interfaces/interface/state/counters", "interval_ms": 10000},
                 {"path": "/network-instances/network-instance/protocols/protocol/bgp", "interval_ms": 30000},
             ],
-            "source_interface": "Management1",
+            "source_interface": "Management0",
         },
     },
     # ── SSH Access Control ────────────────────────────────────────────────
@@ -1283,13 +1431,13 @@ PLANS = [
             {
                 "type": "MacsecPrimitive",
                 "cipher": "gcm-aes-256",
-                "interface": "Ethernet49/1",
+                "interface": "Ethernet49",
                 "device": "lab-arista-sw01",
             },
             {
                 "type": "MacsecPrimitive",
                 "cipher": "gcm-aes-256",
-                "interface": "Ethernet50/1",
+                "interface": "Ethernet50",
                 "device": "lab-arista-sw01",
             },
         ],
@@ -1313,6 +1461,11 @@ for plan_data in PLANS:
     )
     if created:
         plan.affected_devices.add(device)
+        # Add all devices to fabric and MLAG plans
+        if plan_data["intent_id"] in ("lab-dc-evpn-fabric-001", "lab-mlag-pair-001"):
+            plan.affected_devices.add(device2, spine1, spine2)
+        elif plan_data["intent_id"] == "lab-bgp-underlay-001":
+            plan.affected_devices.add(spine1)
     print(
         f"  {'Created' if created else 'Exists '} plan: {plan_data['intent_id']} "
         f"v{plan_data['intent_version']} ({len(plan_data['primitives'])} primitives)"
@@ -1362,7 +1515,7 @@ VERIFICATIONS = [
         0,
         0,
         0,
-        {"lab-arista-sw01": "MACsec key mismatch on Ethernet49/1 — peer not configured. Session down."},
+        {"lab-arista-sw01": "MACsec key mismatch on Ethernet49 — peer not configured. Session down."},
         "extended",
     ),
     # Anycast GW — pass
@@ -1522,7 +1675,7 @@ for i, stage_data in enumerate(
             "started_at": stage_data["started_at"],
             "completed_at": stage_data["completed_at"],
             "rendered_configs": {
-                "lab-arista-sw01": "! MACsec canary\ninterface Ethernet49/1\n macsec profile UPLINK\n",
+                "lab-arista-sw01": "! MACsec canary\ninterface Ethernet49\n macsec profile UPLINK\n",
             },
         },
     )
@@ -1543,7 +1696,7 @@ vrf, created = VRF.objects.get_or_create(
         "description": "Auto-allocated by intent lab-dc-l3vni-tenant-001",
     },
 )
-vrf.devices.add(device)
+vrf.devices.add(device, device2)
 print(f"  {'Created' if created else 'Exists '} VRF: VRF-TENANT-A")
 
 for rt_value in ["65000:50001"]:
@@ -1594,16 +1747,19 @@ lb_pool, created = ManagedLoopbackPool.objects.get_or_create(
 print(f"  {'Created' if created else 'Exists '} Loopback Pool: lab-dc1-loopbacks (10.0.0.0/24)")
 
 # Loopback Allocations (one per device+pool unique constraint)
-for ip, iid in [
-    ("10.0.0.100", "lab-dc-evpn-fabric-001"),
+for ip, dev, iid in [
+    ("10.0.0.100", device, "lab-dc-evpn-fabric-001"),
+    ("10.0.0.102", device2, "lab-dc-evpn-fabric-001"),
+    ("10.0.0.200", spine1, "lab-dc-evpn-fabric-001"),
+    ("10.0.0.201", spine2, "lab-dc-evpn-fabric-001"),
 ]:
     alloc, created = ManagedLoopback.objects.get_or_create(
         ip_address=ip,
-        device=device,
+        device=dev,
         pool=lb_pool,
         defaults={"intent": intents[iid]},
     )
-    print(f"  {'Created' if created else 'Exists '} Loopback: {ip} → {iid}")
+    print(f"  {'Created' if created else 'Exists '} Loopback: {ip} ({dev.name}) → {iid}")
 
 # Wireless VLAN Pool
 wlan_pool, created = WirelessVlanPool.objects.get_or_create(
@@ -1713,9 +1869,12 @@ print("=" * 60)
 print("  Arista Test Seed Complete!")
 print(f"  Tenant:             {tenant.name}")
 print(f"  Location:           {site.name}")
-print(f"  Device:             {device.name} ({device.device_type.model})")
+print(f"  Devices:")
+for d in [device, device2, spine1, spine2]:
+    intf_count = Interface.objects.filter(device=d).count()
+    print(f"    - {d.name} ({d.device_type.model}) [{d.role.name}] — {intf_count} interfaces")
 print(f"  Platform:           {platform.name}")
-print(f"  Interfaces:         {Interface.objects.filter(device=device).count()}")
+print(f"  Interfaces:         {Interface.objects.filter(device__tenant=tenant).count()}")
 print(f"  Intents:            {Intent.objects.filter(tenant=tenant).count()}")
 print(f"    - Deployed:       {Intent.objects.filter(tenant=tenant, status=status_map['Deployed']).count()}")
 print(f"    - Validated:      {Intent.objects.filter(tenant=tenant, status=status_map['Validated']).count()}")

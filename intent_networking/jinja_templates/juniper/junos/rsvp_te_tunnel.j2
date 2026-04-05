@@ -1,10 +1,15 @@
 {# rsvp_te_tunnel.j2 — junos #}
-! Primitive: rsvp_te_tunnel
+! RSVP-TE Tunnel
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for rsvp_te_tunnel on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+set protocols rsvp interface {{ iface }}
+set protocols mpls interface {{ iface }}
+{% endfor %}
+set protocols mpls label-switched-path {{ lsp_name | default("LSP-" ~ tunnel_id) }} to {{ destination }}
+{% if tunnel_bandwidth | default("") %}
+set protocols mpls label-switched-path {{ lsp_name | default("LSP-" ~ tunnel_id) }} bandwidth {{ tunnel_bandwidth }}
+{% endif %}
+{% if explicit_path | default("") %}
+set protocols mpls label-switched-path {{ lsp_name | default("LSP-" ~ tunnel_id) }} primary {{ explicit_path }}
+{% endif %}

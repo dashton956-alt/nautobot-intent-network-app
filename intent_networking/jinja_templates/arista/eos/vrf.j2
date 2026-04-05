@@ -1,0 +1,35 @@
+{# vrf.j2 — arista-eos #}
+! VRF Configuration — {{ vrf_name }}
+! Intent: {{ intent_id }}
+!
+vrf instance {{ vrf_name }}
+{% if description %}
+   description {{ description }}
+{% endif %}
+{% if route_distinguisher %}
+   rd {{ route_distinguisher }}
+{% endif %}
+!
+{% if rt_import or rt_export %}
+router bgp {{ bgp_asn | default(65000) }}
+   vrf {{ vrf_name }}
+      rd {{ route_distinguisher }}
+{% if rt_export %}
+      route-target export evpn {{ rt_export }}
+{% endif %}
+{% if rt_import %}
+      route-target import evpn {{ rt_import }}
+{% endif %}
+{% if redistribute_connected %}
+      redistribute connected
+{% endif %}
+{% if redistribute_static %}
+      redistribute static
+{% endif %}
+!
+{% endif %}
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+   vrf {{ vrf_name }}
+!
+{% endfor %}

@@ -1,0 +1,11 @@
+{# lag_removal.j2 — arista-eos #}
+! Remove LAG / Port-Channel Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in member_interfaces %}
+interface {{ iface }}
+   no channel-group
+!
+{% endfor %}
+no interface Port-Channel{{ channel_id }}
+!

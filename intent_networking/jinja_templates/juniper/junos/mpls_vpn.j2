@@ -1,0 +1,16 @@
+{# mpls_vpn.j2 — junos #}
+! MPLS L3VPN
+! Intent: {{ intent_id }}
+!
+set routing-instances {{ vrf_name }} instance-type vrf
+set routing-instances {{ vrf_name }} route-distinguisher {{ rd }}
+{% for rt in rt_import | default([]) %}
+set routing-instances {{ vrf_name }} vrf-import {{ rt }}
+{% endfor %}
+{% for rt in rt_export | default([]) %}
+set routing-instances {{ vrf_name }} vrf-export {{ rt }}
+{% endfor %}
+{% for iface in interfaces | default([]) %}
+set routing-instances {{ vrf_name }} interface {{ iface }}
+{% endfor %}
+set routing-instances {{ vrf_name }} vrf-table-label

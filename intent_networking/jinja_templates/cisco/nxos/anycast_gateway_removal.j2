@@ -1,0 +1,10 @@
+{# anycast_gateway_removal.j2 — nxos #}
+! Remove Anycast Gateway
+! Intent: {{ intent_id }}
+!
+interface Vlan{{ vlan_id }}
+  no ip address
+  no fabric forwarding mode anycast-gateway
+!
+no fabric forwarding anycast-gateway-mac {{ anycast_mac | default("") }}
+!

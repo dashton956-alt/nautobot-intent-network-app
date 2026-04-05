@@ -1,0 +1,19 @@
+{# telemetry.j2 — nxos #}
+! Streaming Telemetry Configuration
+! Intent: {{ intent_id }}
+!
+feature telemetry
+!
+telemetry
+  destination-group 1
+    ip address {{ destination_ip }} port {{ destination_port }} protocol {{ protocol | default('gRPC') }} encoding {{ encoding | default('GPB') }}
+{% if source_interface | default("") %}
+  use-vrf default
+{% endif %}
+{% for sub in subscriptions | default([]) %}
+  sensor-group {{ loop.index }}
+    path {{ sub.path }}
+  subscription {{ loop.index }}
+    dst-grp 1
+    snsr-grp {{ loop.index }} sample-interval {{ sub.interval | default(10000) }}
+{% endfor %}

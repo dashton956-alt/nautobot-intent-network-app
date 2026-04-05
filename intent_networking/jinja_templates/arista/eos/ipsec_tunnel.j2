@@ -1,0 +1,37 @@
+{# ipsec_tunnel.j2 — arista-eos #}
+! IPsec Tunnel Configuration
+! Intent: {{ intent_id }}
+!
+{% if isakmp_policy %}
+crypto isakmp policy {{ isakmp_policy.priority | default(10) }}
+   encryption {{ isakmp_policy.encryption | default("aes256") }}
+   hash {{ isakmp_policy.hash | default("sha256") }}
+   authentication {{ isakmp_policy.auth | default("pre-share") }}
+   group {{ isakmp_policy.dh_group | default(14) }}
+   lifetime {{ isakmp_policy.lifetime | default(86400) }}
+!
+{% endif %}
+{% if peer_ip %}
+crypto isakmp key {{ pre_shared_key }} address {{ peer_ip }}
+{% endif %}
+!
+{% if transform_set %}
+crypto ipsec transform-set {{ transform_set.name | default("TS-IPSEC") }} {{ transform_set.encryption | default("esp-aes 256") }} {{ transform_set.integrity | default("esp-sha256-hmac") }}
+   mode {{ transform_set.mode | default("tunnel") }}
+!
+{% endif %}
+crypto map {{ crypto_map_name | default("CRYPTO-MAP") }} {{ crypto_map_seq | default(10) }} ipsec-isakmp
+   set peer {{ peer_ip }}
+   set transform-set {{ transform_set.name | default("TS-IPSEC") }}
+   match address {{ acl_name }}
+!
+{% if tunnel_interface %}
+interface {{ tunnel_interface }}
+   ip address {{ tunnel_ip }}
+   tunnel source {{ tunnel_source }}
+   tunnel destination {{ peer_ip }}
+   tunnel mode ipsec ipv4
+   tunnel protection ipsec profile {{ ipsec_profile | default("IPSEC-PROFILE") }}
+   no shutdown
+!
+{% endif %}

@@ -1,0 +1,21 @@
+{# ipv6_interface.j2 — arista-eos #}
+! IPv6 Interface Configuration
+! Intent: {{ intent_id }}
+!
+{% if ipv6_unicast_routing %}
+ipv6 unicast-routing
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.ipv6_address %}
+   ipv6 address {{ iface.ipv6_address }}
+{% endif %}
+{% if iface.link_local %}
+   ipv6 address {{ iface.link_local }} link-local
+{% endif %}
+{% if iface.ra_suppress %}
+   ipv6 nd ra suppress all
+{% endif %}
+!
+{% endfor %}

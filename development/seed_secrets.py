@@ -1,4 +1,4 @@
-"""Create Secrets Group and assign to lab-arista-sw01 device."""
+"""Create Secrets Group and assign to all lab Arista devices."""
 
 from nautobot.extras.models import Secret, SecretsGroup, SecretsGroupAssociation
 from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
@@ -45,9 +45,13 @@ SecretsGroupAssociation.objects.get_or_create(
 )
 print("  Associated username + password with Generic access type")
 
-# Assign to device
-device = Device.objects.get(name="lab-arista-sw01")
-device.secrets_group = sg
-device.validated_save()
-print(f"  Assigned secrets group to {device.name}")
+# Assign to all lab devices
+for dev_name in ["lab-arista-sw01", "lab-arista-sw02", "lab-spine-01", "lab-spine-02"]:
+    try:
+        dev = Device.objects.get(name=dev_name)
+        dev.secrets_group = sg
+        dev.validated_save()
+        print(f"  Assigned secrets group to {dev.name}")
+    except Device.DoesNotExist:
+        print(f"  Skipped {dev_name} — not found")
 print("  Done!")

@@ -1,10 +1,8 @@
 {# pseudowire.j2 — junos #}
-! Primitive: pseudowire
+! Pseudowire
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for pseudowire on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set protocols l2circuit neighbor {{ peer_ip }} interface {{ attachment_circuit | default("") }} virtual-circuit-id {{ vc_id }}
+{% if mtu | default("") %}
+set protocols l2circuit neighbor {{ peer_ip }} interface {{ attachment_circuit | default("") }} mtu {{ mtu }}
+{% endif %}

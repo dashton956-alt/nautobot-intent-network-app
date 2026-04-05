@@ -1,0 +1,27 @@
+{# pvlan.j2 — arista-eos #}
+! Private VLAN Configuration
+! Intent: {{ intent_id }}
+!
+vlan {{ primary_vlan }}
+   private-vlan type primary
+{% for sec in secondary_vlans | default([]) %}
+   private-vlan association {{ sec }}
+{% endfor %}
+!
+{% for sec in secondary_vlans | default([]) %}
+vlan {{ sec }}
+   private-vlan type {{ secondary_type | default("isolated") }}
+!
+{% endfor %}
+{% for iface in promiscuous_interfaces | default([]) %}
+interface {{ iface }}
+   switchport mode private-vlan promiscuous
+   switchport private-vlan mapping {{ primary_vlan }} {{ secondary_vlans | join(',') }}
+!
+{% endfor %}
+{% for iface in host_interfaces | default([]) %}
+interface {{ iface }}
+   switchport mode private-vlan host
+   switchport private-vlan host-association {{ primary_vlan }} {{ secondary_vlans | first }}
+!
+{% endfor %}

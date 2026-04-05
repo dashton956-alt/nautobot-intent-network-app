@@ -1,0 +1,14 @@
+{# dns_removal.j2 — nxos #}
+! Remove DNS
+! Intent: {{ intent_id }}
+!
+{% for server in servers | default([]) %}
+no ip name-server {{ server }}
+{% endfor %}
+{% if domain_name | default("") %}
+no ip domain-name {{ domain_name }}
+{% endif %}
+{% for domain in domain_list | default([]) %}
+no ip domain-list {{ domain }}
+{% endfor %}
+!

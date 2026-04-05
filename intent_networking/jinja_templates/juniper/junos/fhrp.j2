@@ -1,10 +1,14 @@
 {# fhrp.j2 — junos #}
-! Primitive: fhrp
+! FHRP (VRRP)
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for fhrp on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for group in groups | default([]) %}
+set interfaces {{ group.interface }} unit 0 family inet address {{ group.real_ip | default("") }} vrrp-group {{ group.group_id }} virtual-address {{ group.virtual_ip }}
+set interfaces {{ group.interface }} unit 0 family inet address {{ group.real_ip | default("") }} vrrp-group {{ group.group_id }} priority {{ group.priority | default(100) }}
+{% if group.preempt | default(true) %}
+set interfaces {{ group.interface }} unit 0 family inet address {{ group.real_ip | default("") }} vrrp-group {{ group.group_id }} preempt
+{% endif %}
+{% if group.track | default("") %}
+set interfaces {{ group.interface }} unit 0 family inet address {{ group.real_ip | default("") }} vrrp-group {{ group.group_id }} track interface {{ group.track }} priority-cost {{ group.decrement | default(10) }}
+{% endif %}
+{% endfor %}

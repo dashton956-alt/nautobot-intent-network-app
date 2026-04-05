@@ -1,0 +1,20 @@
+{# dot1x.j2 — nxos #}
+! 802.1X Configuration
+! Intent: {{ intent_id }}
+!
+feature dot1x
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+  dot1x port-control {{ iface.port_control | default('auto') }}
+{% if iface.host_mode | default("") %}
+  dot1x host-mode {{ iface.host_mode }}
+{% endif %}
+{% if iface.reauth_period | default("") %}
+  dot1x re-authentication
+  dot1x timeout re-authperiod {{ iface.reauth_period }}
+{% endif %}
+{% if iface.mab | default(false) %}
+  dot1x mac-auth-bypass
+{% endif %}
+{% endfor %}

@@ -1,0 +1,15 @@
+{# multicast_vrf.j2 — nxos #}
+! Multicast VRF Configuration
+! Intent: {{ intent_id }}
+!
+vrf context {{ vrf }}
+  ip pim rp-address {{ rp_address }}
+{% if mdt_default_group | default("") %}
+  ip multicast multipath
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+  vrf member {{ vrf }}
+  ip pim sparse-mode
+{% endfor %}

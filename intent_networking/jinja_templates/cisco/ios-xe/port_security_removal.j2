@@ -1,0 +1,9 @@
+{# port_security_removal.j2 — ios-xe #}
+! Remove Port Security
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+ no switchport port-security
+{% endfor %}
+!

@@ -1,0 +1,31 @@
+{# pim.j2 — arista-eos #}
+! PIM Configuration
+! Intent: {{ intent_id }}
+!
+{% if mode == "sparse-mode" %}
+{% if rp_address %}
+{% if rp_type == "static" %}
+ip pim rp-address {{ rp_address }}
+{% elif rp_type == "bsr" %}
+{% if bsr_candidate %}
+ip pim bsr-candidate {{ bsr_candidate }}
+{% endif %}
+ip pim rp-candidate {{ rp_address }}
+{% elif rp_type == "anycast" %}
+ip pim rp-address {{ rp_address }}
+{% for peer in anycast_rp_set | default([]) %}
+ip pim anycast-rp {{ rp_address }} {{ peer }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name | default(iface) }}
+   ip pim {{ mode | default("sparse-mode") }}
+!
+{% endfor %}
+{% if mode == "ssm" and ssm_range %}
+ip pim ssm range {{ ssm_range }}
+{% endif %}
+!

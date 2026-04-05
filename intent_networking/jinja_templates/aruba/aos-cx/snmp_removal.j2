@@ -1,0 +1,7 @@
+{# snmp_removal.j2 — aos-cx #}
+{% for community_item in communities | default([]) %}
+no snmp-server community {{ community_item.name }}
+{% endfor %}
+{% for trap_host in trap_targets | default([]) %}
+no snmp-server host {{ trap_host.ip }}
+{% endfor %}

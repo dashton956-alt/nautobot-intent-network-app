@@ -1,10 +1,16 @@
 {# l2vni.j2 — ios-xr #}
-! Primitive: l2vni
+! L2 VNI (VXLAN)
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for l2vni on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+l2vpn
+ bridge group {{ bridge_group | default("VXLAN-BG") }}
+  bridge-domain {{ bridge_domain | default("BD-" ~ vlan_id) }}
+   member vni {{ vni_id }}
+!
+evpn
+ evi {{ evi | default(vlan_id) }}
+  bgp
+   rd {{ rd | default("auto") }}
+   route-target import {{ rt_import | default("auto") }}
+   route-target export {{ rt_export | default("auto") }}
 !

@@ -1,0 +1,6 @@
+{# vrf_removal.j2 — nxos #}
+! Remove VRF — {{ vrf_name }}
+! Intent: {{ intent_id }}
+!
+no vrf context {{ vrf_name }}
+!

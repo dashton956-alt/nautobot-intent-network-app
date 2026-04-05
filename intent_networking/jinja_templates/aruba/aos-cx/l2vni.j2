@@ -1,10 +1,8 @@
 {# l2vni.j2 — aos-cx #}
-! Primitive: l2vni
+! L2 VNI (VXLAN)
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for l2vni on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+interface vxlan 1
+    source ip {{ source_ip | default("") }}
+    vni {{ vni_id }}
+        vlan {{ vlan_id }}

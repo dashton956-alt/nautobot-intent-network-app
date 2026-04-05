@@ -1,0 +1,70 @@
+{# bgp_neighbor.j2 — nxos #}
+! BGP Neighbor Configuration
+! Intent: {{ intent_id }}
+!
+feature bgp
+!
+router bgp {{ local_asn }}
+{% if vrf_name | default("") %}
+  vrf {{ vrf_name }}
+{% endif %}
+    neighbor {{ neighbor_ip }}
+      remote-as {{ neighbor_asn }}
+{% if neighbor_description | default("") %}
+      description {{ neighbor_description }}
+{% endif %}
+{% if update_source | default("") %}
+      update-source {{ update_source }}
+{% endif %}
+{% if multihop | default("") %}
+      ebgp-multihop {{ multihop }}
+{% endif %}
+{% if password | default("") %}
+      password {{ password }}
+{% endif %}
+{% if timers_keepalive | default("") and timers_hold | default("") %}
+      timers {{ timers_keepalive }} {{ timers_hold }}
+{% endif %}
+{% if bfd_enabled | default(false) %}
+      bfd
+{% endif %}
+      address-family ipv4 unicast
+{% if send_community | default("") %}
+        send-community {{ send_community }}
+{% endif %}
+{% if route_map_in | default("") %}
+        route-map {{ route_map_in }} in
+{% endif %}
+{% if route_map_out | default("") %}
+        route-map {{ route_map_out }} out
+{% endif %}
+{% if prefix_list_in | default("") %}
+        prefix-list {{ prefix_list_in }} in
+{% endif %}
+{% if prefix_list_out | default("") %}
+        prefix-list {{ prefix_list_out }} out
+{% endif %}
+{% if max_prefix | default("") %}
+        maximum-prefix {{ max_prefix }} 80 restart 5
+{% endif %}
+{% if next_hop_self | default(false) %}
+        next-hop-self
+{% endif %}
+{% if route_reflector_client | default(false) %}
+        route-reflector-client
+{% endif %}
+{% if default_originate | default(false) %}
+        default-originate
+{% endif %}
+{% if allowas_in | default("") %}
+        allowas-in {{ allowas_in }}
+{% endif %}
+{% if maximum_paths | default("") %}
+      maximum-paths {{ maximum_paths }}
+{% endif %}
+{% if graceful_restart | default(false) %}
+      graceful-restart
+{% endif %}
+{% if local_preference | default("") %}
+      local-as {{ local_preference }}
+{% endif %}

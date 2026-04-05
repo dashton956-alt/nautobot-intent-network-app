@@ -1,10 +1,20 @@
 {# mlag.j2 — ios-xe #}
-! Primitive: mlag
+! Stacking / StackWise Virtual (IOS-XE MLAG equivalent)
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for mlag on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if stackwise_virtual | default(false) %}
+stackwise-virtual
+{% for link in dual_active_links | default([]) %}
+ dual-active detection pagp
+{% endfor %}
+{% else %}
+! Note: IOS-XE uses StackWise Virtual or VSS for multi-chassis redundancy
+! Configure Port-Channel for standard cross-chassis LAG
+{% for iface in peer_link_interfaces | default([]) %}
+interface {{ iface }}
+ channel-group {{ channel_id | default(1) }} mode active
+{% endfor %}
+interface Port-channel{{ channel_id | default(1) }}
+ switchport mode trunk
+{% endif %}
 !

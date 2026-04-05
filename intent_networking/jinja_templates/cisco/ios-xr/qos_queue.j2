@@ -1,10 +1,25 @@
 {# qos_queue.j2 — ios-xr #}
-! Primitive: qos_queue
+! QoS Queuing
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for qos_queue on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+policy-map {{ policy_map }}
+{% for q in queues | default([]) %}
+ class {{ q.class_name }}
+{% if q.priority | default(false) %}
+  priority level {{ q.priority_level | default(1) }}
+{% endif %}
+{% if q.bandwidth_percent | default("") %}
+  bandwidth percent {{ q.bandwidth_percent }}
+{% endif %}
+{% if q.shape_rate | default("") %}
+  shape average percent {{ q.shape_rate }}
+{% endif %}
+{% endfor %}
+ class class-default
+end-policy-map
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+ service-policy output {{ policy_map }}
+{% endfor %}
 !

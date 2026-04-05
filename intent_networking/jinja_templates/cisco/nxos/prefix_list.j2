@@ -1,0 +1,8 @@
+{# prefix_list.j2 — nxos #}
+! Prefix List
+! Intent: {{ intent_id }}
+!
+{% for entry in entries | default([]) %}
+ip prefix-list {{ list_name }} seq {{ loop.index * 10 }} {{ entry.action }} {{ entry.prefix }}{% if entry.le | default("") %} le {{ entry.le }}{% endif %}{% if entry.ge | default("") %} ge {{ entry.ge }}{% endif %}
+
+{% endfor %}

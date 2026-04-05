@@ -1,0 +1,20 @@
+{# dhcp_snooping.j2 — arista-eos #}
+! DHCP Snooping Configuration
+! Intent: {{ intent_id }}
+!
+ip dhcp snooping
+{% for vlan in vlans | default([]) %}
+ip dhcp snooping vlan {{ vlan }}
+{% endfor %}
+{% for iface in trusted_interfaces | default([]) %}
+interface {{ iface }}
+   ip dhcp snooping trust
+!
+{% endfor %}
+{% if rate_limit %}
+ip dhcp snooping rate-limit {{ rate_limit }} default
+{% endif %}
+{% if verify_mac %}
+ip dhcp snooping verify mac-address
+{% endif %}
+!

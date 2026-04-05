@@ -1,0 +1,16 @@
+{# ssl_inspection.j2 — arista-eos #}
+! SSL Inspection Configuration (stub — platform-specific)
+! Intent: {{ intent_id }}
+!
+! SSL inspection is typically handled by dedicated security appliances.
+! Policy: {{ policy_name }}
+{% if ca_cert %}
+! CA Certificate: {{ ca_cert }}
+{% endif %}
+{% for cat in bypass_categories | default([]) %}
+! Bypass: {{ cat }}
+{% endfor %}
+{% for cat in decrypt_categories | default([]) %}
+! Decrypt: {{ cat }}
+{% endfor %}
+!

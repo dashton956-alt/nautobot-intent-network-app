@@ -1,0 +1,6 @@
+{# vlan_removal.j2 — nxos #}
+! Remove VLAN — {{ vlan_id }}
+! Intent: {{ intent_id }}
+!
+no vlan {{ vlan_id }}
+!

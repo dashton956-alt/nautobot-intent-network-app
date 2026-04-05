@@ -1,0 +1,5 @@
+{# lag_removal.j2 — junos #}
+{% for member in members | default([]) %}
+delete interfaces {{ member }} ether-options 802.3ad
+{% endfor %}
+delete interfaces ae{{ lag_id }}

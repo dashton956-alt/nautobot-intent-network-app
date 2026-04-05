@@ -1,10 +1,24 @@
 {# rsvp_te_tunnel.j2 — ios-xr #}
-! Primitive: rsvp_te_tunnel
+! RSVP-TE Tunnel
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for rsvp_te_tunnel on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for iface in interfaces | default([]) %}
+rsvp
+ interface {{ iface }}
+  bandwidth {{ bandwidth | default(1000000) }}
+{% endfor %}
+!
+mpls traffic-eng
+{% for iface in interfaces | default([]) %}
+ interface {{ iface }}
+{% endfor %}
+!
+interface tunnel-te{{ tunnel_id }}
+ ipv4 unnumbered {{ unnumbered_interface | default("Loopback0") }}
+ destination {{ destination }}
+ signalled-bandwidth {{ tunnel_bandwidth | default(100000) }}
+{% if autoroute | default(true) %}
+ autoroute announce
+{% endif %}
+ path-option 10 dynamic
 !

@@ -1,0 +1,18 @@
+{# srv6.j2 — nxos #}
+! SRv6 Configuration
+! Intent: {{ intent_id }}
+!
+feature srv6
+!
+segment-routing
+  srv6
+    locators
+      locator {{ locator_name }}
+        prefix {{ prefix }}
+{% for sid in sids | default([]) %}
+!
+{% endfor %}
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+  ipv6 segment-routing
+{% endfor %}

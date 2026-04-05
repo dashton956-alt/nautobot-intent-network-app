@@ -1,0 +1,19 @@
+{# zbf.j2 — arista-eos #}
+! Zone-Based Firewall Configuration
+! Intent: {{ intent_id }}
+!
+{% for zone in zones | default([]) %}
+security zone {{ zone.name }}
+{% for iface in zone.interfaces | default([]) %}
+interface {{ iface }}
+   security zone {{ zone.name }}
+{% endfor %}
+!
+{% endfor %}
+{% for policy in policies | default([]) %}
+ip access-list {{ policy.acl_name }}
+{% for rule in policy.rules | default([]) %}
+   {{ rule.seq | default(loop.index * 10) }} {{ rule.action }} {{ rule.protocol | default("ip") }} {{ rule.source | default("any") }} {{ rule.destination | default("any") }}
+{% endfor %}
+!
+{% endfor %}

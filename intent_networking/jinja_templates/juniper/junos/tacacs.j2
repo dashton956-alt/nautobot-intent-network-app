@@ -1,0 +1,17 @@
+{# tacacs.j2 — junos #}
+! TACACS+ Configuration
+! Intent: {{ intent_id }}
+!
+{% for server in servers | default([]) %}
+set system tacplus-server {{ server.ip }} secret "{{ server.key }}"
+{% if server.port | default("") %}
+set system tacplus-server {{ server.ip }} port {{ server.port }}
+{% endif %}
+{% if server.timeout | default("") %}
+set system tacplus-server {{ server.ip }} timeout {{ server.timeout }}
+{% endif %}
+{% if server.source_interface | default("") %}
+set system tacplus-server {{ server.ip }} source-address {{ server.source_address | default("") }}
+{% endif %}
+{% endfor %}
+set system authentication-order [ tacplus password ]

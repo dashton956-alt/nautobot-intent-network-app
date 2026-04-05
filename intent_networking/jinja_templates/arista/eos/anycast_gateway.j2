@@ -1,0 +1,15 @@
+{# anycast_gateway.j2 — arista-eos #}
+! Anycast Gateway Configuration
+! Intent: {{ intent_id }}
+!
+{% if anycast_mac %}
+ip virtual-router mac-address {{ anycast_mac }}
+{% endif %}
+!
+interface Vlan{{ vlan_id }}
+{% if vrf %}
+   vrf {{ vrf }}
+{% endif %}
+   ip address virtual {{ virtual_ip }}/{{ subnet_mask | default(24) }}
+   no shutdown
+!

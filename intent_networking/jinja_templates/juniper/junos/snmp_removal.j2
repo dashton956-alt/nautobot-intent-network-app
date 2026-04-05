@@ -1,0 +1,7 @@
+{# snmp_removal.j2 — junos #}
+{% for community_item in communities | default([]) %}
+delete snmp community {{ community_item.name }}
+{% endfor %}
+{% for trap_host in trap_targets | default([]) %}
+delete snmp trap-group {{ trap_host.group | default("TRAPS") }} targets {{ trap_host.ip }}
+{% endfor %}

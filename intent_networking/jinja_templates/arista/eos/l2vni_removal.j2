@@ -1,0 +1,12 @@
+{# l2vni_removal.j2 — arista-eos #}
+! Remove L2 VNI Configuration
+! Intent: {{ intent_id }}
+!
+router bgp {{ bgp_asn | default(65000) }}
+   no vlan {{ vlan_id }}
+!
+interface Vxlan1
+   no vxlan vlan {{ vlan_id }} vni
+!
+no vlan {{ vlan_id }}
+!

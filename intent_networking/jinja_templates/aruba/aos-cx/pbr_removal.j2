@@ -1,0 +1,6 @@
+{# pbr_removal.j2 — aos-cx #}
+no route-map {{ route_map_name | default("PBR-MAP") }}
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+    no ip policy
+{% endfor %}

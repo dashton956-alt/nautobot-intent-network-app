@@ -1,10 +1,22 @@
 {# lldp_cdp.j2 — aos-cx #}
-! Primitive: lldp_cdp
+! LLDP Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for lldp_cdp on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% if lldp_enabled | default(true) %}
+lldp enable
+{% else %}
+no lldp enable
+{% endif %}
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.lldp_transmit | default(true) %}
+    lldp transmit
+{% else %}
+    no lldp transmit
+{% endif %}
+{% if iface.lldp_receive | default(true) %}
+    lldp receive
+{% else %}
+    no lldp receive
+{% endif %}
+{% endfor %}

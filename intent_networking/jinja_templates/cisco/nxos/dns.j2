@@ -1,0 +1,16 @@
+{# dns.j2 — nxos #}
+! DNS Configuration
+! Intent: {{ intent_id }}
+!
+{% if domain_name | default("") %}
+ip domain-name {{ domain_name }}
+{% endif %}
+{% for domain in domain_list | default([]) %}
+ip domain-list {{ domain }}
+{% endfor %}
+{% for server in servers | default([]) %}
+ip name-server {{ server }}
+{% endfor %}
+{% if source_interface | default("") %}
+ip domain source-interface {{ source_interface }}
+{% endif %}

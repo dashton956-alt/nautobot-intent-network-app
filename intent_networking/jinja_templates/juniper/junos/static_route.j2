@@ -1,10 +1,17 @@
 {# static_route.j2 — junos #}
-! Primitive: static_route
+! Static Routes
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for static_route on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for route in routes | default([]) %}
+{% if route.vrf | default("") %}
+set routing-instances {{ route.vrf }} routing-options static route {{ route.prefix }} next-hop {{ route.next_hop }}
+{% if route.preference | default("") %}
+set routing-instances {{ route.vrf }} routing-options static route {{ route.prefix }} preference {{ route.preference }}
+{% endif %}
+{% else %}
+set routing-options static route {{ route.prefix }} next-hop {{ route.next_hop }}
+{% if route.preference | default("") %}
+set routing-options static route {{ route.prefix }} preference {{ route.preference }}
+{% endif %}
+{% endif %}
+{% endfor %}

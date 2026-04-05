@@ -1,0 +1,2 @@
+{# wan_uplink_removal.j2 — junos #}
+delete interfaces {{ interface }} unit 0 family inet address {{ ip_address }}/{{ prefix_len | default(30) }}

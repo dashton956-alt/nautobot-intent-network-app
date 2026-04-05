@@ -1,0 +1,14 @@
+{# qos_trust.j2 — nxos #}
+! QoS Trust Boundary
+! Intent: {{ intent_id }}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+{% if trust_type | default("dscp") == "cos" %}
+  no qos trust dscp
+  qos trust cos
+{% else %}
+  no qos trust cos
+  qos trust dscp
+{% endif %}
+{% endfor %}

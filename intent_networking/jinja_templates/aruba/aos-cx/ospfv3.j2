@@ -1,10 +1,13 @@
 {# ospfv3.j2 — aos-cx #}
-! Primitive: ospfv3
+! OSPFv3 Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for ospfv3 on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router ospfv3 {{ process_id | default(1) }}
+{% if router_id | default("") %}
+    router-id {{ router_id }}
+{% endif %}
 !
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+    ipv6 ospfv3 {{ process_id | default(1) }} area {{ iface.area | default("0.0.0.0") }}
+{% endfor %}

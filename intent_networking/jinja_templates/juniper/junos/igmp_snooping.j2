@@ -1,10 +1,10 @@
 {# igmp_snooping.j2 — junos #}
-! Primitive: igmp_snooping
+! IGMP Snooping
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for igmp_snooping on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for vlan_item in vlans | default([]) %}
+set protocols igmp-snooping vlan VLAN{{ vlan_item }}
+{% endfor %}
+{% if querier | default(false) %}
+set protocols igmp-snooping vlan {{ querier_vlan_name | default("default") }} l2-querier source-address {{ querier_source | default("") }}
+{% endif %}

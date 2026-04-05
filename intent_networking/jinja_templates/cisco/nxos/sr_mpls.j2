@@ -1,0 +1,24 @@
+{# sr_mpls.j2 — nxos #}
+! Segment Routing MPLS Configuration
+! Intent: {{ intent_id }}
+!
+feature segment-routing
+!
+segment-routing
+  mpls
+    global-block {{ srgb_start | default(label_range_start | default(16000)) }} {{ srgb_end | default(label_range_end | default(23999)) }}
+!
+router isis {{ process_tag }}
+  segment-routing mpls
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.prefix_sid | default("") %}
+  ip router isis {{ process_tag }}
+  isis segment-routing prefix-sid index {{ iface.prefix_sid }}
+{% endif %}
+{% endfor %}
+{% if ti_lfa | default(false) %}
+router isis {{ process_tag }}
+  address-family ipv4 unicast
+    segment-routing mpls
+{% endif %}

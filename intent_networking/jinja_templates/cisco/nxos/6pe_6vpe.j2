@@ -1,0 +1,17 @@
+{# 6pe_6vpe.j2 — nxos #}
+! 6PE/6VPE Configuration
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+{% if vrf | default("") %}
+  vrf {{ vrf }}
+{% endif %}
+    address-family ipv6 unicast
+{% for net in networks | default([]) %}
+      network {{ net }}
+{% endfor %}
+{% for neighbor in neighbors | default([]) %}
+  neighbor {{ neighbor.ip }}
+    address-family ipv6 labeled-unicast
+      send-community extended
+{% endfor %}

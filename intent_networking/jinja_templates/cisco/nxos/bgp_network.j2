@@ -1,0 +1,13 @@
+{# bgp_network.j2 — nxos #}
+! BGP Network Advertisements
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+{% if vrf | default("") %}
+  vrf {{ vrf }}
+{% endif %}
+    address-family ipv4 unicast
+{% for net in networks | default([]) %}
+      network {{ net }}{% if route_map | default("") %} route-map {{ route_map }}{% endif %}
+
+{% endfor %}

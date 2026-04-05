@@ -1,10 +1,11 @@
 {# qos_trust.j2 — junos #}
-! Primitive: qos_trust
+! QoS Trust
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for qos_trust on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+{% if trust_mode | default("dscp") == "dscp" %}
+set class-of-service interfaces {{ iface }} unit 0 classifiers dscp default
+{% elif trust_mode == "cos" %}
+set class-of-service interfaces {{ iface }} unit 0 classifiers ieee-802.1 default
+{% endif %}
+{% endfor %}

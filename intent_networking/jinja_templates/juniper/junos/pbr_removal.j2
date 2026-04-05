@@ -1,0 +1,2 @@
+{# pbr_removal.j2 — junos #}
+delete firewall family inet filter {{ route_map_name | default("PBR-FILTER") }}

@@ -1,10 +1,21 @@
 {# mlag.j2 — ios-xr #}
-! Primitive: mlag
+! MC-LAG (IOS-XR)
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for mlag on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+redundancy
+ iccp
+  group {{ iccp_group | default(1) }}
+   member
+    neighbor {{ peer_ip }}
+   backbone
+{% for iface in backbone_interfaces | default([]) %}
+    interface {{ iface }}
+{% endfor %}
+!
+{% for bundle in bundles | default([]) %}
+interface Bundle-Ether{{ bundle.id }}
+ mac-address {{ bundle.system_mac | default("") }}
+ lacp system-mac {{ bundle.system_mac | default("") }}
+ mlacp iccp-group {{ iccp_group | default(1) }}
+{% endfor %}
 !

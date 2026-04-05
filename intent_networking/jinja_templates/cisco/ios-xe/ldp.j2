@@ -1,10 +1,17 @@
 {# ldp.j2 — ios-xe #}
-! Primitive: ldp
+! LDP Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for ldp on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+mpls ldp router-id {{ router_id_interface | default("Loopback0") }} force
+{% if password | default("") %}
+mpls ldp password required
+{% for neighbor in neighbors | default([]) %}
+mpls ldp neighbor {{ neighbor.ip }} password {{ password }}
+{% endfor %}
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+ mpls ip
+{% endfor %}
 !

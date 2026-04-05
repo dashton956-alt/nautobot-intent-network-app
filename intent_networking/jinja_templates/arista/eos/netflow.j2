@@ -2,6 +2,9 @@
 ! NetFlow / sFlow Configuration
 ! Intent: {{ intent_id }}
 !
+{% if exporter_name %}
+! Exporter: {{ exporter_name }}
+{% endif %}
 sflow sample {{ sampler_rate | default(1024) }}
 {% if collector_ip %}
 sflow destination {{ collector_ip }}{% if collector_port %} {{ collector_port }}{% endif %}

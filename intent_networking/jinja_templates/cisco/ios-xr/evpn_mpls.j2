@@ -1,10 +1,17 @@
 {# evpn_mpls.j2 — ios-xr #}
-! Primitive: evpn_mpls
+! EVPN over MPLS
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for evpn_mpls on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+evpn
+ evi {{ evi }}
+  bgp
+   rd {{ rd | default("auto") }}
+   route-target import {{ rt_import | default("auto") }}
+   route-target export {{ rt_export | default("auto") }}
+  advertise-mac
+!
+l2vpn
+ bridge group {{ bridge_group | default("EVPN-BG") }}
+  bridge-domain {{ bridge_domain | default("BD-" ~ evi) }}
+   evi {{ evi }}
 !

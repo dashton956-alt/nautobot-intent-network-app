@@ -1,10 +1,11 @@
 {# evpn_mpls.j2 — junos #}
-! Primitive: evpn_mpls
+! EVPN over MPLS
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for evpn_mpls on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set routing-instances {{ instance_name | default("EVPN-1") }} instance-type evpn
+set routing-instances {{ instance_name | default("EVPN-1") }} route-distinguisher {{ rd | default("auto") }}
+set routing-instances {{ instance_name | default("EVPN-1") }} vrf-target target:{{ rt_import | default("auto") }}
+set routing-instances {{ instance_name | default("EVPN-1") }} protocols evpn
+{% for iface in interfaces | default([]) %}
+set routing-instances {{ instance_name | default("EVPN-1") }} interface {{ iface }}
+{% endfor %}

@@ -1,10 +1,27 @@
 {# ospf.j2 — junos #}
-! Primitive: ospf
+! OSPF Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for ospf on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% if router_id | default("") %}
+set routing-options router-id {{ router_id }}
+{% endif %}
+{% if reference_bandwidth | default("") %}
+set protocols ospf reference-bandwidth {{ reference_bandwidth }}
+{% endif %}
+{% for iface in interfaces | default([]) %}
+set protocols ospf area {{ iface.area | default("0.0.0.0") }} interface {{ iface.name }}
+{% if iface.cost | default("") %}
+set protocols ospf area {{ iface.area | default("0.0.0.0") }} interface {{ iface.name }} metric {{ iface.cost }}
+{% endif %}
+{% if iface.network_type | default("") %}
+set protocols ospf area {{ iface.area | default("0.0.0.0") }} interface {{ iface.name }} interface-type {{ iface.network_type }}
+{% endif %}
+{% if iface.passive | default(false) %}
+set protocols ospf area {{ iface.area | default("0.0.0.0") }} interface {{ iface.name }} passive
+{% endif %}
+{% endfor %}
+{% if default_originate | default(false) %}
+set protocols ospf export DEFAULT-ORIGINATE
+set policy-options policy-statement DEFAULT-ORIGINATE from route-filter 0.0.0.0/0 exact
+set policy-options policy-statement DEFAULT-ORIGINATE then accept
+{% endif %}

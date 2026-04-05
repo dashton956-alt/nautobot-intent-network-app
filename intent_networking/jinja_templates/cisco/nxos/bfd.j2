@@ -1,0 +1,13 @@
+{# bfd.j2 — nxos #}
+! BFD Configuration
+! Intent: {{ intent_id }}
+!
+feature bfd
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+  bfd interval {{ iface.interval | default(interval | default(300)) }} min_rx {{ iface.min_rx | default(min_rx | default(300)) }} multiplier {{ iface.multiplier | default(multiplier | default(3)) }}
+{% endfor %}
+{% if echo_mode | default(false) %}
+bfd echo-interface loopback0
+{% endif %}

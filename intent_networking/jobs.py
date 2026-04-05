@@ -720,6 +720,7 @@ class IntentDeploymentJob(Job):
             else:
                 self.logger.info("Config pushed to %s", device_name)
 
+        nr.close_connections()
         return {"success": len(errors) == 0, "errors": errors}
 
     def _mark_failed(self, intent: Intent):

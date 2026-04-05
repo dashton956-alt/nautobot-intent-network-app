@@ -1,10 +1,16 @@
 {# gre_tunnel.j2 — aos-cx #}
-! Primitive: gre_tunnel
+! GRE Tunnel
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for gre_tunnel on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+interface tunnel {{ tunnel_id | default(1) }}
+    ip address {{ tunnel_ip }}/{{ prefix_len | default(30) }}
+    tunnel source {{ tunnel_source }}
+    tunnel destination {{ tunnel_destination }}
+    tunnel mode gre
+{% if description | default("") %}
+    description {{ description }}
+{% endif %}
+{% if mtu | default("") %}
+    mtu {{ mtu }}
+{% endif %}
+    no shutdown

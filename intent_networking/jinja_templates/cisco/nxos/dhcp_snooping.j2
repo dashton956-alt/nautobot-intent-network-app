@@ -1,0 +1,20 @@
+{# dhcp_snooping.j2 — nxos #}
+! DHCP Snooping Configuration
+! Intent: {{ intent_id }}
+!
+feature dhcp
+ip dhcp snooping
+{% for vlan in vlans | default([]) %}
+ip dhcp snooping vlan {{ vlan }}
+{% endfor %}
+{% if verify_mac | default(false) %}
+ip dhcp snooping verify mac-address
+{% endif %}
+!
+{% for iface in trusted_interfaces | default([]) %}
+interface {{ iface }}
+  ip dhcp snooping trust
+{% if rate_limit | default("") %}
+  ip dhcp snooping limit rate {{ rate_limit }}
+{% endif %}
+{% endfor %}

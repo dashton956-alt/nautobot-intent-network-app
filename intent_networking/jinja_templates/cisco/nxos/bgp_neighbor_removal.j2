@@ -1,0 +1,10 @@
+{# bgp_neighbor_removal.j2 — nxos #}
+! Remove BGP Neighbor — {{ neighbor_ip }}
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+{% if vrf_name | default("") %}
+  vrf {{ vrf_name }}
+{% endif %}
+  no neighbor {{ neighbor_ip }}
+!

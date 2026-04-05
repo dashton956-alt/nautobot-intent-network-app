@@ -1,0 +1,8 @@
+{# static_route_removal.j2 — aos-cx #}
+{% for route in routes | default([]) %}
+{% if route.vrf | default("") %}
+no ip route {{ route.prefix }} {{ route.next_hop }} vrf {{ route.vrf }}
+{% else %}
+no ip route {{ route.prefix }} {{ route.next_hop }}
+{% endif %}
+{% endfor %}

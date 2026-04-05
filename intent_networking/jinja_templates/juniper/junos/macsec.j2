@@ -1,10 +1,11 @@
 {# macsec.j2 — junos #}
-! Primitive: macsec
+! MACsec Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for macsec on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set security macsec connectivity-association {{ ca_name | default("MACSEC-CA") }} security-mode static-cak
+set security macsec connectivity-association {{ ca_name | default("MACSEC-CA") }} pre-shared-key ckn {{ ckn | default("") }}
+set security macsec connectivity-association {{ ca_name | default("MACSEC-CA") }} pre-shared-key cak {{ cak | default("") }}
+set security macsec connectivity-association {{ ca_name | default("MACSEC-CA") }} cipher-suite {{ cipher_suite | default("gcm-aes-256") }}
+{% for iface in interfaces | default([]) %}
+set security macsec interfaces {{ iface }} connectivity-association {{ ca_name | default("MACSEC-CA") }}
+{% endfor %}

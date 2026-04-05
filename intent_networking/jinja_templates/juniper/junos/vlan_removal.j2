@@ -1,0 +1,4 @@
+{# vlan_removal.j2 — junos #}
+{% for vlan in vlans | default([]) %}
+delete vlans {{ vlan.name | default("VLAN" ~ vlan.id) }}
+{% endfor %}

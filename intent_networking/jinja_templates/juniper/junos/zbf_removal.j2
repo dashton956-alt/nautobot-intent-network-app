@@ -1,0 +1,7 @@
+{# zbf_removal.j2 — junos #}
+{% for zone in zones | default([]) %}
+delete security zones security-zone {{ zone.name }}
+{% endfor %}
+{% for zp in zone_pairs | default([]) %}
+delete security policies from-zone {{ zp.source }} to-zone {{ zp.destination }}
+{% endfor %}

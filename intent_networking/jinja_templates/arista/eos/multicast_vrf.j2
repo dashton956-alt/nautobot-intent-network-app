@@ -1,0 +1,19 @@
+{# multicast_vrf.j2 — arista-eos #}
+! Multicast VRF Configuration
+! Intent: {{ intent_id }}
+!
+vrf instance {{ vrf }}
+!
+{% if pim_mode and rp_address %}
+ip pim vrf {{ vrf }} rp-address {{ rp_address }}
+{% endif %}
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name | default(iface) }}
+   vrf {{ vrf }}
+   ip pim {{ pim_mode | default("sparse-mode") }}
+!
+{% endfor %}
+{% if mdt_default_group %}
+! MDT default group: {{ mdt_default_group }}
+{% endif %}
+!

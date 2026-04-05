@@ -1,10 +1,12 @@
 {# nat.j2 — ios-xr #}
-! Primitive: nat
+! NAT Configuration (CGNAT on IOS-XR)
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for nat on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if nat_type | default("") == "static" %}
+{% for mapping in static_mappings | default([]) %}
+interface {{ inside_interface | default("") }}
+ ipv4 address {{ mapping.inside }}
+{% endfor %}
+{% endif %}
+! Note: IOS-XR uses Service CGN or external NAT for full NAT functionality.
 !

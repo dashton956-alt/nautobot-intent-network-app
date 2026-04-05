@@ -1,0 +1,16 @@
+{# dai.j2 — arista-eos #}
+! Dynamic ARP Inspection Configuration
+! Intent: {{ intent_id }}
+!
+{% for vlan in vlans | default([]) %}
+ip arp inspection vlan {{ vlan }}
+{% endfor %}
+{% for iface in trusted_interfaces | default([]) %}
+interface {{ iface }}
+   ip arp inspection trust
+!
+{% endfor %}
+{% if rate_limit %}
+ip arp inspection limit rate {{ rate_limit }}
+{% endif %}
+!

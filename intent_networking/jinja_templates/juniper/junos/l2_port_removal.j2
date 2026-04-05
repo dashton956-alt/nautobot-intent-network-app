@@ -1,0 +1,5 @@
+{# l2_port_removal.j2 — junos #}
+delete interfaces {{ interface }} unit 0 family ethernet-switching
+{% if description | default("") %}
+delete interfaces {{ interface }} description
+{% endif %}

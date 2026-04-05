@@ -1,10 +1,15 @@
 {# pseudowire.j2 — ios-xr #}
-! Primitive: pseudowire
+! Pseudowire
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for pseudowire on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+l2vpn
+ xconnect group {{ xconnect_group | default("XC-GROUP") }}
+  p2p {{ xconnect_name | default("XC-1") }}
+{% if attachment_circuit | default("") %}
+   interface {{ attachment_circuit }}
+{% endif %}
+   neighbor ipv4 {{ peer_ip }} pw-id {{ vc_id }}
+{% if pw_class | default("") %}
+    pw-class {{ pw_class }}
+{% endif %}
 !

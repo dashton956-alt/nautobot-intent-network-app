@@ -1,10 +1,16 @@
 {# stp.j2 — aos-cx #}
-! Primitive: stp
+! STP Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for stp on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% if mode | default("rstp") == "rstp" %}
+spanning-tree mode rpvst
+{% elif mode == "mstp" %}
+spanning-tree mode mstp
+spanning-tree instance {{ mst_instance | default(1) }} vlan {{ mst_vlans | default("") }}
+{% endif %}
+{% if bpdu_guard_default | default(false) %}
+spanning-tree bpdu-guard
+{% endif %}
+{% if root_guard_default | default(false) %}
+spanning-tree root-guard
+{% endif %}

@@ -1,0 +1,35 @@
+{# global_config_removal.j2 — nxos #}
+! Remove Global Configuration
+! Intent: {{ intent_id }}
+!
+{% for server in ntp_servers | default([]) %}
+no ntp server {{ server }}
+{% endfor %}
+{% if ntp_source_interface | default("") %}
+no ntp source-interface {{ ntp_source_interface }}
+{% endif %}
+{% for server in syslog_servers | default([]) %}
+no logging server {{ server }}
+{% endfor %}
+{% if syslog_source_interface | default("") %}
+no logging source-interface {{ syslog_source_interface }}
+{% endif %}
+{% if snmp_community | default("") %}
+no snmp-server community {{ snmp_community }}
+{% endif %}
+{% for target in snmp_trap_targets | default([]) %}
+no snmp-server host {{ target }}
+{% endfor %}
+{% for server in dns_servers | default([]) %}
+no ip name-server {{ server }}
+{% endfor %}
+{% if domain_name | default("") %}
+no ip domain-name {{ domain_name }}
+{% endif %}
+{% if login_banner | default("") %}
+no banner login
+{% endif %}
+{% if motd_banner | default("") %}
+no banner motd
+{% endif %}
+!

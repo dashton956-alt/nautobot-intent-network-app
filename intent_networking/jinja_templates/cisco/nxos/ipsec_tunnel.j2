@@ -1,0 +1,24 @@
+{# ipsec_tunnel.j2 — nxos #}
+! IPsec Tunnel Configuration
+! Intent: {{ intent_id }}
+!
+feature tunnel-encryption
+!
+crypto ipsec profile {{ ipsec_profile | default('IPSEC-PROF') }}
+  set transform-set {{ transform_set.name }}
+!
+crypto ipsec transform-set {{ transform_set.name }} {{ transform_set.encryption }} {{ transform_set.integrity }}
+  mode {{ transform_set.mode | default('tunnel') }}
+!
+ip access-list {{ acl_name }}
+  permit ip any {{ peer_ip }}/32
+!
+{% if tunnel_interface | default("") %}
+interface {{ tunnel_interface }}
+  ip address {{ tunnel_ip }}
+  tunnel source {{ tunnel_source }}
+  tunnel destination {{ peer_ip }}
+  tunnel mode ipsec ipv4
+  tunnel protection ipsec profile {{ ipsec_profile | default('IPSEC-PROF') }}
+  no shutdown
+{% endif %}

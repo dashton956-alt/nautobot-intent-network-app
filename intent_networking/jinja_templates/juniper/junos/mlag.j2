@@ -1,10 +1,13 @@
 {# mlag.j2 — junos #}
-! Primitive: mlag
+! MC-LAG (JunOS)
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for mlag on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set multi-chassis multi-chassis-protection {{ peer_ip | default("") }} interface {{ icl_interface | default("") }}
+set interfaces {{ icl_interface | default("ae0") }} aggregated-ether-options lacp system-id {{ system_mac | default("") }}
+{% for bundle in bundles | default([]) %}
+set interfaces ae{{ bundle.id }} multi-chassis-lag-id {{ bundle.mc_id | default(bundle.id) }}
+set interfaces ae{{ bundle.id }} aggregated-ether-options lacp active
+{% for member in bundle.members | default([]) %}
+set interfaces {{ member }} ether-options 802.3ad ae{{ bundle.id }}
+{% endfor %}
+{% endfor %}

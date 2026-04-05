@@ -1,10 +1,13 @@
 {# ntp.j2 — junos #}
-! Primitive: ntp
+! NTP Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for ntp on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for server in servers | default([]) %}
+set system ntp server {{ server.ip }}
+{% if server.prefer | default(false) %}
+set system ntp server {{ server.ip }} prefer
+{% endif %}
+{% endfor %}
+{% if source_address | default("") %}
+set system ntp source-address {{ source_address }}
+{% endif %}

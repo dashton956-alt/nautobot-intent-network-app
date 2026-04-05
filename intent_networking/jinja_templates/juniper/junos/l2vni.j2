@@ -1,10 +1,9 @@
 {# l2vni.j2 — junos #}
-! Primitive: l2vni
+! L2 VNI (VXLAN)
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for l2vni on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set vlans {{ vlan_name | default("VLAN" ~ vlan_id) }} vlan-id {{ vlan_id }}
+set vlans {{ vlan_name | default("VLAN" ~ vlan_id) }} vxlan vni {{ vni_id }}
+{% if ingress_replication | default(true) %}
+set vlans {{ vlan_name | default("VLAN" ~ vlan_id) }} vxlan ingress-node-replication
+{% endif %}

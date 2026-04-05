@@ -1,0 +1,12 @@
+{# multicast_igmp.j2 — junos #}
+! IGMP Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+set protocols igmp interface {{ iface.name }} version {{ iface.version | default(2) }}
+{% if iface.static_groups | default([]) %}
+{% for group in iface.static_groups %}
+set protocols igmp interface {{ iface.name }} static group {{ group }}
+{% endfor %}
+{% endif %}
+{% endfor %}

@@ -1,10 +1,13 @@
 {# qinq.j2 — junos #}
-! Primitive: qinq
+! QinQ (Stacked VLANs)
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for qinq on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+set interfaces {{ iface.name }} flexible-vlan-tagging
+set interfaces {{ iface.name }} encapsulation flexible-ethernet-services
+{% if iface.outer_vlan | default("") %}
+set interfaces {{ iface.name }} unit {{ iface.unit | default(0) }} vlan-id {{ iface.outer_vlan }}
+set interfaces {{ iface.name }} unit {{ iface.unit | default(0) }} input-vlan-map push
+set interfaces {{ iface.name }} unit {{ iface.unit | default(0) }} output-vlan-map pop
+{% endif %}
+{% endfor %}

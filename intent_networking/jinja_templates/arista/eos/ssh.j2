@@ -5,8 +5,14 @@
 management ssh
    idle-timeout {{ timeout | default(60) }}
    authentication mode password
+{% if version %}
+   protocol {{ version }}
+{% endif %}
    no shutdown
 !
+{% if key_type and key_size %}
+crypto key generate {{ key_type | default("rsa") }} {{ key_size }}
+{% endif %}
 {% if allowed_networks %}
 ip access-list {{ acl_name | default("SSH-ACCESS") }}
 {% for net in allowed_networks %}

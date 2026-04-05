@@ -1,10 +1,15 @@
 {# copp.j2 — junos #}
-! Primitive: copp
+! Control Plane Policing
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for copp on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for entry in entries | default([]) %}
+set firewall family inet filter COPP term {{ entry.name }} from protocol {{ entry.protocol | default("icmp") }}
+{% if entry.source | default("") %}
+set firewall family inet filter COPP term {{ entry.name }} from source-address {{ entry.source }}
+{% endif %}
+set firewall family inet filter COPP term {{ entry.name }} then policer {{ entry.policer | default("CoPP-RATE-1M") }}
+set firewall family inet filter COPP term {{ entry.name }} then accept
+{% endfor %}
+set firewall policer CoPP-RATE-1M if-exceeding bandwidth-limit {{ bandwidth | default("1m") }} burst-size-limit {{ burst | default("15k") }}
+set firewall policer CoPP-RATE-1M then discard
+set interfaces lo0 unit 0 family inet filter input COPP

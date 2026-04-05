@@ -1,0 +1,33 @@
+{# rsvp_te_tunnel.j2 — arista-eos #}
+! RSVP-TE Tunnel Configuration
+! Intent: {{ intent_id }}
+!
+{% if interfaces %}
+{% for iface in interfaces %}
+interface {{ iface }}
+   mpls ip rsvp bandwidth {{ rsvp_bandwidth | default(1000000) }}
+!
+{% endfor %}
+{% endif %}
+!
+interface {{ tunnel_interface | default("Tunnel1") }}
+   ip unnumbered {{ unnumbered_interface | default("Loopback0") }}
+   tunnel source {{ tunnel_source | default("Loopback0") }}
+   tunnel destination {{ tunnel_destination }}
+   tunnel mode mpls traffic-eng
+{% if setup_priority %}
+   tunnel mpls traffic-eng priority {{ setup_priority }} {{ hold_priority | default(setup_priority) }}
+{% endif %}
+{% if bandwidth %}
+   tunnel mpls traffic-eng bandwidth {{ bandwidth }}
+{% endif %}
+{% if affinity %}
+   tunnel mpls traffic-eng affinity {{ affinity }}
+{% endif %}
+{% if explicit_path %}
+   tunnel mpls traffic-eng path-option 10 explicit name {{ explicit_path }}
+{% endif %}
+   tunnel mpls traffic-eng path-option 20 dynamic
+   tunnel mpls traffic-eng autoroute announce
+   no shutdown
+!

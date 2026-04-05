@@ -1,10 +1,21 @@
 {# netflow.j2 — ios-xr #}
-! Primitive: netflow
+! NetFlow Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for netflow on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+flow exporter-map {{ exporter_name }}
+ version {{ version | default(9) }}
+ transport udp {{ collector_port | default(9996) }}
+ destination {{ collector_ip }}
+{% if source_interface | default("") %}
+ source {{ source_interface }}
+{% endif %}
+!
+flow monitor-map FLOW-MONITOR
+ exporter {{ exporter_name }}
+ record ipv4
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+ flow ipv4 monitor FLOW-MONITOR sampler SAMPLER ingress
+{% endfor %}
 !

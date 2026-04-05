@@ -1,0 +1,11 @@
+{# loopback.j2 — arista-eos #}
+! Loopback Interface Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+{% if description %}
+   description {{ description }}
+{% endif %}
+   ip address {{ ip_address }}/32
+   no shutdown
+!

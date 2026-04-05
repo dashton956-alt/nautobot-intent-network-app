@@ -1,10 +1,26 @@
 {# pim.j2 — ios-xe #}
-! Primitive: pim
+! PIM Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for pim on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+ip multicast-routing
+!
+{% if rp_address | default("") %}
+{% if rp_type | default("static") == "static" %}
+ip pim rp-address {{ rp_address }}
+{% elif rp_type == "bsr" %}
+ip pim bsr-candidate {{ bsr_candidate | default(rp_address) }}
+ip pim rp-candidate {{ rp_address }}
+{% elif rp_type == "auto-rp" %}
+ip pim send-rp-announce {{ rp_address }} scope {{ scope | default(32) }}
+ip pim send-rp-discovery scope {{ scope | default(32) }}
+{% endif %}
+{% endif %}
+{% if ssm_range | default("") %}
+ip pim ssm range {{ ssm_range }}
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+ ip pim sparse-mode
+{% endfor %}
 !

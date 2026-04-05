@@ -1,10 +1,17 @@
 {# mgmt_interface.j2 — ios-xr #}
-! Primitive: mgmt_interface
+! Management Interface
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for mgmt_interface on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+interface {{ interface | default("MgmtEth0/RP0/CPU0/0") }}
+ ipv4 address {{ ip_address }} {{ subnet_mask | default("255.255.255.0") }}
+ no shutdown
+{% if vrf | default("") %}
+ vrf {{ vrf }}
+{% endif %}
+{% if gateway | default("") %}
+!
+router static
+ address-family ipv4 unicast
+  0.0.0.0/0 {{ gateway }}
+{% endif %}
 !

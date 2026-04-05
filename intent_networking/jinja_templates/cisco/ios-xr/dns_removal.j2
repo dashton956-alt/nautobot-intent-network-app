@@ -1,0 +1,11 @@
+{# dns_removal.j2 — ios-xr #}
+! Remove DNS
+! Intent: {{ intent_id }}
+!
+{% for server in servers | default([]) %}
+no domain name-server {{ server }}
+{% endfor %}
+{% if domain_name | default("") %}
+no domain name {{ domain_name }}
+{% endif %}
+!

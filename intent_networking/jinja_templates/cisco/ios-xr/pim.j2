@@ -1,10 +1,22 @@
 {# pim.j2 — ios-xr #}
-! Primitive: pim
+! PIM Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for pim on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router pim
+ address-family ipv4
+{% if rp_address | default("") %}
+{% if rp_type | default("static") == "static" %}
+  rp-address {{ rp_address }}
+{% elif rp_type == "bsr" %}
+  bsr candidate-bsr {{ bsr_candidate | default(rp_address) }}
+  bsr candidate-rp {{ rp_address }}
+{% endif %}
+{% endif %}
+{% if ssm_range | default("") %}
+  ssm range {{ ssm_range }}
+{% endif %}
+{% for iface in interfaces | default([]) %}
+  interface {{ iface.name }}
+   enable
+{% endfor %}
 !

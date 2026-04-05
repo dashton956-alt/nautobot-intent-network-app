@@ -1,10 +1,23 @@
 {# isis.j2 — ios-xr #}
-! Primitive: isis
+! IS-IS Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for isis on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router isis {{ process_tag }}
+ net {{ net }}
+ is-type {{ is_type | default("level-2-only") }}
+{% if metric_style | default("") %}
+ address-family ipv4 unicast
+  metric-style {{ metric_style }}
+{% endif %}
+{% for iface in interfaces | default([]) %}
+ interface {{ iface.name }}
+  point-to-point
+{% if iface.metric | default("") %}
+  address-family ipv4 unicast
+   metric {{ iface.metric }}
+{% endif %}
+{% if iface.passive | default(false) %}
+  passive
+{% endif %}
+{% endfor %}
 !

@@ -1,0 +1,26 @@
+{# global_config_removal.j2 — ios-xr #}
+! Remove Global Config
+! Intent: {{ intent_id }}
+!
+{% for server in ntp_servers | default([]) %}
+no ntp server {{ server }}
+{% endfor %}
+{% for server in syslog_servers | default([]) %}
+no logging {{ server }}
+{% endfor %}
+{% if snmp_community | default("") %}
+no snmp-server community {{ snmp_community }}
+{% endif %}
+{% for server in dns_servers | default([]) %}
+no domain name-server {{ server }}
+{% endfor %}
+{% if domain_name | default("") %}
+no domain name {{ domain_name }}
+{% endif %}
+{% if login_banner | default("") %}
+no banner login
+{% endif %}
+{% if motd_banner | default("") %}
+no banner motd
+{% endif %}
+!

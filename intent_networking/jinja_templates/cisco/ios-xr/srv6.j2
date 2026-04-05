@@ -1,10 +1,10 @@
 {# srv6.j2 — ios-xr #}
-! Primitive: srv6
+! SRv6 Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for srv6 on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+segment-routing
+ srv6
+  locators
+   locator {{ locator_name | default("MAIN") }}
+    prefix {{ locator_prefix }}
 !

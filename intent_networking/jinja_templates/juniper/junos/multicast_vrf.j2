@@ -1,10 +1,10 @@
 {# multicast_vrf.j2 — junos #}
-! Primitive: multicast_vrf
+! Multicast VRF
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for multicast_vrf on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% if vrf | default("") %}
+set routing-instances {{ vrf }} protocols pim
+{% if rp_address | default("") %}
+set routing-instances {{ vrf }} protocols pim rp static address {{ rp_address }}
+{% endif %}
+{% endif %}

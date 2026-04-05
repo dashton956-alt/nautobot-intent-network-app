@@ -1,0 +1,7 @@
+{# anycast_gateway_removal.j2 — arista-eos #}
+! Remove Anycast Gateway Configuration
+! Intent: {{ intent_id }}
+!
+interface Vlan{{ vlan_id }}
+   no ip address virtual
+!

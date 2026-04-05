@@ -1,0 +1,10 @@
+{# loopback.j2 — nxos #}
+! Loopback Interface
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+  no shutdown
+{% if description | default("") %}
+  description {{ description }}
+{% endif %}
+  ip address {{ ip_address }}/32

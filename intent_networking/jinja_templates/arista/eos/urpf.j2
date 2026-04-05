@@ -1,0 +1,13 @@
+{# urpf.j2 — arista-eos #}
+! Unicast Reverse Path Forwarding Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.mode == "strict" %}
+   ip verify unicast source reachable-via rx
+{% else %}
+   ip verify unicast source reachable-via any
+{% endif %}
+!
+{% endfor %}

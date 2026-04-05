@@ -1,0 +1,10 @@
+{# multicast_msdp.j2 — junos #}
+! MSDP Configuration
+! Intent: {{ intent_id }}
+!
+{% for peer in peers | default([]) %}
+set protocols msdp peer {{ peer.ip }}
+{% if peer.local_address | default("") %}
+set protocols msdp peer {{ peer.ip }} local-address {{ peer.local_address }}
+{% endif %}
+{% endfor %}

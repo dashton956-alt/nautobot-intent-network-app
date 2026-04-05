@@ -1,10 +1,25 @@
 {# dhcp_pool.j2 — ios-xe #}
-! Primitive: dhcp_pool
+! DHCP Pool
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for dhcp_pool on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for addr in excluded_addresses | default([]) %}
+ip dhcp excluded-address {{ addr }}
+{% endfor %}
+!
+ip dhcp pool {{ pool_name }}
+ network {{ network }} {{ netmask | default("255.255.255.0") }}
+{% if default_router | default("") %}
+ default-router {{ default_router }}
+{% endif %}
+{% if dns_server | default("") %}
+ dns-server {{ dns_server }}
+{% endif %}
+{% if domain_name | default("") %}
+ domain-name {{ domain_name }}
+{% endif %}
+{% if lease_time | default("") %}
+ lease {{ lease_time // 86400 }}
+{% else %}
+ lease 1
+{% endif %}
 !

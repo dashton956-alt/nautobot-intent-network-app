@@ -1,0 +1,19 @@
+{# ip_sla.j2 — arista-eos #}
+! IP SLA Configuration
+! Intent: {{ intent_id }}
+!
+monitor connectivity
+   host {{ sla_id }}
+{% if probe_type == "icmp-echo" or probe_type == "icmp" %}
+      ip {{ target }}
+      icmp echo
+{% elif probe_type == "http" %}
+      url {{ target }}
+{% endif %}
+{% if interval or frequency %}
+      interval {{ interval | default(frequency | default(60)) }}
+{% endif %}
+{% if threshold %}
+      threshold {{ threshold }}
+{% endif %}
+!

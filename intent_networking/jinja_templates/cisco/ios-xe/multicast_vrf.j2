@@ -1,10 +1,13 @@
 {# multicast_vrf.j2 — ios-xe #}
-! Primitive: multicast_vrf
+! Multicast VRF
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for multicast_vrf on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+ip multicast-routing vrf {{ vrf }}
+ip pim vrf {{ vrf }} rp-address {{ rp_address }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+ vrf forwarding {{ vrf }}
+ ip pim sparse-mode
+{% endfor %}
 !

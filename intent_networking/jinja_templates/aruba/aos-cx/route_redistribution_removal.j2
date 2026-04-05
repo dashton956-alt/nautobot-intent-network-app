@@ -1,0 +1,12 @@
+{# route_redistribution_removal.j2 — aos-cx #}
+{% if target_protocol | default("") == "ospf" %}
+router ospf {{ process_id | default(1) }}
+{% for source in sources | default([]) %}
+    no redistribute {{ source.protocol }}
+{% endfor %}
+{% elif target_protocol | default("") == "bgp" %}
+router bgp {{ local_asn | default("") }}
+{% for source in sources | default([]) %}
+    no redistribute {{ source.protocol }}
+{% endfor %}
+{% endif %}

@@ -1,0 +1,16 @@
+{# pim_removal.j2 — arista-eos #}
+! Remove PIM Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name | default(iface) }}
+   no ip pim {{ mode | default("sparse-mode") }}
+!
+{% endfor %}
+{% if rp_address %}
+no ip pim rp-address {{ rp_address }}
+{% endif %}
+{% if mode == "ssm" and ssm_range %}
+no ip pim ssm range
+{% endif %}
+!

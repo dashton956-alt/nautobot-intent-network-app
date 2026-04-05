@@ -1,0 +1,11 @@
+{# vrf_removal.j2 — arista-eos #}
+! Remove VRF Configuration — {{ vrf_name }}
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+   no vrf
+!
+{% endfor %}
+no vrf instance {{ vrf_name }}
+!

@@ -1,0 +1,18 @@
+{# mlag_removal.j2 — arista-eos #}
+! Remove MLAG Configuration
+! Intent: {{ intent_id }}
+!
+no mlag configuration
+!
+{% for iface in peer_link_interfaces %}
+interface {{ iface }}
+   no switchport trunk group MLAG-PEER
+!
+{% endfor %}
+{% if keepalive_vlan %}
+no vlan {{ keepalive_vlan }}
+{% endif %}
+{% if peer_link_vlan %}
+no vlan {{ peer_link_vlan }}
+{% endif %}
+!

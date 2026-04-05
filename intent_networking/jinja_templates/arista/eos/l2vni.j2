@@ -1,0 +1,21 @@
+{# l2vni.j2 — arista-eos #}
+! L2 VNI Configuration
+! Intent: {{ intent_id }}
+!
+vlan {{ vlan_id }}
+{% if vlan_name %}
+   name {{ vlan_name }}
+{% endif %}
+!
+interface Vxlan1
+   vxlan vlan {{ vlan_id }} vni {{ vni }}
+{% if replication_mode == "multicast" and mcast_group %}
+   vxlan vlan {{ vlan_id }} flood vtep {{ mcast_group }}
+{% endif %}
+!
+router bgp {{ bgp_asn | default(65000) }}
+   vlan {{ vlan_id }}
+      rd auto
+      route-target both {{ vni }}:{{ vlan_id }}
+      redistribute learned
+!

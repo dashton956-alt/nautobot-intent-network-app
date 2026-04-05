@@ -1,0 +1,5 @@
+{# l2_port_removal.j2 — aos-cx #}
+interface {{ interface }}
+    no vlan access {{ access_vlan | default("") }}
+    no vlan trunk allowed {{ trunk_vlans | default("") }}
+    shutdown

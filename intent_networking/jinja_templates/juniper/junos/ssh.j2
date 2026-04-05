@@ -1,10 +1,23 @@
 {# ssh.j2 — junos #}
-! Primitive: ssh
+! SSH Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for ssh on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set system services ssh
+{% if ssh_version | default("") %}
+set system services ssh protocol-version {{ ssh_version }}
+{% endif %}
+{% if max_sessions | default("") %}
+set system services ssh max-sessions-per-connection {{ max_sessions }}
+{% endif %}
+{% if timeout | default("") %}
+set system login retry-options backoff-threshold 1
+set system login retry-options lockout-period {{ timeout }}
+{% endif %}
+{% if rate_limit | default("") %}
+set system services ssh rate-limit {{ rate_limit }}
+{% endif %}
+{% for key_type in ciphers | default([]) %}
+{% endfor %}
+{% for acl_entry in access_list | default([]) %}
+set system services ssh root-login deny
+{% endfor %}

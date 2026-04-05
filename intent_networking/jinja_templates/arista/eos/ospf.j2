@@ -1,0 +1,36 @@
+{# ospf.j2 — arista-eos #}
+! OSPF Configuration
+! Intent: {{ intent_id }}
+!
+router ospf {{ process_id }}
+{% if router_id %}
+   router-id {{ router_id }}
+{% endif %}
+{% for iface in passive_interfaces | default([]) %}
+   passive-interface {{ iface }}
+{% endfor %}
+{% for r in redistribute | default([]) %}
+   redistribute {{ r }}
+{% endfor %}
+   max-lsa {{ max_lsa | default(12000) }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+   ip ospf area {{ iface.area | default(area | default("0.0.0.0")) }}
+{% if iface.cost %}
+   ip ospf cost {{ iface.cost }}
+{% endif %}
+{% if iface.network_type %}
+   ip ospf network {{ iface.network_type }}
+{% endif %}
+{% if hello_interval %}
+   ip ospf hello-interval {{ hello_interval }}
+{% endif %}
+{% if dead_interval %}
+   ip ospf dead-interval {{ dead_interval }}
+{% endif %}
+{% if authentication %}
+   ip ospf authentication message-digest
+{% endif %}
+!
+{% endfor %}

@@ -1,10 +1,26 @@
 {# isis.j2 — aos-cx #}
-! Primitive: isis
+! IS-IS Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for isis on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router isis {{ instance | default(1) }}
+{% if net | default("") %}
+    net {{ net }}
+{% endif %}
+    is-type {{ level | default("level-2-only") }}
+{% if metric_style | default("wide") == "wide" %}
+    metric-style wide
+{% endif %}
 !
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+    isis enable {{ instance | default(1) }}
+{% if iface.passive | default(false) %}
+    isis passive
+{% endif %}
+{% if iface.network_type | default("") == "point-to-point" %}
+    isis network point-to-point
+{% endif %}
+{% if iface.metric | default("") %}
+    isis metric {{ iface.metric }}
+{% endif %}
+{% endfor %}

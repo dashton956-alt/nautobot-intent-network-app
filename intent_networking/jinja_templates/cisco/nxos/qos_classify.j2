@@ -1,0 +1,38 @@
+{# qos_classify.j2 — nxos #}
+! QoS Classification
+! Intent: {{ intent_id }}
+!
+{% for cm in class_maps | default([]) %}
+class-map type qos match-any {{ cm.name }}
+{% if cm.dscp | default("") %}
+  match dscp {{ cm.dscp }}
+{% endif %}
+{% if cm.acl | default("") %}
+  match access-group name {{ cm.acl }}
+{% endif %}
+{% if cm.cos | default("") %}
+  match cos {{ cm.cos }}
+{% endif %}
+{% if cm.protocol | default("") %}
+  match protocol {{ cm.protocol }}
+{% endif %}
+{% endfor %}
+!
+policy-map type qos {{ policy_map }}
+{% for cm in class_maps | default([]) %}
+  class {{ cm.name }}
+{% if cm.set_dscp | default("") %}
+    set dscp {{ cm.set_dscp }}
+{% endif %}
+{% if cm.set_cos | default("") %}
+    set cos {{ cm.set_cos }}
+{% endif %}
+{% if cm.police_rate | default("") %}
+    police cir {{ cm.police_rate }} conform transmit violate drop
+{% endif %}
+{% endfor %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+  service-policy type qos input {{ policy_map }}
+{% endfor %}

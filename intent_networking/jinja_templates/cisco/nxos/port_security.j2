@@ -1,0 +1,20 @@
+{# port_security.j2 — nxos #}
+! Port Security Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+  switchport port-security
+  switchport port-security maximum {{ max_mac | default(1) }}
+{% if violation_action | default("restrict") == "shutdown" %}
+  switchport port-security violation shutdown
+{% elif violation_action | default("restrict") == "protect" %}
+  switchport port-security violation protect
+{% else %}
+  switchport port-security violation restrict
+{% endif %}
+{% if sticky | default(false) %}
+  switchport port-security mac-address sticky
+{% endif %}
+{% if aging_time | default("") %}
+  switchport port-security aging time {{ aging_time }}
+{% endif %}

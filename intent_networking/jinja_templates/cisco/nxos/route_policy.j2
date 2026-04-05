@@ -1,0 +1,34 @@
+{# route_policy.j2 — nxos #}
+! Route Policy / Route Map
+! Intent: {{ intent_id }}
+!
+{% for entry in entries | default([]) %}
+route-map {{ policy_name }} {{ entry.action }} {{ entry.seq }}
+{% if entry.match_prefix_list | default("") %}
+  match ip address prefix-list {{ entry.match_prefix_list }}
+{% endif %}
+{% if entry.match_community | default("") %}
+  match community {{ entry.match_community }}
+{% endif %}
+{% if entry.match_as_path | default("") %}
+  match as-path {{ entry.match_as_path }}
+{% endif %}
+{% if entry.set_local_preference | default("") %}
+  set local-preference {{ entry.set_local_preference }}
+{% endif %}
+{% if entry.set_med | default("") %}
+  set metric {{ entry.set_med }}
+{% endif %}
+{% if entry.set_community | default("") %}
+  set community {{ entry.set_community }}
+{% endif %}
+{% if entry.set_next_hop | default("") %}
+  set ip next-hop {{ entry.set_next_hop }}
+{% endif %}
+{% if entry.set_weight | default("") %}
+  set weight {{ entry.set_weight }}
+{% endif %}
+{% if entry.set_as_path_prepend | default("") %}
+  set as-path prepend {{ entry.set_as_path_prepend }}
+{% endif %}
+{% endfor %}

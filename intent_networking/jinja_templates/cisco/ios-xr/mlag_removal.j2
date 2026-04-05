@@ -1,0 +1,9 @@
+{# mlag_removal.j2 — ios-xr #}
+! Remove MC-LAG
+! Intent: {{ intent_id }}
+!
+no redundancy iccp group {{ iccp_group | default(1) }}
+{% for bundle in bundles | default([]) %}
+no interface Bundle-Ether{{ bundle.id }}
+{% endfor %}
+!

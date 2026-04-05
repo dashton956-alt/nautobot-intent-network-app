@@ -1,0 +1,17 @@
+{# radius.j2 — junos #}
+! RADIUS Configuration
+! Intent: {{ intent_id }}
+!
+{% for server in servers | default([]) %}
+set system radius-server {{ server.ip }} secret "{{ server.key }}"
+{% if server.port | default("") %}
+set system radius-server {{ server.ip }} port {{ server.port }}
+{% endif %}
+{% if server.timeout | default("") %}
+set system radius-server {{ server.ip }} timeout {{ server.timeout }}
+{% endif %}
+{% if server.source_address | default("") %}
+set system radius-server {{ server.ip }} source-address {{ server.source_address }}
+{% endif %}
+{% endfor %}
+set system authentication-order [ radius password ]

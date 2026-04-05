@@ -1,10 +1,13 @@
 {# copp.j2 — aos-cx #}
-! Primitive: copp
+! Control Plane Policing
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for copp on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for entry in entries | default([]) %}
+access-list ip {{ entry.acl_name | default("COPP-" ~ entry.name) }}
+    {{ entry.sequence | default(10) }} permit {{ entry.protocol | default("ip") }} {{ entry.source | default("any") }} any
 !
+{% endfor %}
+copp-policy {{ policy_name | default("CoPP-Custom") }}
+{% for entry in entries | default([]) %}
+    class {{ entry.name }} action {{ entry.action | default("rate-limit") }} rate {{ entry.rate | default(1000) }}
+{% endfor %}

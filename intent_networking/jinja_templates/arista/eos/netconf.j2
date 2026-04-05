@@ -1,7 +1,8 @@
 {# netconf.j2 — arista-eos #}
-! NETCONF / RESTCONF Configuration
+! NETCONF / RESTCONF / gNMI Configuration
 ! Intent: {{ intent_id }}
 !
+{% if netconf_enabled is not defined or netconf_enabled %}
 management api netconf
    transport ssh default
 {% if vrf %}
@@ -9,6 +10,10 @@ management api netconf
 {% endif %}
 {% if port %}
       port {{ port }}
+{% endif %}
+   no shutdown
+{% else %}
+no management api netconf
 {% endif %}
 !
 {% if enable_restconf %}
@@ -23,3 +28,12 @@ management api http-commands
 {% endif %}
 {% endif %}
 !
+{% if gnmi_enabled %}
+management api gnmi
+   transport grpc default
+{% if gnmi_port %}
+      port {{ gnmi_port }}
+{% endif %}
+   provider eos-native
+!
+{% endif %}

@@ -1,10 +1,11 @@
 {# ipv6_interface.j2 — junos #}
-! Primitive: ipv6_interface
+! IPv6 Interface
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for ipv6_interface on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set interfaces {{ interface }} unit 0 family inet6 address {{ ipv6_address }}
+{% if link_local | default("") %}
+set interfaces {{ interface }} unit 0 family inet6 address {{ link_local }}
+{% endif %}
+{% if description | default("") %}
+set interfaces {{ interface }} description "{{ description }}"
+{% endif %}

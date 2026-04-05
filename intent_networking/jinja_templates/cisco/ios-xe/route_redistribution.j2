@@ -1,10 +1,25 @@
 {# route_redistribution.j2 — ios-xe #}
-! Primitive: route_redistribution
+! Route Redistribution
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for route_redistribution on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if target_protocol == "ospf" %}
+router ospf {{ target_process_id }}
+{% for source in sources | default([]) %}
+ redistribute {{ source.protocol }}{% if source.process_id | default("") %} {{ source.process_id }}{% endif %}{% if source.route_map | default("") %} route-map {{ source.route_map }}{% endif %} subnets
+{% endfor %}
+{% elif target_protocol == "bgp" %}
+router bgp {{ target_asn }}
+ address-family ipv4 unicast
+{% for source in sources | default([]) %}
+  redistribute {{ source.protocol }}{% if source.process_id | default("") %} {{ source.process_id }}{% endif %}{% if source.route_map | default("") %} route-map {{ source.route_map }}{% endif %}
+
+{% endfor %}
+ exit-address-family
+{% elif target_protocol == "eigrp" %}
+router eigrp {{ target_asn }}
+{% for source in sources | default([]) %}
+ redistribute {{ source.protocol }}{% if source.process_id | default("") %} {{ source.process_id }}{% endif %}{% if source.route_map | default("") %} route-map {{ source.route_map }}{% endif %}
+
+{% endfor %}
+{% endif %}
 !

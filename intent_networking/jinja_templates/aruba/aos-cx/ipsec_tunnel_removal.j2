@@ -1,0 +1,4 @@
+{# ipsec_tunnel_removal.j2 — aos-cx #}
+no interface tunnel {{ tunnel_id | default(1) }}
+no crypto ipsec profile {{ profile_name | default("IPSEC-PROF") }}
+no crypto isakmp policy {{ isakmp_priority | default(10) }}

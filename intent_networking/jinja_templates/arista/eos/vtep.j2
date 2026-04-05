@@ -1,0 +1,19 @@
+{# vtep.j2 — arista-eos #}
+! VXLAN VTEP Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ nve_interface | default("Vxlan1") }}
+   vxlan source-interface {{ source_interface }}
+{% if replication_mode == "multicast" %}
+{% for mapping in vni_map | default([]) %}
+   vxlan vni {{ mapping.vni }} flood vtep {{ mapping.mcast_group | default("") }}
+{% endfor %}
+{% endif %}
+{% for vni in l2_vni | default([]) %}
+   vxlan vlan {{ vni.vlan_id }} vni {{ vni.vni }}
+{% endfor %}
+{% for vni in l3_vni | default([]) %}
+   vxlan vrf {{ vni.vrf_name }} vni {{ vni.vni }}
+{% endfor %}
+   vxlan udp-port 4789
+!

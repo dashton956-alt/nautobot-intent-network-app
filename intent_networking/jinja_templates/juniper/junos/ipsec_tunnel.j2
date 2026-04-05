@@ -1,10 +1,20 @@
 {# ipsec_tunnel.j2 — junos #}
-! Primitive: ipsec_tunnel
+! IPsec Tunnel
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for ipsec_tunnel on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set security ike proposal {{ proposal_name | default("IKE-PROP") }} authentication-method pre-shared-keys
+set security ike proposal {{ proposal_name | default("IKE-PROP") }} dh-group {{ dh_group | default("group14") }}
+set security ike proposal {{ proposal_name | default("IKE-PROP") }} authentication-algorithm {{ hash | default("sha-256") }}
+set security ike proposal {{ proposal_name | default("IKE-PROP") }} encryption-algorithm {{ encryption | default("aes-256-cbc") }}
+set security ike policy {{ ike_policy | default("IKE-POL") }} proposals {{ proposal_name | default("IKE-PROP") }}
+set security ike policy {{ ike_policy | default("IKE-POL") }} pre-shared-key ascii-text "{{ psk }}"
+set security ike gateway {{ gw_name | default("IKE-GW") }} ike-policy {{ ike_policy | default("IKE-POL") }}
+set security ike gateway {{ gw_name | default("IKE-GW") }} address {{ peer_ip }}
+set security ike gateway {{ gw_name | default("IKE-GW") }} external-interface {{ interface | default("") }}
+set security ipsec proposal {{ ipsec_proposal | default("IPSEC-PROP") }} protocol esp
+set security ipsec proposal {{ ipsec_proposal | default("IPSEC-PROP") }} authentication-algorithm {{ ipsec_hash | default("hmac-sha-256-128") }}
+set security ipsec proposal {{ ipsec_proposal | default("IPSEC-PROP") }} encryption-algorithm {{ ipsec_encryption | default("aes-256-cbc") }}
+set security ipsec policy {{ ipsec_policy | default("IPSEC-POL") }} proposals {{ ipsec_proposal | default("IPSEC-PROP") }}
+set security ipsec vpn {{ vpn_name | default("VPN-1") }} ike gateway {{ gw_name | default("IKE-GW") }}
+set security ipsec vpn {{ vpn_name | default("VPN-1") }} ike ipsec-policy {{ ipsec_policy | default("IPSEC-POL") }}
+set security ipsec vpn {{ vpn_name | default("VPN-1") }} bind-interface {{ tunnel_interface | default("st0.0") }}

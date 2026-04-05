@@ -1,0 +1,9 @@
+{# bfd_removal.j2 — ios-xr #}
+! Remove BFD
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+ no bfd
+{% endfor %}
+!

@@ -1,0 +1,12 @@
+{# bgp_network_removal.j2 — nxos #}
+! Remove BGP Networks
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+{% if vrf | default("") %}
+  vrf {{ vrf }}
+{% endif %}
+{% for net in networks %}
+  no network {{ net }}
+{% endfor %}
+!

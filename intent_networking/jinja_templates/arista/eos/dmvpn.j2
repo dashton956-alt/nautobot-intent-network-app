@@ -1,0 +1,28 @@
+{# dmvpn.j2 — arista-eos #}
+! DMVPN Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ tunnel_interface | default("Tunnel100") }}
+{% if description %}
+   description {{ description }}
+{% endif %}
+   ip address {{ tunnel_ip }}
+   tunnel source {{ tunnel_source }}
+   tunnel mode gre multipoint
+{% if nhrp_network_id %}
+   ip nhrp network-id {{ nhrp_network_id }}
+{% endif %}
+{% if nhrp_nhs %}
+   ip nhrp nhs {{ nhrp_nhs }}
+{% endif %}
+{% if nhrp_map %}
+   ip nhrp map {{ nhrp_map.tunnel_ip }} {{ nhrp_map.nbma_ip }}
+{% endif %}
+{% if tunnel_key %}
+   tunnel key {{ tunnel_key }}
+{% endif %}
+{% if ipsec_profile %}
+   tunnel protection ipsec profile {{ ipsec_profile }}
+{% endif %}
+   no shutdown
+!

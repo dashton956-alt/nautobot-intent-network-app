@@ -1,0 +1,20 @@
+{# igmp_snooping.j2 — arista-eos #}
+! IGMP Snooping Configuration
+! Intent: {{ intent_id }}
+!
+ip igmp snooping
+{% for vlan in vlans | default([]) %}
+ip igmp snooping vlan {{ vlan }}
+{% endfor %}
+{% if querier_enabled %}
+{% if querier_address %}
+ip igmp snooping querier address {{ querier_address }}
+{% endif %}
+ip igmp snooping querier
+{% endif %}
+{% if fast_leave %}
+{% for vlan in vlans | default([]) %}
+ip igmp snooping vlan {{ vlan }} fast-leave
+{% endfor %}
+{% endif %}
+!

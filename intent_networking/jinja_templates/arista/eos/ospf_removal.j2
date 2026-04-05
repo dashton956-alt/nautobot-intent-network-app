@@ -1,0 +1,16 @@
+{# ospf_removal.j2 — arista-eos #}
+! Remove OSPF Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+   no ip ospf area
+   no ip ospf cost
+   no ip ospf network
+   no ip ospf hello-interval
+   no ip ospf dead-interval
+   no ip ospf authentication
+!
+{% endfor %}
+no router ospf {{ process_id }}
+!

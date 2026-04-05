@@ -1,10 +1,25 @@
 {# copp.j2 — ios-xe #}
-! Primitive: copp
+! Control Plane Policing
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for copp on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for cm in class_maps | default([]) %}
+class-map match-any {{ cm.name }}
+{% if cm.acl | default("") %}
+ match access-group name {{ cm.acl }}
+{% endif %}
+{% if cm.protocol | default("") %}
+ match protocol {{ cm.protocol }}
+{% endif %}
+{% endfor %}
+!
+policy-map {{ policy_name | default("COPP-POLICY") }}
+{% for cls in classes | default([]) %}
+ class {{ cls.name }}
+  police {{ cls.rate | default(8000) }} {{ cls.burst | default(1500) }} conform-action {{ cls.conform | default("transmit") }} exceed-action {{ cls.exceed | default("drop") }}
+{% endfor %}
+ class class-default
+  police 8000 1500 conform-action transmit exceed-action drop
+!
+control-plane
+ service-policy input {{ policy_name | default("COPP-POLICY") }}
 !

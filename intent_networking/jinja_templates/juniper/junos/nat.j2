@@ -1,10 +1,17 @@
 {# nat.j2 — junos #}
-! Primitive: nat
+! NAT Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for nat on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for rule in rules | default([]) %}
+{% if rule.type | default("source") == "source" %}
+set security nat source rule-set {{ rule.name | default("SNAT-RULE") }} from zone {{ rule.source_zone | default("trust") }}
+set security nat source rule-set {{ rule.name | default("SNAT-RULE") }} to zone {{ rule.dest_zone | default("untrust") }}
+set security nat source rule-set {{ rule.name | default("SNAT-RULE") }} rule {{ rule.name | default("SNAT") }} match source-address {{ rule.source_network | default("0.0.0.0/0") }}
+set security nat source rule-set {{ rule.name | default("SNAT-RULE") }} rule {{ rule.name | default("SNAT") }} then source-nat interface
+{% elif rule.type == "destination" %}
+set security nat destination pool {{ rule.name | default("DNAT-POOL") }} address {{ rule.translated_ip | default("") }}/32
+set security nat destination rule-set {{ rule.name | default("DNAT-RULE") }} from zone {{ rule.source_zone | default("untrust") }}
+set security nat destination rule-set {{ rule.name | default("DNAT-RULE") }} rule {{ rule.name | default("DNAT") }} match destination-address {{ rule.destination_ip | default("") }}/32
+set security nat destination rule-set {{ rule.name | default("DNAT-RULE") }} rule {{ rule.name | default("DNAT") }} then destination-nat pool {{ rule.name | default("DNAT-POOL") }}
+{% endif %}
+{% endfor %}

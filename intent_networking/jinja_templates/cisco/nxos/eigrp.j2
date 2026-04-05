@@ -1,0 +1,19 @@
+{# eigrp.j2 — nxos #}
+! EIGRP Configuration
+! Intent: {{ intent_id }}
+!
+feature eigrp
+!
+router eigrp {{ asn }}
+{% if router_id | default("") %}
+  router-id {{ router_id }}
+{% endif %}
+{% for net in networks | default([]) %}
+  network {{ net }}
+{% endfor %}
+{% for iface in passive_interfaces | default([]) %}
+  passive-interface {{ iface }}
+{% endfor %}
+{% for route in redistribute | default([]) %}
+  redistribute {{ route }} route-map PERMIT-ALL
+{% endfor %}

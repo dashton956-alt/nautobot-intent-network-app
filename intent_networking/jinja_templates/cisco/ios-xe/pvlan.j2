@@ -1,10 +1,20 @@
 {# pvlan.j2 — ios-xe #}
-! Primitive: pvlan
+! Private VLAN
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for pvlan on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if primary_vlan | default("") %}
+vlan {{ primary_vlan }}
+ private-vlan primary
+{% if community_vlans | default([]) %}
+ private-vlan association {{ community_vlans | join(',') }}
+{% endif %}
+{% endif %}
+{% for cv in community_vlans | default([]) %}
+vlan {{ cv }}
+ private-vlan community
+{% endfor %}
+{% for iv in isolated_vlans | default([]) %}
+vlan {{ iv }}
+ private-vlan isolated
+{% endfor %}
 !

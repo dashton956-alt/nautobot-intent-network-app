@@ -1,10 +1,16 @@
 {# fhrp.j2 — aos-cx #}
-! Primitive: fhrp
+! FHRP (VRRP)
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for fhrp on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for group in groups | default([]) %}
+interface {{ group.interface }}
+    vrrp {{ group.group_id }} address-family ipv4
+    vrrp {{ group.group_id }} ip {{ group.virtual_ip }}
+    vrrp {{ group.group_id }} priority {{ group.priority | default(100) }}
+{% if group.preempt | default(true) %}
+    vrrp {{ group.group_id }} preempt
+{% endif %}
+{% if group.track | default("") %}
+    vrrp {{ group.group_id }} track interface {{ group.track }} {{ group.decrement | default(10) }}
+{% endif %}
+{% endfor %}

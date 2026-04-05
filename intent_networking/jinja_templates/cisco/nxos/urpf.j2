@@ -1,0 +1,12 @@
+{# urpf.j2 — nxos #}
+! Unicast RPF
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.mode | default("strict") == "strict" %}
+  ip verify unicast source reachable-via rx
+{% else %}
+  ip verify unicast source reachable-via any
+{% endif %}
+{% endfor %}

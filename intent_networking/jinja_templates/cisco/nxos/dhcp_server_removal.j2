@@ -1,0 +1,8 @@
+{# dhcp_server_removal.j2 — nxos #}
+! Remove DHCP Server
+! Intent: {{ intent_id }}
+!
+{% for pool in pools | default([]) %}
+no ip dhcp pool {{ pool.name | default(pool_name | default("")) }}
+{% endfor %}
+!

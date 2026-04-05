@@ -1,10 +1,8 @@
 {# qos_shape.j2 — aos-cx #}
-! Primitive: qos_shape
+! QoS Shaping
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for qos_shape on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+    qos rate-shape {{ iface.rate | default("1000000") }} kbps
+{% endfor %}

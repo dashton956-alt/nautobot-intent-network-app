@@ -1,0 +1,18 @@
+{# evpn_mpls.j2 — arista-eos #}
+! EVPN over MPLS Configuration
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+   address-family evpn
+{% for neighbor in neighbors | default([]) %}
+      neighbor {{ neighbor.ip }} activate
+      neighbor {{ neighbor.ip }} encapsulation mpls
+{% endfor %}
+!
+{% for instance in evpn_instances | default([]) %}
+   vlan {{ instance.vlan_id }}
+      rd {{ instance.route_distinguisher | default("auto") }}
+      route-target both {{ instance.route_target }}
+      mpls label {{ instance.label }}
+{% endfor %}
+!

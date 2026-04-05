@@ -1,0 +1,4 @@
+{# port_security_removal.j2 — junos #}
+{% for iface in interfaces | default([]) %}
+delete interfaces {{ iface }} unit 0 family ethernet-switching mac-limit
+{% endfor %}

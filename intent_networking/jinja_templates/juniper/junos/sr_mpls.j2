@@ -1,10 +1,12 @@
 {# sr_mpls.j2 — junos #}
-! Primitive: sr_mpls
+! Segment Routing MPLS
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for sr_mpls on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set protocols source-packet-routing srgb start-label {{ srgb_start | default(16000) }} index-range {{ srgb_range | default(8000) }}
+{% for prefix in prefix_sids | default([]) %}
+set protocols source-packet-routing node-segment ipv4-index {{ prefix.index }} interface {{ prefix.interface | default("lo0.0") }}
+{% endfor %}
+set protocols isis source-packet-routing
+{% for iface in interfaces | default([]) %}
+set protocols isis interface {{ iface }}
+{% endfor %}

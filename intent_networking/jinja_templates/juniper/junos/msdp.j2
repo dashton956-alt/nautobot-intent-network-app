@@ -1,10 +1,10 @@
 {# msdp.j2 — junos #}
-! Primitive: msdp
+! MSDP Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for msdp on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for peer in peers | default([]) %}
+set protocols msdp peer {{ peer.ip }}
+{% if peer.local_address | default("") %}
+set protocols msdp peer {{ peer.ip }} local-address {{ peer.local_address }}
+{% endif %}
+{% endfor %}

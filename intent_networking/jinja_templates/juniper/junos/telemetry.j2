@@ -1,10 +1,11 @@
 {# telemetry.j2 — junos #}
-! Primitive: telemetry
+! Streaming Telemetry (gRPC)
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for telemetry on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set services analytics streaming-server {{ server_name | default("TELEMETRY") }} remote-address {{ server_ip }}
+set services analytics streaming-server {{ server_name | default("TELEMETRY") }} remote-port {{ server_port | default(50051) }}
+{% for sensor in sensors | default([]) %}
+set services analytics sensor {{ sensor.name | default("sensor-" ~ loop.index) }} server-name {{ server_name | default("TELEMETRY") }}
+set services analytics sensor {{ sensor.name | default("sensor-" ~ loop.index) }} resource {{ sensor.path }}
+set services analytics sensor {{ sensor.name | default("sensor-" ~ loop.index) }} reporting-rate {{ sensor.interval | default(30) }}
+{% endfor %}

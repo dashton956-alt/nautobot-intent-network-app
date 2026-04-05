@@ -1,0 +1,9 @@
+{# vlan.j2 — nxos #}
+! VLAN Configuration
+! Intent: {{ intent_id }}
+!
+vlan {{ vlan_id }}
+  name {{ vlan_name | default('VLAN' ~ vlan_id) }}
+{% if description | default("") %}
+  description {{ description }}
+{% endif %}

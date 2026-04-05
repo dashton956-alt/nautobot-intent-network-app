@@ -1,0 +1,4 @@
+{# bgp_network_removal.j2 — junos #}
+{% for net in networks | default([]) %}
+delete routing-options static route {{ net }}
+{% endfor %}

@@ -1,10 +1,25 @@
 {# route_policy.j2 — junos #}
-! Primitive: route_policy
+! Policy Statement
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for route_policy on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for entry in entries | default([]) %}
+set policy-options policy-statement {{ policy_name }} term {{ entry.name | default("TERM-" ~ loop.index) }}{% if entry.match_prefix_list | default("") %} from prefix-list {{ entry.match_prefix_list }}{% endif %}
+
+{% if entry.match_community | default("") %}
+set policy-options policy-statement {{ policy_name }} term {{ entry.name | default("TERM-" ~ loop.index) }} from community {{ entry.match_community }}
+{% endif %}
+{% if entry.set_local_pref | default("") %}
+set policy-options policy-statement {{ policy_name }} term {{ entry.name | default("TERM-" ~ loop.index) }} then local-preference {{ entry.set_local_pref }}
+{% endif %}
+{% if entry.set_med | default("") %}
+set policy-options policy-statement {{ policy_name }} term {{ entry.name | default("TERM-" ~ loop.index) }} then metric {{ entry.set_med }}
+{% endif %}
+{% if entry.set_community | default("") %}
+set policy-options policy-statement {{ policy_name }} term {{ entry.name | default("TERM-" ~ loop.index) }} then community set {{ entry.set_community }}
+{% endif %}
+{% if entry.action | default("accept") == "accept" %}
+set policy-options policy-statement {{ policy_name }} term {{ entry.name | default("TERM-" ~ loop.index) }} then accept
+{% elif entry.action == "reject" %}
+set policy-options policy-statement {{ policy_name }} term {{ entry.name | default("TERM-" ~ loop.index) }} then reject
+{% endif %}
+{% endfor %}

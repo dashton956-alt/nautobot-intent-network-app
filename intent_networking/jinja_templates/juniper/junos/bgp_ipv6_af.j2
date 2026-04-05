@@ -1,10 +1,13 @@
 {# bgp_ipv6_af.j2 — junos #}
-! Primitive: bgp_ipv6_af
+! BGP IPv6 Address Family
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for bgp_ipv6_af on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for neighbor in neighbors | default([]) %}
+set protocols bgp group {{ bgp_group | default("IPv6-PEERS") }} neighbor {{ neighbor.ip }} family inet6 unicast
+{% if neighbor.route_policy_in | default("") %}
+set protocols bgp group {{ bgp_group | default("IPv6-PEERS") }} neighbor {{ neighbor.ip }} import {{ neighbor.route_policy_in }}
+{% endif %}
+{% if neighbor.route_policy_out | default("") %}
+set protocols bgp group {{ bgp_group | default("IPv6-PEERS") }} neighbor {{ neighbor.ip }} export {{ neighbor.route_policy_out }}
+{% endif %}
+{% endfor %}

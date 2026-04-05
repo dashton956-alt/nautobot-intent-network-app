@@ -1,0 +1,7 @@
+{# dhcp_relay.j2 — arista-eos #}
+! DHCP Relay Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+   ip helper-address {{ helper_address }}
+!

@@ -1,0 +1,19 @@
+{# storm_control.j2 — nxos #}
+! Storm Control Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+{% if broadcast_level | default("") %}
+  storm-control broadcast level {{ broadcast_level }}
+{% endif %}
+{% if multicast_level | default("") %}
+  storm-control multicast level {{ multicast_level }}
+{% endif %}
+{% if unicast_level | default("") %}
+  storm-control unicast level {{ unicast_level }}
+{% endif %}
+{% if action | default("") == "shutdown" %}
+  storm-control action shutdown
+{% elif action | default("") == "trap" %}
+  storm-control action trap
+{% endif %}

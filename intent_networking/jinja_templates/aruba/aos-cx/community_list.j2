@@ -1,0 +1,7 @@
+{# community_list.j2 — aos-cx #}
+! Community List
+! Intent: {{ intent_id }}
+!
+{% for entry in entries | default([]) %}
+ip community-list {{ community_name }} {{ entry.action | default("permit") }} {{ entry.community }}
+{% endfor %}

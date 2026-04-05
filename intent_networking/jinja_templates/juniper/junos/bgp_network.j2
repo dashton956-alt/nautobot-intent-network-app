@@ -1,10 +1,16 @@
 {# bgp_network.j2 — junos #}
-! Primitive: bgp_network
+! BGP Network Advertisement
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for bgp_network on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% if vrf | default("") %}
+{% for net in networks | default([]) %}
+set routing-instances {{ vrf }} routing-options static route {{ net }} discard
+set routing-instances {{ vrf }} protocols bgp group {{ bgp_group | default("EBGP") }} export ADVERTISE-{{ net | replace("/", "-") | replace(".", "-") }}
+{% endfor %}
+{% else %}
+{% for net in networks | default([]) %}
+set routing-options static route {{ net }} discard
+{% endfor %}
+set policy-options policy-statement BGP-EXPORT term NETWORKS from route-filter {{ networks | join(' exact ') }} exact
+set policy-options policy-statement BGP-EXPORT term NETWORKS then accept
+{% endif %}

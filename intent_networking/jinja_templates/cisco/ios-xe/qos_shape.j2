@@ -1,10 +1,16 @@
 {# qos_shape.j2 — ios-xe #}
-! Primitive: qos_shape
+! QoS Traffic Shaping
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for qos_shape on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+policy-map {{ policy_map }}
+ class class-default
+  shape average {{ rate_bps }}
+{% if child_policy | default("") %}
+  service-policy {{ child_policy }}
+{% endif %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+ service-policy output {{ policy_map }}
+{% endfor %}
 !

@@ -1,0 +1,11 @@
+{# igmp_snooping_removal.j2 — arista-eos #}
+! Remove IGMP Snooping Configuration
+! Intent: {{ intent_id }}
+!
+{% if querier_enabled %}
+no ip igmp snooping querier
+{% endif %}
+{% for vlan in vlans | default([]) %}
+no ip igmp snooping vlan {{ vlan }}
+{% endfor %}
+!

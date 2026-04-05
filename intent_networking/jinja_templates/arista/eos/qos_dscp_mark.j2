@@ -1,0 +1,22 @@
+{# qos_dscp_mark.j2 — arista-eos #}
+! QoS DSCP Marking Configuration
+! Intent: {{ intent_id }}
+!
+{% if trust_boundary %}
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+   qos trust {{ trust_boundary }}
+!
+{% endfor %}
+{% endif %}
+policy-map {{ policy_map }}
+{% for mark in markings | default([]) %}
+   class {{ mark.class_name }}
+      set dscp {{ mark.dscp }}
+{% endfor %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+   service-policy input {{ policy_map }}
+!
+{% endfor %}

@@ -1,10 +1,24 @@
 {# dot1x.j2 — ios-xe #}
-! Primitive: dot1x
+! 802.1X Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for dot1x on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+dot1x system-auth-control
+!
+aaa new-model
+aaa authentication dot1x default group {{ radius_group | default("radius") }}
+aaa authorization network default group {{ radius_group | default("radius") }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+ dot1x port-control {{ iface.port_control | default("auto") }}
+{% if iface.host_mode | default("") %}
+ authentication host-mode {{ iface.host_mode }}
+{% endif %}
+{% if iface.reauthentication | default(false) %}
+ dot1x reauthentication
+{% endif %}
+{% if iface.guest_vlan | default("") %}
+ authentication event fail action authorize vlan {{ iface.guest_vlan }}
+{% endif %}
+{% endfor %}
 !

@@ -1,10 +1,10 @@
 {# stp_root.j2 — junos #}
-! Primitive: stp_root
+! STP Root Bridge
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for stp_root on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for vlan in primary_vlans | default([]) %}
+set protocols vstp vlan {{ vlan }} bridge-priority {{ priority | default(4096) }}
+{% endfor %}
+{% for vlan in secondary_vlans | default([]) %}
+set protocols vstp vlan {{ vlan }} bridge-priority {{ secondary_priority | default(8192) }}
+{% endfor %}

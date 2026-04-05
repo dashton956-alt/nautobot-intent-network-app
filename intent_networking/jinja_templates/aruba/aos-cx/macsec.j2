@@ -1,10 +1,14 @@
 {# macsec.j2 — aos-cx #}
-! Primitive: macsec
+! MACsec Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for macsec on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+macsec policy {{ policy_name | default("MACSEC-POL") }}
+    cipher-suite {{ cipher_suite | default("gcm-aes-256") }}
+{% if security_mode | default("") %}
+    security-mode {{ security_mode }}
+{% endif %}
 !
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+    macsec policy {{ policy_name | default("MACSEC-POL") }}
+{% endfor %}

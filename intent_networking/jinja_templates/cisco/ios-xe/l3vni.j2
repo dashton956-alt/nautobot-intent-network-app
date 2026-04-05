@@ -1,10 +1,18 @@
 {# l3vni.j2 — ios-xe #}
-! Primitive: l3vni
+! L3 VNI (VXLAN)
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for l3vni on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+vrf definition {{ vrf_name }}
+ rd {{ rd | default("auto") }}
+ address-family ipv4
+  route-target export {{ rt_export | default("auto") }}
+  route-target import {{ rt_import | default("auto") }}
+ exit-address-family
+!
+vlan {{ vlan_id }}
+ name {{ vrf_name }}_L3VNI
+!
+interface Vlan{{ vlan_id }}
+ vrf forwarding {{ vrf_name }}
+ ip address {{ ip_address | default("") }} {{ subnet_mask | default("") }}
 !

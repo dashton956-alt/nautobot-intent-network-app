@@ -1,0 +1,11 @@
+{# pseudowire.j2 — nxos #}
+! Pseudowire Configuration
+! Intent: {{ intent_id }}
+!
+{% for pw in pseudowires | default([]) %}
+l2vpn xconnect context {{ pw.interface | default('PW' ~ loop.index) }}
+  member {{ pw.neighbor }} {{ pw.vc_id }} encapsulation mpls
+{% if pw.control_word | default(false) %}
+  control-word include
+{% endif %}
+{% endfor %}

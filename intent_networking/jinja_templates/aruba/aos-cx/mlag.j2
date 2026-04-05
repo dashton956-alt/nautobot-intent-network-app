@@ -1,10 +1,18 @@
 {# mlag.j2 — aos-cx #}
-! Primitive: mlag
+! VSX (AOS-CX MLAG)
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for mlag on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+vsx
+    inter-switch-link lag {{ isl_lag | default(256) }}
+    role {{ role | default("primary") }}
+    keepalive peer {{ peer_ip }} source {{ source_ip | default("") }}
+    system-mac {{ system_mac | default("") }}
+{% for bundle in bundles | default([]) %}
+interface lag {{ bundle.id }}
+    vsx-sync active-gateways vlans policies
+    lacp mode active
+{% for member in bundle.members | default([]) %}
+interface {{ member }}
+    lag {{ bundle.id }}
+{% endfor %}
+{% endfor %}

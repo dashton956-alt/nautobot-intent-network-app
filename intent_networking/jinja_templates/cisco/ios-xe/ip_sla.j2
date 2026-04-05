@@ -1,10 +1,21 @@
 {# ip_sla.j2 — ios-xe #}
-! Primitive: ip_sla
+! IP SLA
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for ip_sla on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+ip sla {{ sla_id }}
+{% if probe_type | default("icmp-echo") == "icmp-echo" %}
+ icmp-echo {{ target }}
+{% elif probe_type == "tcp-connect" %}
+ tcp-connect {{ target }}
+{% elif probe_type == "udp-echo" %}
+ udp-echo {{ target }}
+{% endif %}
+{% if threshold | default("") %}
+ threshold {{ threshold }}
+{% endif %}
+{% if timeout | default("") %}
+ timeout {{ timeout }}
+{% endif %}
+ frequency {{ frequency | default(60) }}
+ip sla schedule {{ sla_id }} life forever start-time now
 !

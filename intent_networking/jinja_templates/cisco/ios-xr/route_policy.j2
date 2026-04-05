@@ -1,10 +1,29 @@
 {# route_policy.j2 — ios-xr #}
-! Primitive: route_policy
+! Route Policy
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for route_policy on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for entry in entries | default([]) %}
+route-policy {{ policy_name }}
+{% if entry.match_prefix_set | default("") %}
+  if destination in {{ entry.match_prefix_set }} then
+{% endif %}
+{% if entry.set_local_pref | default("") %}
+    set local-preference {{ entry.set_local_pref }}
+{% endif %}
+{% if entry.set_med | default("") %}
+    set med {{ entry.set_med }}
+{% endif %}
+{% if entry.set_community | default("") %}
+    set community {{ entry.set_community }}
+{% endif %}
+{% if entry.action | default("pass") == "pass" %}
+    pass
+{% elif entry.action == "drop" %}
+    drop
+{% endif %}
+{% if entry.match_prefix_set | default("") %}
+  endif
+{% endif %}
+end-policy
+{% endfor %}
 !

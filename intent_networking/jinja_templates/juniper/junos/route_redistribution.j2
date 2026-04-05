@@ -1,10 +1,15 @@
 {# route_redistribution.j2 — junos #}
-! Primitive: route_redistribution
+! Route Redistribution
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for route_redistribution on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for source in sources | default([]) %}
+set policy-options policy-statement {{ policy_name | default("REDISTRIBUTE") }} term {{ source.protocol }} from protocol {{ source.protocol }}
+set policy-options policy-statement {{ policy_name | default("REDISTRIBUTE") }} term {{ source.protocol }} then accept
+{% endfor %}
+{% if target_protocol | default("") == "ospf" %}
+set protocols ospf export {{ policy_name | default("REDISTRIBUTE") }}
+{% elif target_protocol | default("") == "bgp" %}
+set protocols bgp group {{ bgp_group | default("EBGP") }} export {{ policy_name | default("REDISTRIBUTE") }}
+{% elif target_protocol | default("") == "isis" %}
+set protocols isis export {{ policy_name | default("REDISTRIBUTE") }}
+{% endif %}

@@ -1,0 +1,24 @@
+{# fhrp.j2 — nxos #}
+! First Hop Redundancy (HSRP on NX-OS)
+! Intent: {{ intent_id }}
+!
+feature hsrp
+!
+{% for group in groups | default([]) %}
+interface {{ group.interface }}
+  hsrp version 2
+  hsrp {{ group.group_id }}
+    ip {{ group.virtual_ip }}
+{% if group.priority | default("") %}
+    priority {{ group.priority }}
+{% endif %}
+{% if group.preempt | default(false) %}
+    preempt
+{% endif %}
+{% if group.track_interface | default("") %}
+    track {{ group.track_interface }} decrement {{ group.track_decrement | default(10) }}
+{% endif %}
+{% if group.authentication | default("") %}
+    authentication {{ group.authentication }}
+{% endif %}
+{% endfor %}

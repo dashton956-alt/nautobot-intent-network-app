@@ -1,10 +1,7 @@
 {# nat.j2 — aos-cx #}
-! Primitive: nat
+! NAT (not fully supported on AOS-CX campus switches)
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
-!
-! TODO: Implement vendor-specific CLI for nat on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+! Note: NAT is limited on AOS-CX. Use a firewall or router for NAT.
+{% for rule in rules | default([]) %}
+! Rule: {{ rule.name | default("NAT-RULE") }} - {{ rule.type | default("source") }}
+{% endfor %}

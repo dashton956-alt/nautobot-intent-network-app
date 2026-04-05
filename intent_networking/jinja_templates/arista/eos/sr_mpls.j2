@@ -1,0 +1,28 @@
+{# sr_mpls.j2 — arista-eos #}
+! Segment Routing MPLS Configuration
+! Intent: {{ intent_id }}
+!
+mpls label range {{ label_range_start | default(16000) }} {{ label_range_end | default(23999) }}
+!
+router isis {{ process_tag }}
+   segment-routing mpls
+   segment-routing global-block {{ srgb_start | default(16000) }} {{ srgb_end | default(23999) }}
+{% if srlb_start %}
+   segment-routing local-block {{ srlb_start }} {{ srlb_end }}
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.prefix_sid %}
+   isis segment-routing index {{ iface.prefix_sid }}
+{% endif %}
+{% if iface.adjacency_sid %}
+   isis segment-routing adjacency-sid absolute {{ iface.adjacency_sid }}
+{% endif %}
+!
+{% endfor %}
+{% if ti_lfa %}
+router isis {{ process_tag }}
+   fast-reroute ti-lfa mode {{ ti_lfa_mode | default("node-protection") }}
+{% endif %}
+!

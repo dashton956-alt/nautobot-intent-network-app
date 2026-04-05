@@ -1,0 +1,14 @@
+{# multicast_rp.j2 — junos #}
+! Multicast RP Configuration
+! Intent: {{ intent_id }}
+!
+{% if mode | default("static") == "static" %}
+set protocols pim rp static address {{ rp_address }}
+{% if group_ranges | default([]) %}
+{% for range in group_ranges %}
+set protocols pim rp static address {{ rp_address }} group-ranges {{ range }}
+{% endfor %}
+{% endif %}
+{% elif mode == "bsr" %}
+set protocols pim rp bootstrap-import BSR-IMPORT
+{% endif %}

@@ -1,0 +1,15 @@
+{# cloud_interconnect.j2 — junos #}
+! Cloud Interconnect
+! Intent: {{ intent_id }}
+!
+set interfaces {{ interface | default("xe-0/0/0") }} unit 0 family inet address {{ local_ip }}/{{ prefix_len | default(30) }}
+{% if description | default("") %}
+set interfaces {{ interface | default("xe-0/0/0") }} description "{{ description }}"
+{% endif %}
+{% if vlan_id | default("") %}
+set interfaces {{ interface | default("xe-0/0/0") }} unit 0 vlan-id {{ vlan_id }}
+{% endif %}
+set protocols bgp group {{ bgp_group | default("CLOUD") }} neighbor {{ peer_ip | default("") }} peer-as {{ peer_asn | default("") }}
+{% if local_asn | default("") %}
+set protocols bgp group {{ bgp_group | default("CLOUD") }} local-as {{ local_asn }}
+{% endif %}

@@ -1,0 +1,12 @@
+{# bgp_network_removal.j2 — arista-eos #}
+! Remove BGP Network Advertisements
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+{% if vrf %}
+   vrf {{ vrf }}
+{% endif %}
+{% for net in networks %}
+   no network {{ net }}
+{% endfor %}
+!

@@ -1,0 +1,16 @@
+{# pseudowire.j2 — arista-eos #}
+! Pseudowire Configuration
+! Intent: {{ intent_id }}
+!
+{% for pw in pseudowires | default([]) %}
+interface {{ pw.interface | default("Pseudowire" ~ loop.index) }}
+   encapsulation mpls
+   neighbor {{ pw.neighbor }} {{ pw.vc_id }}
+{% if pw.pw_class %}
+   pw-class {{ pw.pw_class }}
+{% endif %}
+{% if pw.control_word %}
+   control-word
+{% endif %}
+!
+{% endfor %}

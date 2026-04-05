@@ -1,0 +1,10 @@
+{# service_insertion.j2 — arista-eos #}
+! Service Insertion Configuration (stub — appliance-specific)
+! Intent: {{ intent_id }}
+!
+! Service Node: {{ service_node | default("N/A") }}
+! Redirect: {{ redirect_interface | default("N/A") }}
+{% for chain in service_chain | default([]) %}
+! Chain: {{ chain.name }} -> {{ chain.next_hop | default("N/A") }}
+{% endfor %}
+!

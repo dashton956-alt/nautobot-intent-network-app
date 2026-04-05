@@ -1,0 +1,4 @@
+{# syslog_removal.j2 — aos-cx #}
+{% for server in servers | default([]) %}
+no logging {{ server.ip }}
+{% endfor %}

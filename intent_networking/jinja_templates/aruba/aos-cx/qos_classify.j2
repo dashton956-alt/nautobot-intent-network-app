@@ -1,10 +1,12 @@
 {# qos_classify.j2 — aos-cx #}
-! Primitive: qos_classify
+! QoS Classification
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for qos_classify on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for cls in classes | default([]) %}
+class ip {{ cls.name }}
+    match dscp {{ cls.dscp | default("") }}
+{% endfor %}
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+    apply qos {{ policy_name | default("QOS-CLASS") }} in
+{% endfor %}

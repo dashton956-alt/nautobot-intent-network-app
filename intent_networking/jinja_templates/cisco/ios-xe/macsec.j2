@@ -1,10 +1,25 @@
 {# macsec.j2 — ios-xe #}
-! Primitive: macsec
+! MACsec Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for macsec on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if key_chain | default("") %}
+key chain {{ key_chain }} macsec
+ key {{ key_id | default("01") }}
+  key-string {{ key_string }}
+  lifetime local {{ lifetime | default("00:00:00 Jan 1 2025 duration 315360000") }}
+  cryptographic-algorithm {{ algorithm | default("aes-256-cmac") }}
+{% endif %}
+!
+{% if policy_name | default("") %}
+mka policy {{ policy_name }}
+ macsec-cipher-suite {{ cipher_suite | default("gcm-aes-256") }}
+ key-server priority {{ key_server_priority | default(0) }}
+{% endif %}
+!
+interface {{ interface }}
+ macsec network-link
+{% if key_chain | default("") %}
+ mka policy {{ policy_name | default("") }}
+ mka pre-shared-key key-chain {{ key_chain }}
+{% endif %}
 !

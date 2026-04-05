@@ -1,10 +1,19 @@
 {# fhrp.j2 — ios-xr #}
-! Primitive: fhrp
+! FHRP (HSRP)
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for fhrp on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for group in groups | default([]) %}
+router hsrp
+ interface {{ group.interface }}
+  address-family ipv4
+   hsrp {{ group.group_id }}
+    address {{ group.virtual_ip }}
+    priority {{ group.priority | default(100) }}
+{% if group.preempt | default(false) %}
+    preempt
+{% endif %}
+{% if group.track | default("") %}
+    track object {{ group.track }} {{ group.decrement | default(10) }}
+{% endif %}
+{% endfor %}
 !

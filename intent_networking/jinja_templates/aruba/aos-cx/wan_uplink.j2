@@ -1,10 +1,19 @@
 {# wan_uplink.j2 — aos-cx #}
-! Primitive: wan_uplink
+! WAN Uplink
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for wan_uplink on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+interface {{ interface }}
+    ip address {{ ip_address }}/{{ prefix_len | default(30) }}
+{% if description | default("") %}
+    description {{ description }}
+{% endif %}
+{% if speed | default("") %}
+    speed {{ speed }}
+{% endif %}
+{% if mtu | default("") %}
+    mtu {{ mtu }}
+{% endif %}
+{% if vrf | default("") %}
+    vrf attach {{ vrf }}
+{% endif %}
+    no shutdown

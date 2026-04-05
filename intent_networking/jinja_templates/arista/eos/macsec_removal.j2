@@ -1,0 +1,14 @@
+{# macsec_removal.j2 — arista-eos #}
+! Remove MACsec Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+   no mac security profile
+!
+{% if policy_name %}
+no mac security profile {{ policy_name }}
+{% endif %}
+{% if key_chain %}
+no key chain {{ key_chain }} macsec
+{% endif %}
+!

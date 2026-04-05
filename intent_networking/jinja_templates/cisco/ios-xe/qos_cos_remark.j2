@@ -1,10 +1,18 @@
 {# qos_cos_remark.j2 — ios-xe #}
-! Primitive: qos_cos_remark
+! QoS CoS Remark
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for qos_cos_remark on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for entry in cos_map | default([]) %}
+table-map COS-TO-DSCP
+ map from {{ entry.cos }} to {{ entry.dscp }}
+{% endfor %}
+!
+policy-map {{ policy_map | default("COS-REMARK") }}
+ class class-default
+  set dscp dscp table COS-TO-DSCP
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+ service-policy input {{ policy_map | default("COS-REMARK") }}
+{% endfor %}
 !

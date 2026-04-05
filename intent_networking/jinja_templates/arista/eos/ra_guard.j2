@@ -1,0 +1,14 @@
+{# ra_guard.j2 — arista-eos #}
+! IPv6 RA Guard Configuration
+! Intent: {{ intent_id }}
+!
+{% for port in trusted_ports | default([]) %}
+interface {{ port }}
+   ipv6 nd ra-guard trusted
+!
+{% endfor %}
+{% for port in untrusted_ports | default([]) %}
+interface {{ port }}
+   ipv6 nd ra-guard
+!
+{% endfor %}

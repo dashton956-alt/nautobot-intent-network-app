@@ -1,10 +1,4 @@
 {# dmvpn.j2 — junos #}
-! Primitive: dmvpn
+! DMVPN (not supported on JunOS)
 ! Intent: {{ intent_id }}
-! Platform: junos
-!
-! TODO: Implement vendor-specific CLI for dmvpn on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+! Note: JunOS uses AutoVPN or GRE+IPsec for hub/spoke VPN topologies.

@@ -1,10 +1,15 @@
 {# msdp.j2 — ios-xe #}
-! Primitive: msdp
+! MSDP
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for msdp on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+ip msdp originator-id {{ originator_id }}
+{% for peer in peers | default([]) %}
+ip msdp peer {{ peer.ip }} connect-source {{ peer.connect_source | default("Loopback0") }} remote-as {{ peer.remote_as }}
+{% if peer.sa_limit | default("") %}
+ip msdp sa-limit {{ peer.ip }} {{ peer.sa_limit }}
+{% endif %}
+{% endfor %}
+{% if default_peer | default("") %}
+ip msdp default-peer {{ default_peer }}
+{% endif %}
 !

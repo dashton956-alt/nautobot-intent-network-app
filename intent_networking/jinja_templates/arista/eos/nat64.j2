@@ -1,0 +1,19 @@
+{# nat64.j2 — arista-eos #}
+! NAT64 Configuration
+! Intent: {{ intent_id }}
+!
+{% if prefix %}
+ipv6 nat prefix {{ prefix }}
+{% endif %}
+{% if mode == "stateful" %}
+ipv6 nat translation
+{% endif %}
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+   ipv6 nat
+!
+{% endfor %}
+{% if v4_pool %}
+ip nat pool {{ v4_pool.name | default("NAT64-POOL") }} {{ v4_pool.start }} {{ v4_pool.end }}
+{% endif %}
+!

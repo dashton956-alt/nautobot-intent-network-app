@@ -1,0 +1,11 @@
+{# fw_rule_removal.j2 — ios-xe #}
+! Remove Firewall Rule
+! Intent: {{ intent_id }}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+ no ip access-group {{ policy_name }} in
+ no ip access-group {{ policy_name }} out
+{% endfor %}
+no ip access-list extended {{ policy_name }}
+!

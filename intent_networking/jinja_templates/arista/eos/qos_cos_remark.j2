@@ -1,0 +1,15 @@
+{# qos_cos_remark.j2 — arista-eos #}
+! QoS CoS Remark Configuration
+! Intent: {{ intent_id }}
+!
+{% if trust_cos %}
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+   qos trust cos
+!
+{% endfor %}
+{% endif %}
+{% for mapping in cos_map | default([]) %}
+! CoS {{ mapping.cos }} -> DSCP {{ mapping.dscp }}
+{% endfor %}
+!

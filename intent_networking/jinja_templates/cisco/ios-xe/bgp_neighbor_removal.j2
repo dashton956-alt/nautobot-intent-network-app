@@ -1,0 +1,10 @@
+{# bgp_neighbor_removal.j2 — ios-xe #}
+! Remove BGP Neighbor
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+{% if vrf_name | default("") %}
+ address-family ipv4 vrf {{ vrf_name }}
+{% endif %}
+ no neighbor {{ neighbor_ip }}
+!

@@ -1,0 +1,12 @@
+{# dai_removal.j2 — nxos #}
+! Remove DAI
+! Intent: {{ intent_id }}
+!
+{% for iface in trusted_interfaces | default([]) %}
+interface {{ iface }}
+  no ip arp inspection trust
+{% endfor %}
+{% for vlan in vlans | default([]) %}
+no ip arp inspection vlan {{ vlan }}
+{% endfor %}
+!

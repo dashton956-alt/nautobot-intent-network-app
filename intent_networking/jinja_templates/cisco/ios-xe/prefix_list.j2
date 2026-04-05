@@ -1,10 +1,9 @@
 {# prefix_list.j2 — ios-xe #}
-! Primitive: prefix_list
+! Prefix List
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for prefix_list on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for entry in entries | default([]) %}
+ip prefix-list {{ prefix_list_name }} seq {{ entry.sequence | default(loop.index * 10) }} {{ entry.action | default("permit") }} {{ entry.prefix }}{% if entry.ge | default("") %} ge {{ entry.ge }}{% endif %}{% if entry.le | default("") %} le {{ entry.le }}{% endif %}
+
+{% endfor %}
 !

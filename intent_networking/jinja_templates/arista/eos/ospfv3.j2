@@ -1,0 +1,17 @@
+{# ospfv3.j2 — arista-eos #}
+! OSPFv3 Configuration
+! Intent: {{ intent_id }}
+!
+ipv6 router ospf {{ process_id }}
+{% if router_id %}
+   router-id {{ router_id }}
+{% endif %}
+{% for r in redistribute | default([]) %}
+   redistribute {{ r }}
+{% endfor %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+   ipv6 ospf {{ process_id }} area {{ iface.area | default(area | default("0.0.0.0")) }}
+!
+{% endfor %}

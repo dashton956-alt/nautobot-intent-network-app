@@ -1,10 +1,16 @@
 {# dot1x.j2 — aos-cx #}
-! Primitive: dot1x
+! 802.1X Authentication
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for dot1x on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+aaa authentication port-access dot1x authenticator
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+    aaa authentication port-access dot1x authenticator
+{% if iface.mac_auth | default(false) %}
+    aaa authentication port-access mac-auth
+{% endif %}
+{% if iface.guest_vlan | default("") %}
+    aaa authentication port-access dot1x authenticator auth-vid {{ iface.guest_vlan }}
+{% endif %}
+    aaa authentication port-access dot1x authenticator enable
+{% endfor %}

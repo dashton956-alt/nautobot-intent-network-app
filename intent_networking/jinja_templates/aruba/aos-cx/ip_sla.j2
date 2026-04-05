@@ -1,10 +1,8 @@
 {# ip_sla.j2 — aos-cx #}
-! Primitive: ip_sla
+! IP SLA (Loop-Protect/Link Keepalive)
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for ip_sla on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for probe in probes | default([]) %}
+ip route {{ probe.target }}/32 {{ probe.next_hop | default("") }}
+! Note: AOS-CX uses loop-protect and link-keepalive for link monitoring
+{% endfor %}

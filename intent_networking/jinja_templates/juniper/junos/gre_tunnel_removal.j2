@@ -1,0 +1,2 @@
+{# gre_tunnel_removal.j2 — junos #}
+delete interfaces {{ tunnel_interface | default("gr-0/0/0") }} unit {{ tunnel_id | default(0) }}

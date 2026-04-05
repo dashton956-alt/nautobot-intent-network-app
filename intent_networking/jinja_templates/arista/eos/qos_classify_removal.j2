@@ -1,0 +1,17 @@
+{# qos_classify_removal.j2 — arista-eos #}
+! Remove QoS Classification
+! Intent: {{ intent_id }}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+   no service-policy {{ direction | default("input") }}
+!
+{% endfor %}
+no policy-map {{ policy_map }}
+{% for cm in class_maps | default([]) %}
+no class-map {{ cm.name }}
+{% if cm.acl %}
+no ip access-list {{ cm.acl }}
+{% endif %}
+{% endfor %}
+!

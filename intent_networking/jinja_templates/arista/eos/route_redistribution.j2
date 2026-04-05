@@ -1,0 +1,21 @@
+{# route_redistribution.j2 — arista-eos #}
+! Route Redistribution Configuration
+! Intent: {{ intent_id }}
+!
+{% if protocol == "bgp" %}
+router bgp {{ asn }}
+{% if vrf %}
+   vrf {{ vrf }}
+{% endif %}
+{% for source in sources %}
+   redistribute {{ source.protocol }}{% if source.route_map %} route-map {{ source.route_map }}{% endif %}
+
+{% endfor %}
+{% elif protocol == "ospf" %}
+router ospf {{ process_id }}
+{% for source in sources %}
+   redistribute {{ source.protocol }}{% if source.subnets %} subnets{% endif %}{% if source.route_map %} route-map {{ source.route_map }}{% endif %}
+
+{% endfor %}
+{% endif %}
+!

@@ -1,10 +1,8 @@
 {# urpf.j2 — aos-cx #}
-! Primitive: urpf
+! uRPF Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for urpf on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+    ip verify unicast source reachable-via {{ mode | default("rx") }}
+{% endfor %}

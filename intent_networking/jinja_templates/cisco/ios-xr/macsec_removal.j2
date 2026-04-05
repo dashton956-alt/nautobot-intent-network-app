@@ -1,0 +1,10 @@
+{# macsec_removal.j2 — ios-xr #}
+! Remove MACsec
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+ no macsec
+{% if key_chain | default("") %}
+no key chain {{ key_chain }} macsec
+{% endif %}
+!

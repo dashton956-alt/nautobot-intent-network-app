@@ -1,0 +1,20 @@
+{# macsec.j2 — nxos #}
+! MACsec Configuration
+! Intent: {{ intent_id }}
+!
+feature macsec
+!
+macsec policy {{ policy_name }}
+  cipher-suite {{ cipher_suite | default('GCM-AES-256') }}
+{% if replay_protection | default(false) %}
+  window-size {{ replay_window | default(64) }}
+{% endif %}
+!
+key chain {{ key_chain }} macsec
+  key {{ key_id }}
+    key-octet-string 7 {{ key_id }}
+    cryptographic-algorithm AES_256_CMAC
+!
+interface {{ interface }}
+  macsec policy {{ policy_name }}
+  macsec keychain {{ key_chain }} policy {{ policy_name }}

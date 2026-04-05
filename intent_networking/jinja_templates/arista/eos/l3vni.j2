@@ -1,0 +1,30 @@
+{# l3vni.j2 — arista-eos #}
+! L3 VNI Configuration
+! Intent: {{ intent_id }}
+!
+vrf instance {{ vrf_name }}
+!
+{% if vlan_id %}
+vlan {{ vlan_id }}
+   name {{ vrf_name }}-L3VNI
+!
+interface Vlan{{ vlan_id }}
+   vrf {{ vrf_name }}
+   ip address virtual 0.0.0.0/0
+!
+{% endif %}
+interface Vxlan1
+   vxlan vrf {{ vrf_name }} vni {{ vni }}
+!
+router bgp {{ bgp_asn | default(65000) }}
+   vrf {{ vrf_name }}
+      rd auto
+      route-target import evpn {{ vni }}:{{ vni }}
+      route-target export evpn {{ vni }}:{{ vni }}
+{% if redistribute_connected %}
+      redistribute connected
+{% endif %}
+{% if anycast_gateway_mac %}
+      ip virtual-router mac-address {{ anycast_gateway_mac }}
+{% endif %}
+!

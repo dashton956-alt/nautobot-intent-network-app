@@ -1,10 +1,21 @@
 {# snmp.j2 — aos-cx #}
-! Primitive: snmp
+! SNMP Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for snmp on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% if location | default("") %}
+snmp-server system-location "{{ location }}"
+{% endif %}
+{% if contact | default("") %}
+snmp-server system-contact "{{ contact }}"
+{% endif %}
+{% for community_item in communities | default([]) %}
+snmp-server community {{ community_item.name }} {{ community_item.permission | default("public") }}
+{% endfor %}
+{% for trap_host in trap_targets | default([]) %}
+snmp-server host {{ trap_host.ip }}{% if trap_host.version | default("") %} version {{ trap_host.version }}{% endif %} community {{ trap_host.community | default("public") }}
+{% if trap_host.traps | default([]) %}
+{% for trap in trap_host.traps %}
+snmp-server host {{ trap_host.ip }} trap {{ trap }}
+{% endfor %}
+{% endif %}
+{% endfor %}

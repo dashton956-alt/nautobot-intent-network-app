@@ -1,0 +1,14 @@
+{# dot1x_removal.j2 — arista-eos #}
+! Remove 802.1X Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+   no dot1x port-control
+   no dot1x host-mode
+   no dot1x reauthentication
+   no dot1x mac-based-authentication
+!
+{% endfor %}
+no dot1x system-auth-control
+!

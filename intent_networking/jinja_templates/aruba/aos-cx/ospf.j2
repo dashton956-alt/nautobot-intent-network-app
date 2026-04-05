@@ -1,10 +1,32 @@
 {# ospf.j2 — aos-cx #}
-! Primitive: ospf
+! OSPF Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for ospf on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router ospf {{ process_id | default(1) }}
+{% if router_id | default("") %}
+    router-id {{ router_id }}
+{% endif %}
+{% if reference_bandwidth | default("") %}
+    auto-cost reference-bandwidth {{ reference_bandwidth }}
+{% endif %}
+{% for network in networks | default([]) %}
+    area {{ network.area | default("0.0.0.0") }}
+{% endfor %}
+{% if default_originate | default(false) %}
+    default-information originate{% if default_originate_always | default(false) %} always{% endif %}
+
+{% endif %}
+{% for iface in passive_interfaces | default([]) %}
+    passive-interface {{ iface }}
+{% endfor %}
 !
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+    ip ospf {{ process_id | default(1) }} area {{ iface.area | default("0.0.0.0") }}
+{% if iface.cost | default("") %}
+    ip ospf cost {{ iface.cost }}
+{% endif %}
+{% if iface.network_type | default("") %}
+    ip ospf network {{ iface.network_type }}
+{% endif %}
+{% endfor %}

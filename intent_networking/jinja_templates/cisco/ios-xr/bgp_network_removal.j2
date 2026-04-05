@@ -1,0 +1,15 @@
+{# bgp_network_removal.j2 — ios-xr #}
+! Remove BGP Networks
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+{% if vrf | default("") %}
+ vrf {{ vrf }}
+  address-family ipv4 unicast
+{% else %}
+ address-family ipv4 unicast
+{% endif %}
+{% for net in networks | default([]) %}
+  no network {{ net }}
+{% endfor %}
+!

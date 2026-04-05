@@ -1,10 +1,14 @@
 {# pbr.j2 — junos #}
-! Primitive: pbr
+! Filter-Based Forwarding (PBR)
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for pbr on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for entry in entries | default([]) %}
+set firewall family inet filter {{ route_map_name | default("PBR-FILTER") }} term {{ entry.name | default("TERM-" ~ loop.index) }} from source-address {{ entry.source | default("0.0.0.0/0") }}
+{% if entry.set_next_hop | default("") %}
+set firewall family inet filter {{ route_map_name | default("PBR-FILTER") }} term {{ entry.name | default("TERM-" ~ loop.index) }} then routing-instance {{ entry.routing_instance | default("PBR-RI") }}
+set routing-instances {{ entry.routing_instance | default("PBR-RI") }} routing-options static route 0.0.0.0/0 next-hop {{ entry.set_next_hop }}
+{% endif %}
+{% endfor %}
+{% for iface in apply_interfaces | default([]) %}
+set interfaces {{ iface }} unit 0 family inet filter input {{ route_map_name | default("PBR-FILTER") }}
+{% endfor %}

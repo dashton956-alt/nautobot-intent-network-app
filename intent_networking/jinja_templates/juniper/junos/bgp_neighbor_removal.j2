@@ -1,0 +1,4 @@
+{# bgp_neighbor_removal.j2 — junos #}
+{% for neighbor in neighbors | default([]) %}
+delete protocols bgp group {{ bgp_group | default("EBGP") }} neighbor {{ neighbor.ip }}
+{% endfor %}

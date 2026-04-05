@@ -1,10 +1,36 @@
 {# qos_classify.j2 — ios-xe #}
-! Primitive: qos_classify
+! QoS Classification
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for qos_classify on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for cm in class_maps | default([]) %}
+class-map match-any {{ cm.name }}
+{% if cm.dscp | default("") %}
+ match dscp {{ cm.dscp }}
+{% endif %}
+{% if cm.acl | default("") %}
+ match access-group name {{ cm.acl }}
+{% endif %}
+{% if cm.cos | default("") %}
+ match cos {{ cm.cos }}
+{% endif %}
+{% if cm.protocol | default("") %}
+ match protocol {{ cm.protocol }}
+{% endif %}
+{% endfor %}
+!
+policy-map {{ policy_map }}
+{% for cm in class_maps | default([]) %}
+ class {{ cm.name }}
+{% if cm.set_dscp | default("") %}
+  set dscp {{ cm.set_dscp }}
+{% endif %}
+{% if cm.police_rate | default("") %}
+  police {{ cm.police_rate }} conform-action transmit exceed-action drop
+{% endif %}
+{% endfor %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+ service-policy input {{ policy_map }}
+{% endfor %}
 !

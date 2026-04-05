@@ -1,10 +1,12 @@
 {# qos_cos_remark.j2 — aos-cx #}
-! Primitive: qos_cos_remark
+! QoS CoS Remark
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for qos_cos_remark on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+qos cos-map {{ cos_map_name | default("COS-REMARK") }}
+{% for entry in entries | default([]) %}
+    {{ entry.cos | default(0) }} local-priority {{ entry.local_priority | default(0) }} color {{ entry.color | default("green") }}
+{% endfor %}
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+    apply qos cos-map {{ cos_map_name | default("COS-REMARK") }}
+{% endfor %}

@@ -1,0 +1,11 @@
+{# netflow_removal.j2 — ios-xe #}
+! Remove NetFlow
+! Intent: {{ intent_id }}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+ no ip flow monitor FLOW-MONITOR input
+{% endfor %}
+no flow monitor FLOW-MONITOR
+no flow exporter {{ exporter_name }}
+!

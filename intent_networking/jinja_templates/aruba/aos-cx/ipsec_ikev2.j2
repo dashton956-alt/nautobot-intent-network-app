@@ -1,10 +1,22 @@
 {# ipsec_ikev2.j2 — aos-cx #}
-! Primitive: ipsec_ikev2
+! IPsec IKEv2
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for ipsec_ikev2 on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+crypto ikev2 proposal {{ proposal_name | default("IKEv2-PROP") }}
+    encryption {{ encryption | default("aes-cbc-256") }}
+    integrity {{ integrity | default("sha256") }}
+    group {{ dh_group | default(14) }}
 !
+crypto ikev2 policy {{ policy_name | default("IKEv2-POL") }}
+    proposal {{ proposal_name | default("IKEv2-PROP") }}
+!
+crypto ikev2 keyring {{ keyring_name | default("IKEv2-KEYRING") }}
+    peer {{ peer_name | default("PEER-1") }}
+        address {{ peer_ip }}
+        pre-shared-key "{{ psk }}"
+!
+crypto ikev2 profile {{ profile_name | default("IKEv2-PROF") }}
+    match identity remote address {{ peer_ip }}
+    authentication local pre-share
+    authentication remote pre-share
+    keyring {{ keyring_name | default("IKEv2-KEYRING") }}

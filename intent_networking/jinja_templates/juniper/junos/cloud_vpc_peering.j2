@@ -1,0 +1,8 @@
+{# cloud_vpc_peering.j2 — junos #}
+! Cloud VPC Peering
+! Intent: {{ intent_id }}
+! Note: VPC peering is managed via cloud provider APIs (AWS/Azure/GCP).
+! JunOS provides BGP underlay connectivity.
+{% if peer_ip | default("") %}
+set protocols bgp group {{ bgp_group | default("VPC-PEERING") }} neighbor {{ peer_ip }} peer-as {{ peer_asn | default("") }}
+{% endif %}

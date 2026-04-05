@@ -1,10 +1,9 @@
 {# mvpn.j2 — junos #}
-! Primitive: mvpn
+! MVPN Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for mvpn on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set routing-instances {{ vrf }} protocols pim
+set routing-instances {{ vrf }} provider-tunnel rsvp-te
+{% if mdt_default_group | default("") %}
+set routing-instances {{ vrf }} provider-tunnel rsvp-te label-switched-path-template default-template
+{% endif %}

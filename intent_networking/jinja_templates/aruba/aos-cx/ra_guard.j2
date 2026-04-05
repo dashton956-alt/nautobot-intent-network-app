@@ -1,10 +1,8 @@
 {# ra_guard.j2 — aos-cx #}
-! Primitive: ra_guard
+! RA Guard
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for ra_guard on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+    ipv6 nd raguard
+{% endfor %}

@@ -1,0 +1,23 @@
+{# dot1x.j2 — arista-eos #}
+! 802.1X Authentication Configuration
+! Intent: {{ intent_id }}
+!
+aaa authentication dot1x default group {{ radius_group | default("radius") }}
+!
+dot1x system-auth-control
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+   dot1x port-control {{ iface.port_control | default("auto") }}
+{% if iface.host_mode %}
+   dot1x host-mode {{ iface.host_mode }}
+{% endif %}
+{% if iface.reauth_period %}
+   dot1x reauthentication
+   dot1x reauth-period {{ iface.reauth_period }}
+{% endif %}
+{% if iface.mab %}
+   dot1x mac-based-authentication
+{% endif %}
+!
+{% endfor %}

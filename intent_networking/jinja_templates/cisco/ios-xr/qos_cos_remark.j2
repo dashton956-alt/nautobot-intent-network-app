@@ -1,10 +1,12 @@
 {# qos_cos_remark.j2 — ios-xr #}
-! Primitive: qos_cos_remark
+! QoS CoS Remark
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
+! Note: IOS-XR uses policy-map for CoS remarking.
 !
-! TODO: Implement vendor-specific CLI for qos_cos_remark on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+policy-map {{ policy_map | default("COS-REMARK") }}
+{% for entry in cos_map | default([]) %}
+ class COS-{{ entry.cos }}
+  set dscp {{ entry.dscp }}
+{% endfor %}
+end-policy-map
 !

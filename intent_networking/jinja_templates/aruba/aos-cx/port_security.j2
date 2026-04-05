@@ -1,10 +1,10 @@
 {# port_security.j2 — aos-cx #}
-! Primitive: port_security
+! Port Security
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for port_security on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+    port-access port-security
+    port-access port-security max-mac-addr {{ max_mac | default(5) }}
+    port-access port-security violation {{ violation_action | default("shutdown") }}
+{% endfor %}

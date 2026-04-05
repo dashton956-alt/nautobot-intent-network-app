@@ -1,10 +1,13 @@
 {# vtep.j2 — aos-cx #}
-! Primitive: vtep
+! VTEP / VXLAN Tunnel
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for vtep on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+interface vxlan 1
+    source ip {{ source_ip | default("") }}
+    no shutdown
+{% for vni in vnis | default([]) %}
+    vni {{ vni.id }}
+{% if vni.vlan_id | default("") %}
+        vlan {{ vni.vlan_id }}
+{% endif %}
+{% endfor %}

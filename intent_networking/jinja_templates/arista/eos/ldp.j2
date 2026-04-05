@@ -1,0 +1,18 @@
+{# ldp.j2 — arista-eos #}
+! LDP Configuration
+! Intent: {{ intent_id }}
+!
+mpls ip
+!
+{% if router_id %}
+mpls ldp router-id {{ router_id }}
+{% endif %}
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+   mpls ip
+!
+{% endfor %}
+{% if password %}
+mpls ldp neighbor {{ neighbor }} password {{ password }}
+{% endif %}
+!

@@ -1,0 +1,11 @@
+{# syslog_removal.j2 — nxos #}
+! Remove Syslog
+! Intent: {{ intent_id }}
+!
+{% for server in servers | default([]) %}
+no logging server {{ server }}
+{% endfor %}
+{% if source_interface | default("") %}
+no logging source-interface {{ source_interface }}
+{% endif %}
+!

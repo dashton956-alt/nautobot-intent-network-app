@@ -1,0 +1,21 @@
+{# gre_tunnel.j2 — nxos #}
+! GRE Tunnel Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ tunnel_interface }}
+  no shutdown
+{% if description | default("") %}
+  description {{ description }}
+{% endif %}
+  ip address {{ tunnel_ip }}
+  tunnel source {{ tunnel_source }}
+  tunnel destination {{ tunnel_destination }}
+{% if tunnel_key | default("") %}
+  tunnel key {{ tunnel_key }}
+{% endif %}
+{% if mtu | default("") %}
+  mtu {{ mtu }}
+{% endif %}
+{% if keepalive | default("") %}
+  keepalive {{ keepalive.interval | default(10) }} {{ keepalive.retries | default(3) }}
+{% endif %}

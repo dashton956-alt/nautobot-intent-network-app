@@ -1,10 +1,13 @@
 {# aaa.j2 — aos-cx #}
-! Primitive: aaa
+! AAA Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for aaa on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for method in authentication_methods | default(["tacacs", "local"]) %}
+{% endfor %}
+aaa authentication login default group {{ authentication_methods | default(["tacacs", "local"]) | join(" ") }}
+{% if accounting | default(false) %}
+aaa accounting all-mgmt default start-stop group {{ accounting_group | default("tacacs") }}
+{% endif %}
+{% if authorization | default(false) %}
+aaa authorization commands default group {{ authorization_group | default("tacacs") }} local
+{% endif %}

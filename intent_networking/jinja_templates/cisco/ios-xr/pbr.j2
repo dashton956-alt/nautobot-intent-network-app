@@ -1,10 +1,17 @@
 {# pbr.j2 — ios-xr #}
-! Primitive: pbr
+! Policy-Based Routing (ABF)
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for pbr on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for entry in entries | default([]) %}
+ipv4 access-list {{ acl_name | default("PBR-ACL") }}
+ {{ entry.sequence | default(loop.index * 10) }} permit ipv4 {{ entry.source | default("any") }} {{ entry.destination | default("any") }}
+{% endfor %}
+!
+vrf-policy {{ route_map_name | default("PBR-POLICY") }}
+ rd 0:0
+{% for entry in entries | default([]) %}
+ interface {{ entry.set_interface | default("") }}
+  address-family ipv4 unicast
+   abf node-id {{ entry.sequence | default(loop.index * 10) }}
+{% endfor %}
 !

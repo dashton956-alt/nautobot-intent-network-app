@@ -1,10 +1,11 @@
 {# l3vni.j2 — ios-xr #}
-! Primitive: l3vni
+! L3 VNI (VXLAN)
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for l3vni on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+vrf {{ vrf_name }}
+ address-family ipv4 unicast
+  import route-target
+   {{ rt_import | default("auto") }}
+  export route-target
+   {{ rt_export | default("auto") }}
 !

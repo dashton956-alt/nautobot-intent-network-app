@@ -1,10 +1,17 @@
 {# netflow.j2 — aos-cx #}
-! Primitive: netflow
+! sFlow (AOS-CX uses sFlow instead of NetFlow)
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for netflow on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for collector in collectors | default([]) %}
+sflow {{ collector.ip }} port {{ collector.port | default(6343) }}
+{% endfor %}
+{% if sample_rate | default("") %}
+sflow sampling {{ sample_rate }}
+{% endif %}
+{% if polling_interval | default("") %}
+sflow polling {{ polling_interval }}
+{% endif %}
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+    sflow enable
+{% endfor %}

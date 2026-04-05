@@ -1,0 +1,18 @@
+{# mgmt_interface.j2 — arista-eos #}
+! Management Interface Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+{% if vrf %}
+   vrf {{ vrf }}
+{% endif %}
+   ip address {{ ip_address }}
+{% if gateway %}
+{% if vrf %}
+   ip route vrf {{ vrf }} 0.0.0.0/0 {{ gateway }}
+{% else %}
+   ip route 0.0.0.0/0 {{ gateway }}
+{% endif %}
+{% endif %}
+   no shutdown
+!

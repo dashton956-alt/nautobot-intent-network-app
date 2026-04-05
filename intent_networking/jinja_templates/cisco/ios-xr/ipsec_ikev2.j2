@@ -1,10 +1,23 @@
 {# ipsec_ikev2.j2 — ios-xr #}
-! Primitive: ipsec_ikev2
+! IPsec IKEv2
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for ipsec_ikev2 on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+ikev2 proposal {{ proposal_name | default("IKEv2-PROP") }}
+ encryption {{ encryption | default("aes-cbc-256") }}
+ integrity {{ integrity | default("sha-256") }}
+ group {{ dh_group | default(14) }}
+!
+ikev2 policy {{ policy_name | default("IKEv2-POL") }}
+ proposal {{ proposal_name | default("IKEv2-PROP") }}
+!
+ikev2 keyring {{ keyring_name | default("KR-1") }}
+ peer {{ peer_name | default("REMOTE") }}
+  address {{ peer_ip }}
+  pre-shared-key {{ psk }}
+!
+ikev2 profile {{ profile_name | default("IKEv2-PROF") }}
+ match identity remote address {{ peer_ip }}
+ authentication remote pre-share
+ authentication local pre-share
+ keyring {{ keyring_name | default("KR-1") }}
 !

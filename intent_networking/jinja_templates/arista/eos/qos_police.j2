@@ -1,0 +1,22 @@
+{# qos_police.j2 — arista-eos #}
+! QoS Policing Configuration
+! Intent: {{ intent_id }}
+!
+policy-map {{ policy_map }}
+   class class-default
+      police rate {{ rate_bps }} bps burst {{ burst_bytes | default(8000) }} bytes
+{% if conform_action %}
+         conform-action {{ conform_action }}
+{% endif %}
+{% if exceed_action %}
+         exceed-action {{ exceed_action }}
+{% endif %}
+{% if violate_action %}
+         violate-action {{ violate_action }}
+{% endif %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+   service-policy input {{ policy_map }}
+!
+{% endfor %}

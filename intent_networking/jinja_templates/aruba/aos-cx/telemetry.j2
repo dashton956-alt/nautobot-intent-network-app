@@ -1,10 +1,10 @@
 {# telemetry.j2 — aos-cx #}
-! Primitive: telemetry
+! Network Analytics Engine (Telemetry)
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for telemetry on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for agent in agents | default([]) %}
+nae-agent {{ agent.name | default("NAE-AGENT-" ~ loop.index) }}
+{% if agent.script | default("") %}
+    script {{ agent.script }}
+{% endif %}
+{% endfor %}

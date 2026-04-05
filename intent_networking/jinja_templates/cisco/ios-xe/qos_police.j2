@@ -1,10 +1,13 @@
 {# qos_police.j2 — ios-xe #}
-! Primitive: qos_police
+! QoS Policing
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for qos_police on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+policy-map {{ policy_map }}
+ class class-default
+  police {{ rate_bps }} {{ burst_bytes | default(8000) }} conform-action {{ conform_action | default("transmit") }} exceed-action {{ exceed_action | default("drop") }} violate-action {{ violate_action | default("drop") }}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+ service-policy input {{ policy_map }}
+{% endfor %}
 !

@@ -1,0 +1,4 @@
+{# ntp_removal.j2 — aos-cx #}
+{% for server in servers | default([]) %}
+no ntp server {{ server.ip }}
+{% endfor %}

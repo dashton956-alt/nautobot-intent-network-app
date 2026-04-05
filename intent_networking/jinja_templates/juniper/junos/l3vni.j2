@@ -1,10 +1,10 @@
 {# l3vni.j2 — junos #}
-! Primitive: l3vni
+! L3 VNI (VXLAN)
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for l3vni on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set routing-instances {{ vrf_name }} instance-type vrf
+set routing-instances {{ vrf_name }} route-distinguisher {{ rd | default("auto") }}
+set routing-instances {{ vrf_name }} vrf-target target:{{ rt_import | default("auto") }}
+{% for iface in interfaces | default([]) %}
+set routing-instances {{ vrf_name }} interface {{ iface }}
+{% endfor %}

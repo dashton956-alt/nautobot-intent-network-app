@@ -1,0 +1,13 @@
+{# fhrp_removal.j2 — nxos #}
+! Remove FHRP
+! Intent: {{ intent_id }}
+!
+{% for group in groups | default([]) %}
+interface {{ group.interface }}
+{% if protocol | default("hsrp") == "hsrp" %}
+  no hsrp {{ group.group_id }}
+{% elif protocol == "vrrp" %}
+  no vrrp {{ group.group_id }}
+{% endif %}
+{% endfor %}
+!

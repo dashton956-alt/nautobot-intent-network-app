@@ -1,0 +1,12 @@
+{# l2_port_removal.j2 — nxos #}
+! Remove L2 Port — {{ interface }}
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+  no description
+  no switchport mode
+  no switchport access vlan
+  no switchport trunk allowed vlan
+  no spanning-tree port type
+  no spanning-tree bpduguard
+!

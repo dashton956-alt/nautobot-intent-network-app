@@ -1,0 +1,12 @@
+{# static_route_removal.j2 — arista-eos #}
+! Remove Static Route
+! Intent: {{ intent_id }}
+!
+{% if vrf %}
+no ip route vrf {{ vrf }} {{ prefix }} {{ next_hop }}{% if exit_interface %} {{ exit_interface }}{% endif %}{% if admin_distance %} {{ admin_distance }}{% endif %}
+
+{% else %}
+no ip route {{ prefix }} {{ next_hop }}{% if exit_interface %} {{ exit_interface }}{% endif %}{% if admin_distance %} {{ admin_distance }}{% endif %}
+
+{% endif %}
+!

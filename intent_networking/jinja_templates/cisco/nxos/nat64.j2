@@ -1,0 +1,13 @@
+{# nat64.j2 — nxos #}
+! NAT64 Configuration
+! Intent: {{ intent_id }}
+!
+{% if v4_pool | default("") %}
+nat64 v4 pool {{ v4_pool.name }} {{ v4_pool.start }} {{ v4_pool.end }}
+{% endif %}
+nat64 prefix stateful {{ prefix }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+  nat64 enable
+{% endfor %}

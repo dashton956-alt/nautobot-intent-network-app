@@ -1,10 +1,17 @@
 {# syslog.j2 — aos-cx #}
-! Primitive: syslog
+! Syslog Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for syslog on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for server in servers | default([]) %}
+logging {{ server.ip }}{% if server.severity | default("") %} severity {{ server.severity }}{% endif %}
+
+{% if server.port | default("") %}
+logging {{ server.ip }} port {{ server.port }}
+{% endif %}
+{% if server.transport | default("") %}
+logging {{ server.ip }} transport {{ server.transport }}
+{% endif %}
+{% endfor %}
+{% if source_interface | default("") %}
+logging source-interface {{ source_interface }}
+{% endif %}

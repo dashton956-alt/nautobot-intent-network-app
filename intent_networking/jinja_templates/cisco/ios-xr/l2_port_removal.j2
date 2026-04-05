@@ -1,0 +1,8 @@
+{# l2_port_removal.j2 — ios-xr #}
+! Remove L2 Port
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+ no description
+ shutdown
+!

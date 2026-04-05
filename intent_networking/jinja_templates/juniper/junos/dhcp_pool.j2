@@ -1,10 +1,19 @@
 {# dhcp_pool.j2 — junos #}
-! Primitive: dhcp_pool
+! DHCP Pool
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for dhcp_pool on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set system services dhcp-local-server group {{ pool_name | default("DHCP-POOL") }} interface {{ interface | default("irb.0") }}
+set access address-assignment pool {{ pool_name | default("DHCP-POOL") }} family inet network {{ network }}
+set access address-assignment pool {{ pool_name | default("DHCP-POOL") }} family inet range RANGE low {{ range_start | default("") }}
+set access address-assignment pool {{ pool_name | default("DHCP-POOL") }} family inet range RANGE high {{ range_end | default("") }}
+{% if default_gateway | default("") %}
+set access address-assignment pool {{ pool_name | default("DHCP-POOL") }} family inet dhcp-attributes router {{ default_gateway }}
+{% endif %}
+{% if dns_servers | default([]) %}
+{% for dns in dns_servers %}
+set access address-assignment pool {{ pool_name | default("DHCP-POOL") }} family inet dhcp-attributes name-server {{ dns }}
+{% endfor %}
+{% endif %}
+{% if lease_time | default("") %}
+set access address-assignment pool {{ pool_name | default("DHCP-POOL") }} family inet dhcp-attributes maximum-lease-time {{ lease_time }}
+{% endif %}

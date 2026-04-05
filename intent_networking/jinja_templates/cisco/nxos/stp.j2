@@ -1,0 +1,19 @@
+{# stp.j2 — nxos #}
+! Spanning Tree Configuration
+! Intent: {{ intent_id }}
+!
+spanning-tree mode {{ mode | default('rapid-pvst') }}
+{% if priority | default("") %}
+{% for vlan in vlans | default([]) %}
+spanning-tree vlan {{ vlan }} priority {{ priority }}
+{% endfor %}
+{% endif %}
+{% if portfast_default | default(false) %}
+spanning-tree port type edge default
+{% endif %}
+{% if bpdu_guard_default | default(false) %}
+spanning-tree port type edge bpduguard default
+{% endif %}
+{% if loopguard_default | default(false) %}
+spanning-tree loopguard default
+{% endif %}

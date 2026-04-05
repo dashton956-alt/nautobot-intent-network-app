@@ -1,10 +1,14 @@
 {# aaa.j2 — junos #}
-! Primitive: aaa
+! AAA Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for aaa on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for method in authentication_methods | default(["tacplus", "password"]) %}
+{% endfor %}
+set system authentication-order [ {{ authentication_methods | default(["tacplus", "password"]) | join(" ") }} ]
+{% if accounting | default(false) %}
+set system accounting events login
+set system accounting events change-log
+{% endif %}
+{% if authorization | default(false) %}
+set system services ssh
+{% endif %}

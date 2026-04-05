@@ -1,0 +1,14 @@
+{# qos_dscp_mark.j2 — nxos #}
+! QoS DSCP Marking
+! Intent: {{ intent_id }}
+!
+policy-map type qos {{ policy_map }}
+{% for m in markings | default([]) %}
+  class {{ m.class_name }}
+    set dscp {{ m.dscp }}
+{% endfor %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+  service-policy type qos input {{ policy_map }}
+{% endfor %}

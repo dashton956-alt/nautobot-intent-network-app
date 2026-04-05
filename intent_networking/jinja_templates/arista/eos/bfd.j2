@@ -1,0 +1,13 @@
+{# bfd.j2 — arista-eos #}
+! BFD Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+   bfd interval {{ iface.interval | default(interval | default(300)) }} min-rx {{ iface.min_rx | default(min_rx | default(300)) }} multiplier {{ iface.multiplier | default(multiplier | default(3)) }}
+!
+{% endfor %}
+{% if echo_mode is defined and not echo_mode %}
+bfd no echo
+{% endif %}
+!

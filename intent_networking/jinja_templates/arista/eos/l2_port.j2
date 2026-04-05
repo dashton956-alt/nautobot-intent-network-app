@@ -1,0 +1,29 @@
+{# l2_port.j2 — arista-eos #}
+! Layer 2 Port Configuration — {{ interface }}
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+{% if description %}
+   description {{ description }}
+{% endif %}
+   no shutdown
+{% if mode == 'access' %}
+   switchport mode access
+   switchport access vlan {{ access_vlan }}
+{% if voice_vlan %}
+   switchport voice vlan {{ voice_vlan }}
+{% endif %}
+{% if portfast %}
+   spanning-tree portfast
+{% endif %}
+{% if bpdu_guard %}
+   spanning-tree bpduguard enable
+{% endif %}
+{% elif mode == 'trunk' %}
+   switchport mode trunk
+   switchport trunk allowed vlan {{ allowed_vlans | join(',') }}
+{% if native_vlan %}
+   switchport trunk native vlan {{ native_vlan }}
+{% endif %}
+{% endif %}
+!

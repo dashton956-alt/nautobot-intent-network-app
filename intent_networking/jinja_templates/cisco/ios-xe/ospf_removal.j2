@@ -1,0 +1,10 @@
+{# ospf_removal.j2 — ios-xe #}
+! Remove OSPF
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+ no ip ospf {{ process_id }} area {{ iface.area | default("0") }}
+{% endfor %}
+no router ospf {{ process_id }}
+!

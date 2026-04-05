@@ -1,10 +1,41 @@
 {# zbf.j2 — ios-xe #}
-! Primitive: zbf
+! Zone-Based Firewall
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for zbf on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for zone in zones | default([]) %}
+zone security {{ zone.name }}
+{% if zone.description | default("") %}
+ description {{ zone.description }}
+{% endif %}
+{% endfor %}
+!
+{% for cm in class_maps | default([]) %}
+class-map type inspect match-any {{ cm.name }}
+{% if cm.acl | default("") %}
+ match access-group name {{ cm.acl }}
+{% endif %}
+{% if cm.protocol | default("") %}
+ match protocol {{ cm.protocol }}
+{% endif %}
+{% endfor %}
+!
+{% for pm in policy_maps | default([]) %}
+policy-map type inspect {{ pm.name }}
+{% for cls in pm.classes | default([]) %}
+ class type inspect {{ cls.name }}
+  {{ cls.action | default("inspect") }}
+{% endfor %}
+ class class-default
+  drop log
+{% endfor %}
+!
+{% for zp in zone_pairs | default([]) %}
+zone-pair security {{ zp.name }} source {{ zp.source }} destination {{ zp.destination }}
+ service-policy type inspect {{ zp.policy_map }}
+{% endfor %}
+!
+{% for iface in interface_zones | default([]) %}
+interface {{ iface.name }}
+ zone-member security {{ iface.zone }}
+{% endfor %}
 !

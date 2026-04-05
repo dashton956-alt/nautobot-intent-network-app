@@ -1,0 +1,10 @@
+{# static_route_removal.j2 — ios-xr #}
+! Remove Static Routes
+! Intent: {{ intent_id }}
+!
+router static
+ address-family ipv4 unicast
+{% for route in routes | default([]) %}
+  no {{ route.prefix }} {{ route.next_hop }}
+{% endfor %}
+!

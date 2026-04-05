@@ -1,0 +1,15 @@
+{# acl_removal.j2 — nxos #}
+! Remove ACL
+! Intent: {{ intent_id }}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+{% if direction | default("in") == "in" or direction | default("") == "both" %}
+  no ip access-group {{ acl_name }} in
+{% endif %}
+{% if direction | default("") == "out" or direction | default("") == "both" %}
+  no ip access-group {{ acl_name }} out
+{% endif %}
+{% endfor %}
+no ip access-list {{ acl_name }}
+!

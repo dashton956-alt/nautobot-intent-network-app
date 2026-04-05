@@ -1,0 +1,11 @@
+{# fw_rule_removal.j2 — ios-xr #}
+! Remove Firewall Rule
+! Intent: {{ intent_id }}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+ no ipv4 access-group {{ policy_name }} ingress
+ no ipv4 access-group {{ policy_name }} egress
+{% endfor %}
+no ipv4 access-list {{ policy_name }}
+!

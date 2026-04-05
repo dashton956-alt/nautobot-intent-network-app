@@ -1,10 +1,25 @@
 {# mgmt_interface.j2 — ios-xe #}
-! Primitive: mgmt_interface
+! Management Interface
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for mgmt_interface on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if vrf | default("") %}
+vrf definition {{ vrf }}
+ address-family ipv4
+ exit-address-family
+{% endif %}
+!
+interface {{ interface | default("GigabitEthernet0/0") }}
+ no shutdown
+{% if vrf | default("") %}
+ vrf forwarding {{ vrf }}
+{% endif %}
+ ip address {{ ip_address }} {{ subnet_mask | default("255.255.255.0") }}
+{% if gateway | default("") %}
+!
+{% if vrf | default("") %}
+ip route vrf {{ vrf }} 0.0.0.0 0.0.0.0 {{ gateway }}
+{% else %}
+ip route 0.0.0.0 0.0.0.0 {{ gateway }}
+{% endif %}
+{% endif %}
 !

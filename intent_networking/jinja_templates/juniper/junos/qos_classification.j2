@@ -1,0 +1,10 @@
+{# qos_classification.j2 — junos #}
+! QoS Classification
+! Intent: {{ intent_id }}
+!
+{% for entry in entries | default([]) %}
+set class-of-service classifiers dscp {{ classifier_name | default("QOS-DSCP") }} forwarding-class {{ entry.forwarding_class | default("best-effort") }} loss-priority {{ entry.loss_priority | default("low") }} code-points {{ entry.dscp | default("000000") }}
+{% endfor %}
+{% for iface in interfaces | default([]) %}
+set class-of-service interfaces {{ iface }} unit 0 classifiers dscp {{ classifier_name | default("QOS-DSCP") }}
+{% endfor %}

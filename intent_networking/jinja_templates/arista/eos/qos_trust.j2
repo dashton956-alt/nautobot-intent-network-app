@@ -1,0 +1,9 @@
+{# qos_trust.j2 — arista-eos #}
+! QoS Trust Boundary Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+   qos trust {{ trust_type }}
+!
+{% endfor %}

@@ -1,0 +1,23 @@
+{# aaa.j2 — arista-eos #}
+! AAA Configuration
+! Intent: {{ intent_id }}
+!
+aaa authentication login default {{ auth_methods | default("local") }}
+{% if enable_auth %}
+aaa authentication enable default {{ enable_auth }}
+{% endif %}
+{% if authorization %}
+aaa authorization exec default {{ authorization }}
+aaa authorization commands all default {{ authorization }}
+{% endif %}
+{% if accounting %}
+aaa accounting commands all default start-stop {{ accounting }}
+{% endif %}
+!
+{% for server in radius_servers | default([]) %}
+radius-server host {{ server.ip }} key {{ server.key }}
+{% endfor %}
+{% for server in tacacs_servers | default([]) %}
+tacacs-server host {{ server.ip }} key {{ server.key }}
+{% endfor %}
+!

@@ -1,10 +1,9 @@
 {# qinq.j2 — aos-cx #}
-! Primitive: qinq
+! QinQ (Double VLAN Tagging)
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for qinq on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+    vlan trunks {{ iface.outer_vlan | default("") }} native
+    vlan dot1q-tunnel {{ iface.inner_vlan | default("") }}
+{% endfor %}

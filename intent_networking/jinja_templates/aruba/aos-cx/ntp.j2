@@ -1,10 +1,14 @@
 {# ntp.j2 — aos-cx #}
-! Primitive: ntp
+! NTP Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for ntp on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for server in servers | default([]) %}
+ntp server {{ server.ip }}{% if server.prefer | default(false) %} prefer{% endif %}
+
+{% endfor %}
+{% if source_interface | default("") %}
+ntp source-interface {{ source_interface }}
+{% endif %}
+{% if vrf | default("") %}
+ntp vrf {{ vrf }}
+{% endif %}

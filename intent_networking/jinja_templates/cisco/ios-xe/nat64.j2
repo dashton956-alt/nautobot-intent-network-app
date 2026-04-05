@@ -1,10 +1,15 @@
 {# nat64.j2 — ios-xe #}
-! Primitive: nat64
+! NAT64 Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for nat64 on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+nat64 enable
+{% if v4_pool | default("") %}
+nat64 v4 pool {{ v4_pool.name }} {{ v4_pool.start }} {{ v4_pool.end }}
+{% endif %}
+nat64 prefix stateful {{ prefix }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+ nat64 enable
+{% endfor %}
 !

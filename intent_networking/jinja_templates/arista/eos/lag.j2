@@ -1,0 +1,30 @@
+{# lag.j2 — arista-eos #}
+! LAG / Port-Channel Configuration
+! Intent: {{ intent_id }}
+!
+interface Port-Channel{{ channel_id }}
+{% if description %}
+   description {{ description }}
+{% endif %}
+{% if mode == 'trunk' %}
+   switchport mode trunk
+{% if allowed_vlans %}
+   switchport trunk allowed vlan {{ allowed_vlans | join(',') }}
+{% endif %}
+{% elif mode == 'access' %}
+   switchport mode access
+{% if access_vlan %}
+   switchport access vlan {{ access_vlan }}
+{% endif %}
+{% endif %}
+{% if mtu %}
+   mtu {{ mtu }}
+{% endif %}
+   no shutdown
+!
+{% for iface in member_interfaces %}
+interface {{ iface }}
+   channel-group {{ channel_id }} mode {{ lacp_mode | default("active") }}
+   no shutdown
+!
+{% endfor %}

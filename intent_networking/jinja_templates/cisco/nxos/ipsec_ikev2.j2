@@ -1,0 +1,18 @@
+{# ipsec_ikev2.j2 — nxos #}
+! IKEv2 Configuration
+! Intent: {{ intent_id }}
+!
+feature tunnel-encryption
+!
+crypto ikev2 proposal {{ proposal.name }}
+  encryption {{ proposal.encryption }}
+  integrity {{ proposal.integrity }}
+  group {{ proposal.dh_group }}
+!
+crypto ikev2 policy {{ policy.name }}
+  proposal {{ proposal.name }}
+!
+crypto ikev2 profile {{ profile.name }}
+  match identity remote address {{ peer_ip }}/32
+  authentication remote pre-share key {{ pre_shared_key }}
+  authentication local pre-share key {{ pre_shared_key }}

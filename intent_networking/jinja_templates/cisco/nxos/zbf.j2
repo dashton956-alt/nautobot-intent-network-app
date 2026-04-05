@@ -1,0 +1,17 @@
+{# zbf.j2 — nxos #}
+! Zone-Based Firewall (ACL-based on NX-OS)
+! Intent: {{ intent_id }}
+!
+{% for zone in zones | default([]) %}
+{% for iface in zone.interfaces | default([]) %}
+interface {{ iface }}
+  description Zone: {{ zone.name }}
+{% endfor %}
+{% endfor %}
+!
+{% for policy in policies | default([]) %}
+ip access-list {{ policy.acl_name }}
+{% for rule in policy.rules | default([]) %}
+  {{ rule.seq | default(loop.index * 10) }} {{ rule.action }} {{ rule.protocol }} {{ rule.source }} {{ rule.destination }}
+{% endfor %}
+{% endfor %}

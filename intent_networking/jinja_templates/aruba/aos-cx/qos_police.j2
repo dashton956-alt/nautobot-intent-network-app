@@ -1,10 +1,11 @@
 {# qos_police.j2 — aos-cx #}
-! Primitive: qos_police
+! QoS Policing
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for qos_police on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for policer in policers | default([]) %}
+qos rate {{ policer.name }} {{ policer.rate | default("1000000") }} kbps burst {{ policer.burst | default("15000") }}
+{% endfor %}
+{% for iface in policy_interfaces | default([]) %}
+interface {{ iface.name }}
+    apply qos rate {{ iface.policer }} in
+{% endfor %}

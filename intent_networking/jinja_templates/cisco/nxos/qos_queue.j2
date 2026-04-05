@@ -1,0 +1,22 @@
+{# qos_queue.j2 — nxos #}
+! QoS Queuing
+! Intent: {{ intent_id }}
+!
+policy-map type queuing {{ policy_map }}
+{% for q in queues | default([]) %}
+  class type queuing {{ q.class_name }}
+{% if q.priority | default(false) %}
+    priority
+{% endif %}
+{% if q.bandwidth_percent | default("") %}
+    bandwidth percent {{ q.bandwidth_percent }}
+{% endif %}
+{% if q.shape_rate | default("") %}
+    shape min {{ q.shape_rate }}
+{% endif %}
+{% endfor %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+  service-policy type queuing output {{ policy_map }}
+{% endfor %}

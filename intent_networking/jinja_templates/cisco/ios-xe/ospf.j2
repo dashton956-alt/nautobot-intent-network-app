@@ -1,10 +1,44 @@
 {# ospf.j2 — ios-xe #}
-! Primitive: ospf
+! OSPF Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for ospf on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router ospf {{ process_id }}
+{% if router_id | default("") %}
+ router-id {{ router_id }}
+{% endif %}
+{% if reference_bandwidth | default("") %}
+ auto-cost reference-bandwidth {{ reference_bandwidth }}
+{% endif %}
+{% for net in networks | default([]) %}
+ network {{ net.network }} {{ net.wildcard }} area {{ net.area }}
+{% endfor %}
+{% for stub in stub_areas | default([]) %}
+ area {{ stub }} stub
+{% endfor %}
+{% for nssa in nssa_areas | default([]) %}
+ area {{ nssa }} nssa
+{% endfor %}
+{% if default_originate | default(false) %}
+ default-information originate{% if always | default(false) %} always{% endif %}
+
+{% endif %}
+{% if passive_default | default(false) %}
+ passive-interface default
+{% for iface in no_passive | default([]) %}
+ no passive-interface {{ iface }}
+{% endfor %}
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.cost | default("") %}
+ ip ospf cost {{ iface.cost }}
+{% endif %}
+{% if iface.network_type | default("") %}
+ ip ospf network {{ iface.network_type }}
+{% endif %}
+{% if iface.area | default("") %}
+ ip ospf {{ process_id }} area {{ iface.area }}
+{% endif %}
+{% endfor %}
 !

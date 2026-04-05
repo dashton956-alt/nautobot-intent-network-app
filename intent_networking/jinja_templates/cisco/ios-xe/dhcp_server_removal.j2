@@ -1,0 +1,8 @@
+{# dhcp_server_removal.j2 — ios-xe #}
+! Remove DHCP Server
+! Intent: {{ intent_id }}
+!
+{% for pool in pools | default([]) %}
+no ip dhcp pool {{ pool.name | default(pool_name | default("")) }}
+{% endfor %}
+!

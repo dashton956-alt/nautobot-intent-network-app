@@ -1,10 +1,27 @@
 {# dmvpn.j2 — ios-xe #}
-! Primitive: dmvpn
+! DMVPN Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for dmvpn on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+interface Tunnel{{ tunnel_id }}
+{% if description | default("") %}
+ description {{ description }}
+{% endif %}
+ ip address {{ tunnel_ip }} {{ tunnel_mask | default("255.255.255.0") }}
+ tunnel source {{ tunnel_source }}
+ tunnel mode gre multipoint
+ tunnel key {{ tunnel_key | default(100) }}
+{% if nhrp_network_id | default("") %}
+ ip nhrp network-id {{ nhrp_network_id }}
+{% endif %}
+{% if nhrp_authentication | default("") %}
+ ip nhrp authentication {{ nhrp_authentication }}
+{% endif %}
+{% if role | default("spoke") == "spoke" and nhs_ip | default("") %}
+ ip nhrp nhs {{ nhs_ip }} nbma {{ nhs_nbma }} multicast
+{% endif %}
+{% if ipsec_profile | default("") %}
+ tunnel protection ipsec profile {{ ipsec_profile }}
+{% endif %}
+ ip mtu {{ mtu | default(1400) }}
+ ip tcp adjust-mss {{ tcp_mss | default(1360) }}
 !

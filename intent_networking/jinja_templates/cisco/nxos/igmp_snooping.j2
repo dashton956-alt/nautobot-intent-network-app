@@ -1,0 +1,14 @@
+{# igmp_snooping.j2 — nxos #}
+! IGMP Snooping
+! Intent: {{ intent_id }}
+!
+ip igmp snooping
+{% for vlan in vlans | default([]) %}
+ip igmp snooping vlan {{ vlan }}
+{% if querier_enabled | default(false) %}
+ip igmp snooping vlan {{ vlan }} querier {{ querier_address | default('') }}
+{% endif %}
+{% if fast_leave | default(false) %}
+ip igmp snooping vlan {{ vlan }} fast-leave
+{% endif %}
+{% endfor %}

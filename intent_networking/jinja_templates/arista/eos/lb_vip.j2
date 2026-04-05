@@ -1,0 +1,14 @@
+{# lb_vip.j2 — arista-eos #}
+! Load Balancer VIP Configuration (stub — typically managed by LB appliance)
+! Intent: {{ intent_id }}
+!
+! VIP: {{ vip_address }}:{{ vip_port }}
+! Pool: {{ pool_name }}
+{% for member in pool_members | default([]) %}
+! Member: {{ member.ip }}:{{ member.port }}{% if member.weight %} weight={{ member.weight }}{% endif %}
+
+{% endfor %}
+{% if health_check %}
+! Health Check: {{ health_check.type }} {{ health_check.path | default("") }}
+{% endif %}
+!

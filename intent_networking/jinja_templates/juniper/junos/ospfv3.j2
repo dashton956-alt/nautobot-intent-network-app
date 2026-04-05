@@ -1,10 +1,10 @@
 {# ospfv3.j2 — junos #}
-! Primitive: ospfv3
+! OSPFv3 Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for ospfv3 on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% if router_id | default("") %}
+set routing-options router-id {{ router_id }}
+{% endif %}
+{% for iface in interfaces | default([]) %}
+set protocols ospf3 area {{ iface.area | default("0.0.0.0") }} interface {{ iface.name }}
+{% endfor %}

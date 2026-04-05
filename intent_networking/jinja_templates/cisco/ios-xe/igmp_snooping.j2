@@ -1,10 +1,15 @@
 {# igmp_snooping.j2 — ios-xe #}
-! Primitive: igmp_snooping
+! IGMP Snooping
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for igmp_snooping on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+ip igmp snooping
+{% for vlan in vlans | default([]) %}
+ip igmp snooping vlan {{ vlan }}
+{% if querier_enabled | default(false) %}
+ip igmp snooping vlan {{ vlan }} querier address {{ querier_address | default("") }}
+{% endif %}
+{% if fast_leave | default(false) %}
+ip igmp snooping vlan {{ vlan }} immediate-leave
+{% endif %}
+{% endfor %}
 !

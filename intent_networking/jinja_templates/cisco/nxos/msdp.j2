@@ -1,0 +1,19 @@
+{# msdp.j2 — nxos #}
+! MSDP Configuration
+! Intent: {{ intent_id }}
+!
+feature msdp
+!
+ip msdp originator-id {{ originator_id }}
+{% for peer in peers | default([]) %}
+ip msdp peer {{ peer.ip }} connect-source {{ peer.connect_source | default('Loopback0') }} remote-as {{ peer.remote_as }}
+{% if peer.sa_limit | default("") %}
+ip msdp sa-limit {{ peer.ip }} {{ peer.sa_limit }}
+{% endif %}
+{% endfor %}
+{% if default_peer | default("") %}
+ip msdp default-peer {{ default_peer }}
+{% endif %}
+{% if sa_filter | default("") %}
+ip msdp sa-filter {{ sa_filter }}
+{% endif %}

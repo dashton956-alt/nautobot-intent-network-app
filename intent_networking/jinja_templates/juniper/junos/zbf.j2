@@ -1,10 +1,19 @@
 {# zbf.j2 — junos #}
-! Primitive: zbf
+! Zone-Based Security
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for zbf on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for zone in zones | default([]) %}
+set security zones security-zone {{ zone.name }}
+{% if zone.description | default("") %}
+set security zones security-zone {{ zone.name }} description "{{ zone.description }}"
+{% endif %}
+{% endfor %}
+{% for zp in zone_pairs | default([]) %}
+set security policies from-zone {{ zp.source }} to-zone {{ zp.destination }} policy {{ zp.name }} match source-address any
+set security policies from-zone {{ zp.source }} to-zone {{ zp.destination }} policy {{ zp.name }} match destination-address any
+set security policies from-zone {{ zp.source }} to-zone {{ zp.destination }} policy {{ zp.name }} match application any
+set security policies from-zone {{ zp.source }} to-zone {{ zp.destination }} policy {{ zp.name }} then {{ zp.action | default("permit") }}
+{% endfor %}
+{% for iface in interface_zones | default([]) %}
+set security zones security-zone {{ iface.zone }} interfaces {{ iface.name }}
+{% endfor %}

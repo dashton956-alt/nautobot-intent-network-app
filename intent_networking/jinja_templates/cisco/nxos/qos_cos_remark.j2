@@ -1,0 +1,15 @@
+{# qos_cos_remark.j2 — nxos #}
+! QoS CoS Remark
+! Intent: {{ intent_id }}
+!
+{% for entry in cos_map | default([]) %}
+table-map COS-TO-DSCP
+  from {{ entry.cos }} to {{ entry.dscp }}
+{% endfor %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+{% if trust_cos | default(false) %}
+  no shutdown
+{% endif %}
+{% endfor %}

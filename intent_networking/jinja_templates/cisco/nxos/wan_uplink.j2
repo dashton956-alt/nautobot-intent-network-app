@@ -1,0 +1,16 @@
+{# wan_uplink.j2 — nxos #}
+! WAN Uplink Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+  no shutdown
+  no switchport
+{% if description | default("") %}
+  description {{ description }} — {{ isp_name | default('') }}
+{% endif %}
+  ip address {{ ip_address }}
+{% if default_route | default("") %}
+!
+ip route 0.0.0.0/0 {{ default_route }}{% if admin_distance | default("") %} {{ admin_distance }}{% endif %}
+
+{% endif %}

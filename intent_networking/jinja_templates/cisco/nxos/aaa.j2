@@ -1,0 +1,23 @@
+{# aaa.j2 — nxos #}
+! AAA Configuration
+! Intent: {{ intent_id }}
+!
+feature tacacs+
+!
+{% for server in tacacs_servers | default([]) %}
+tacacs-server host {{ server.ip }} key {{ server.key }}
+{% endfor %}
+{% for server in radius_servers | default([]) %}
+radius-server host {{ server.ip }} key {{ server.key }}
+{% endfor %}
+!
+aaa authentication login default {{ auth_methods | default('group tacacs+ local') }}
+{% if enable_auth | default("") %}
+aaa authentication login console {{ enable_auth }}
+{% endif %}
+{% if authorization | default("") %}
+aaa authorization commands default {{ authorization }}
+{% endif %}
+{% if accounting | default("") %}
+aaa accounting default {{ accounting }}
+{% endif %}

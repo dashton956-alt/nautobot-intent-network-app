@@ -1,10 +1,19 @@
 {# lldp_cdp.j2 — junos #}
-! Primitive: lldp_cdp
+! LLDP Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for lldp_cdp on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% if lldp_enabled | default(true) %}
+set protocols lldp
+{% else %}
+delete protocols lldp
+{% endif %}
+{% for iface in interfaces | default([]) %}
+{% if iface.lldp_disable | default(false) %}
+set protocols lldp interface {{ iface.name }} disable
+{% else %}
+set protocols lldp interface {{ iface.name }}
+{% endif %}
+{% endfor %}
+{% if management_address | default("") %}
+set protocols lldp management-address {{ management_address }}
+{% endif %}

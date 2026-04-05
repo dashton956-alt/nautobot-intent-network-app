@@ -1,10 +1,9 @@
 {# urpf.j2 — ios-xr #}
-! Primitive: urpf
+! uRPF
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for urpf on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+ ipv4 verify unicast source reachable-via {{ mode | default("rx") }}
+{% endfor %}
 !

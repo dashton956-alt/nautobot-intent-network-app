@@ -1,0 +1,31 @@
+{# lag.j2 — nxos #}
+! LAG / Port-Channel Configuration
+! Intent: {{ intent_id }}
+!
+feature lacp
+!
+interface port-channel{{ channel_id }}
+  no shutdown
+{% if description | default("") %}
+  description {{ description }}
+{% endif %}
+  switchport
+{% if mode | default('trunk') == 'trunk' %}
+  switchport mode trunk
+{% if allowed_vlans | default([]) %}
+  switchport trunk allowed vlan {{ allowed_vlans | join(',') }}
+{% endif %}
+{% else %}
+  switchport mode access
+  switchport access vlan {{ access_vlan | default(1) }}
+{% endif %}
+{% if mtu | default("") %}
+  mtu {{ mtu }}
+{% endif %}
+!
+{% for iface in member_interfaces %}
+interface {{ iface }}
+  no shutdown
+  switchport
+  channel-group {{ channel_id }} mode {{ lacp_mode | default('active') }}
+{% endfor %}

@@ -1,0 +1,9 @@
+{# fhrp_removal.j2 — arista-eos #}
+! Remove FHRP (VRRP) Configuration
+! Intent: {{ intent_id }}
+!
+{% for group in groups %}
+interface {{ group.interface }}
+   no vrrp {{ group.group_id }}
+!
+{% endfor %}

@@ -1,0 +1,20 @@
+{# snmp_removal.j2 — nxos #}
+! Remove SNMP
+! Intent: {{ intent_id }}
+!
+{% for target in trap_targets | default([]) %}
+no snmp-server host {{ target }}
+{% endfor %}
+{% if version | default("v2c") == "v3" %}
+{% for user in users | default([]) %}
+no snmp-server user {{ user.name }}
+{% endfor %}
+{% for group in groups | default([]) %}
+no snmp-server group {{ group.name }}
+{% endfor %}
+{% elif community | default("") %}
+no snmp-server community {{ community }}
+{% endif %}
+no snmp-server location
+no snmp-server contact
+!

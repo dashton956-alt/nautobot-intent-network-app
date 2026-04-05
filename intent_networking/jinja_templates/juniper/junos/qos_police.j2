@@ -1,10 +1,16 @@
 {# qos_police.j2 — junos #}
-! Primitive: qos_police
+! QoS Policing
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for qos_police on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for policer in policers | default([]) %}
+set firewall policer {{ policer.name }} if-exceeding bandwidth-limit {{ policer.rate }}
+set firewall policer {{ policer.name }} if-exceeding burst-size-limit {{ policer.burst | default("15k") }}
+{% if policer.action | default("discard") == "discard" %}
+set firewall policer {{ policer.name }} then discard
+{% else %}
+set firewall policer {{ policer.name }} then loss-priority high then forwarding-class best-effort
+{% endif %}
+{% endfor %}
+{% for iface in policy_interfaces | default([]) %}
+set interfaces {{ iface.name }} unit 0 family inet policer input {{ iface.policer }}
+{% endfor %}

@@ -1,0 +1,8 @@
+{# static_route_removal.j2 — junos #}
+{% for route in routes | default([]) %}
+{% if route.vrf | default("") %}
+delete routing-instances {{ route.vrf }} routing-options static route {{ route.prefix }}
+{% else %}
+delete routing-options static route {{ route.prefix }}
+{% endif %}
+{% endfor %}

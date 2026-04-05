@@ -1,0 +1,15 @@
+{# dai.j2 — nxos #}
+! Dynamic ARP Inspection Configuration
+! Intent: {{ intent_id }}
+!
+{% for vlan in vlans | default([]) %}
+ip arp inspection vlan {{ vlan }}
+{% endfor %}
+{% if rate_limit | default("") %}
+ip arp inspection vlan {{ vlans | join(',') }} rate {{ rate_limit }}
+{% endif %}
+!
+{% for iface in trusted_interfaces | default([]) %}
+interface {{ iface }}
+  ip arp inspection trust
+{% endfor %}

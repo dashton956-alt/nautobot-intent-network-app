@@ -1,0 +1,4 @@
+{# syslog_removal.j2 — junos #}
+{% for server in servers | default([]) %}
+delete system syslog host {{ server.ip }}
+{% endfor %}

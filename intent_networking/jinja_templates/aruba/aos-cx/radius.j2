@@ -1,0 +1,17 @@
+{# radius.j2 — aos-cx #}
+! RADIUS Configuration
+! Intent: {{ intent_id }}
+!
+{% for server in servers | default([]) %}
+radius-server host {{ server.ip }} key plaintext "{{ server.key }}"
+{% if server.port | default("") %}
+radius-server host {{ server.ip }} auth-port {{ server.port }}
+{% endif %}
+{% if server.timeout | default("") %}
+radius-server host {{ server.ip }} timeout {{ server.timeout }}
+{% endif %}
+{% endfor %}
+aaa group server radius {{ group_name | default("RADIUS-GROUP") }}
+{% for server in servers | default([]) %}
+    server {{ server.ip }}
+{% endfor %}

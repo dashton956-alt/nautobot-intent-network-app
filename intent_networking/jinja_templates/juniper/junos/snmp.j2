@@ -1,10 +1,24 @@
 {# snmp.j2 — junos #}
-! Primitive: snmp
+! SNMP Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for snmp on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% if location | default("") %}
+set snmp location "{{ location }}"
+{% endif %}
+{% if contact | default("") %}
+set snmp contact "{{ contact }}"
+{% endif %}
+{% for community_item in communities | default([]) %}
+set snmp community {{ community_item.name }} authorization {{ community_item.permission | default("read-only") }}
+{% if community_item.clients | default([]) %}
+{% for client in community_item.clients %}
+set snmp community {{ community_item.name }} clients {{ client }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% for trap_host in trap_targets | default([]) %}
+set snmp trap-group {{ trap_host.group | default("TRAPS") }} targets {{ trap_host.ip }}
+{% if trap_host.version | default("") %}
+set snmp trap-group {{ trap_host.group | default("TRAPS") }} version {{ trap_host.version }}
+{% endif %}
+{% endfor %}

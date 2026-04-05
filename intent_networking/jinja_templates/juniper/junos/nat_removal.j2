@@ -1,0 +1,9 @@
+{# nat_removal.j2 — junos #}
+{% for rule in rules | default([]) %}
+{% if rule.type | default("source") == "source" %}
+delete security nat source rule-set {{ rule.name | default("SNAT-RULE") }}
+{% elif rule.type == "destination" %}
+delete security nat destination rule-set {{ rule.name | default("DNAT-RULE") }}
+delete security nat destination pool {{ rule.name | default("DNAT-POOL") }}
+{% endif %}
+{% endfor %}

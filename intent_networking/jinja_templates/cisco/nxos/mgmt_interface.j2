@@ -1,0 +1,23 @@
+{# mgmt_interface.j2 — nxos #}
+! Management Interface
+! Intent: {{ intent_id }}
+!
+{% if vrf | default("") %}
+vrf context {{ vrf }}
+{% endif %}
+!
+interface {{ interface | default('mgmt0') }}
+  no shutdown
+{% if vrf | default("") %}
+  vrf member {{ vrf }}
+{% endif %}
+  ip address {{ ip_address }}
+{% if gateway | default("") %}
+!
+{% if vrf | default("") %}
+vrf context {{ vrf }}
+  ip route 0.0.0.0/0 {{ gateway }}
+{% else %}
+ip route 0.0.0.0/0 {{ gateway }}
+{% endif %}
+{% endif %}

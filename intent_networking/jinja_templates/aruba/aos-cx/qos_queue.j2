@@ -1,10 +1,15 @@
 {# qos_queue.j2 — aos-cx #}
-! Primitive: qos_queue
+! QoS Queuing
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for qos_queue on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+qos queue-profile {{ profile_name | default("QOS-QUEUES") }}
+{% for queue in queues | default([]) %}
+    queue {{ queue.id }} weight {{ queue.weight | default(1) }}
+{% if queue.priority | default(false) %}
+    queue {{ queue.id }} strict
+{% endif %}
+{% endfor %}
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+    apply qos queue-profile {{ profile_name | default("QOS-QUEUES") }}
+{% endfor %}

@@ -1,0 +1,18 @@
+{# qos_policy.j2 — junos #}
+! QoS Policy (Scheduler)
+! Intent: {{ intent_id }}
+!
+{% for cls in classes | default([]) %}
+set class-of-service schedulers {{ cls.name }} transmit-rate {{ cls.bandwidth | default("remainder") }}
+{% if cls.buffer_size | default("") %}
+set class-of-service schedulers {{ cls.name }} buffer-size {{ cls.buffer_size }}
+{% endif %}
+{% if cls.priority | default("") == "strict-high" %}
+set class-of-service schedulers {{ cls.name }} priority strict-high
+{% endif %}
+{% endfor %}
+set class-of-service scheduler-maps {{ policy_name | default("QOS-SCHED-MAP") }}{% for cls in classes | default([]) %} forwarding-class {{ cls.forwarding_class | default(cls.name) }} scheduler {{ cls.name }}{% endfor %}
+
+{% for iface in interfaces | default([]) %}
+set class-of-service interfaces {{ iface }} scheduler-map {{ policy_name | default("QOS-SCHED-MAP") }}
+{% endfor %}

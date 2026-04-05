@@ -1,10 +1,15 @@
 {# ntp.j2 — ios-xr #}
-! Primitive: ntp
+! NTP Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for ntp on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if source_interface | default("") %}
+ntp source {{ source_interface }}
+{% endif %}
+{% for server in servers | default([]) %}
+{% if server == prefer | default("") %}
+ntp server {{ server }} prefer
+{% else %}
+ntp server {{ server }}
+{% endif %}
+{% endfor %}
 !

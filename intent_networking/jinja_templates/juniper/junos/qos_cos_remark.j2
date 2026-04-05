@@ -1,10 +1,10 @@
 {# qos_cos_remark.j2 — junos #}
-! Primitive: qos_cos_remark
+! QoS CoS Remark
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for qos_cos_remark on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for entry in entries | default([]) %}
+set class-of-service rewrite-rules ieee-802.1 {{ rewrite_name | default("COS-REWRITE") }} forwarding-class {{ entry.forwarding_class }} loss-priority {{ entry.loss_priority | default("low") }} code-point {{ entry.cos | default("000") }}
+{% endfor %}
+{% for iface in interfaces | default([]) %}
+set class-of-service interfaces {{ iface }} unit 0 rewrite-rules ieee-802.1 {{ rewrite_name | default("COS-REWRITE") }}
+{% endfor %}

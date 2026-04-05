@@ -1,0 +1,21 @@
+{# route_redistribution.j2 — nxos #}
+! Route Redistribution
+! Intent: {{ intent_id }}
+!
+{% if protocol == "bgp" %}
+router bgp {{ asn }}
+{% if vrf | default("") %}
+  vrf {{ vrf }}
+{% endif %}
+    address-family ipv4 unicast
+{% for src in sources | default([]) %}
+      redistribute {{ src.protocol }}{% if src.route_map | default("") %} route-map {{ src.route_map }}{% endif %}
+
+{% endfor %}
+{% elif protocol == "ospf" %}
+router ospf {{ asn }}
+{% for src in sources | default([]) %}
+  redistribute {{ src.protocol }}{% if src.route_map | default("") %} route-map {{ src.route_map }}{% endif %}
+
+{% endfor %}
+{% endif %}

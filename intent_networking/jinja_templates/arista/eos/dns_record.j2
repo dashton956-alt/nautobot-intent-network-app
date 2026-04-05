@@ -1,0 +1,9 @@
+{# dns_record.j2 — arista-eos #}
+! DNS Record Configuration (stub — managed by DNS server)
+! Intent: {{ intent_id }}
+!
+! Record: {{ record_name }} {{ record_type }} {{ record_value }}
+{% if ttl %}
+! TTL: {{ ttl }}
+{% endif %}
+!

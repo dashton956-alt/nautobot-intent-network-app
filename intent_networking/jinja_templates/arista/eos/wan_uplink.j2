@@ -1,0 +1,18 @@
+{# wan_uplink.j2 — arista-eos #}
+! WAN Uplink Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+{% if description %}
+   description {{ description | default(isp_name | default("WAN Uplink")) }}
+{% endif %}
+   ip address {{ ip_address }}
+{% if bandwidth %}
+   bandwidth {{ bandwidth }}
+{% endif %}
+   no shutdown
+!
+{% if default_route %}
+ip route 0.0.0.0/0 {{ default_route }}{% if admin_distance %} {{ admin_distance }}{% endif %}
+
+{% endif %}

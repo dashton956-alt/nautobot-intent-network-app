@@ -1,0 +1,4 @@
+{# bfd_removal.j2 — junos #}
+{% for iface in interfaces | default([]) %}
+delete protocols ospf area {{ iface.area | default("0.0.0.0") }} interface {{ iface.name }} bfd-liveness-detection
+{% endfor %}

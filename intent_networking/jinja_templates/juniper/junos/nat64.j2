@@ -1,10 +1,8 @@
 {# nat64.j2 — junos #}
-! Primitive: nat64
+! NAT64
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for nat64 on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set services nat64 stateful-nat64 nat64-prefix {{ nat64_prefix | default("64:ff9b::/96") }}
+{% for rule in rules | default([]) %}
+set services nat64 stateful-nat64 pool {{ rule.pool_name | default("NAT64-POOL") }} address {{ rule.address }}
+{% endfor %}

@@ -1,10 +1,10 @@
 {# pim.j2 — junos #}
-! Primitive: pim
+! PIM Multicast
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for pim on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% if rp_address | default("") %}
+set protocols pim rp static address {{ rp_address }}
+{% endif %}
+{% for iface in interfaces | default([]) %}
+set protocols pim interface {{ iface.name }} mode {{ iface.mode | default("sparse") }}
+{% endfor %}

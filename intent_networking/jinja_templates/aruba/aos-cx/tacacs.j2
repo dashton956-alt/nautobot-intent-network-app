@@ -1,0 +1,14 @@
+{# tacacs.j2 — aos-cx #}
+! TACACS+ Configuration
+! Intent: {{ intent_id }}
+!
+{% for server in servers | default([]) %}
+tacacs-server host {{ server.ip }}{% if server.port | default("") %} port {{ server.port }}{% endif %} key plaintext "{{ server.key }}"
+{% if server.timeout | default("") %}
+tacacs-server host {{ server.ip }} timeout {{ server.timeout }}
+{% endif %}
+{% endfor %}
+aaa group server tacacs {{ group_name | default("TACACS-GROUP") }}
+{% for server in servers | default([]) %}
+    server {{ server.ip }}
+{% endfor %}

@@ -1,0 +1,8 @@
+{# dhcp_relay.j2 — nxos #}
+! DHCP Relay Configuration
+! Intent: {{ intent_id }}
+!
+feature dhcp
+!
+interface {{ interface }}
+  ip dhcp relay address {{ helper_address }}

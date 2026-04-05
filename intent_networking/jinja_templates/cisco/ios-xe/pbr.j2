@@ -1,10 +1,22 @@
 {# pbr.j2 — ios-xe #}
-! Primitive: pbr
+! Policy-Based Routing
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for pbr on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for entry in entries | default([]) %}
+route-map {{ route_map_name }} permit {{ entry.sequence | default(loop.index * 10) }}
+{% if entry.match_acl | default("") %}
+ match ip address {{ entry.match_acl }}
+{% endif %}
+{% if entry.set_next_hop | default("") %}
+ set ip next-hop {{ entry.set_next_hop }}
+{% endif %}
+{% if entry.set_interface | default("") %}
+ set interface {{ entry.set_interface }}
+{% endif %}
+{% endfor %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+ ip policy route-map {{ route_map_name }}
+{% endfor %}
 !

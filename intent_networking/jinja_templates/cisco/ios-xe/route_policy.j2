@@ -1,10 +1,29 @@
 {# route_policy.j2 — ios-xe #}
-! Primitive: route_policy
+! Route Map / Route Policy
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for route_policy on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for entry in entries | default([]) %}
+route-map {{ policy_name }} {{ entry.action | default("permit") }} {{ entry.sequence }}
+{% if entry.match_prefix_list | default("") %}
+ match ip address prefix-list {{ entry.match_prefix_list }}
+{% endif %}
+{% if entry.match_community | default("") %}
+ match community {{ entry.match_community }}
+{% endif %}
+{% if entry.match_as_path | default("") %}
+ match as-path {{ entry.match_as_path }}
+{% endif %}
+{% if entry.set_local_pref | default("") %}
+ set local-preference {{ entry.set_local_pref }}
+{% endif %}
+{% if entry.set_med | default("") %}
+ set metric {{ entry.set_med }}
+{% endif %}
+{% if entry.set_community | default("") %}
+ set community {{ entry.set_community }}
+{% endif %}
+{% if entry.set_next_hop | default("") %}
+ set ip next-hop {{ entry.set_next_hop }}
+{% endif %}
+{% endfor %}
 !

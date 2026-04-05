@@ -12,4 +12,9 @@ banner motd
 {{ motd_banner }}
 EOF
 {% endif %}
+{% if exec_banner %}
+banner exec
+{{ exec_banner }}
+EOF
+{% endif %}
 !

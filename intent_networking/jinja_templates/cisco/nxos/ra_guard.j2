@@ -1,0 +1,8 @@
+{# ra_guard.j2 — nxos #}
+! IPv6 RA Guard
+! Intent: {{ intent_id }}
+!
+{% for port in untrusted_ports | default([]) %}
+interface {{ port }}
+  ipv6 nd raguard
+{% endfor %}

@@ -1,0 +1,32 @@
+{# vrf.j2 — nxos #}
+! VRF Configuration
+! Intent: {{ intent_id }}
+!
+vrf context {{ vrf_name }}
+{% if description | default("") %}
+  description {{ description }}
+{% endif %}
+  rd {{ route_distinguisher }}
+  address-family ipv4 unicast
+    route-target import {{ rt_import }}
+    route-target export {{ rt_export }}
+{% if redistribute_connected | default(false) %}
+    redistribute direct route-map PERMIT-ALL
+{% endif %}
+{% if redistribute_static | default(false) %}
+    redistribute static route-map PERMIT-ALL
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+  vrf member {{ vrf_name }}
+{% endfor %}
+!
+{% if bgp_asn | default("") %}
+router bgp {{ bgp_asn }}
+  vrf {{ vrf_name }}
+    address-family ipv4 unicast
+{% if redistribute_connected | default(false) %}
+      redistribute direct route-map PERMIT-ALL
+{% endif %}
+{% endif %}

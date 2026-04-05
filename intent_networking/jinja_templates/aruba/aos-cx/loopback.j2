@@ -1,10 +1,13 @@
 {# loopback.j2 — aos-cx #}
-! Primitive: loopback
+! Loopback Interface
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for loopback on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+interface loopback {{ loopback_id | default(0) }}
+    ip address {{ ip_address }}/{{ prefix_len | default(32) }}
+{% if description | default("") %}
+    description {{ description }}
+{% endif %}
+{% if vrf | default("") %}
+    vrf attach {{ vrf }}
+{% endif %}
+    no shutdown

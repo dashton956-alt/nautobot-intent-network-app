@@ -1,10 +1,30 @@
 {# fhrp.j2 — ios-xe #}
-! Primitive: fhrp
+! FHRP Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for fhrp on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for group in groups | default([]) %}
+interface {{ group.interface }}
+{% if protocol | default("hsrp") == "hsrp" %}
+ standby {{ group.group_id }} ip {{ group.virtual_ip }}
+ standby {{ group.group_id }} priority {{ group.priority | default(100) }}
+{% if group.preempt | default(false) %}
+ standby {{ group.group_id }} preempt
+{% endif %}
+{% if group.track | default("") %}
+ standby {{ group.group_id }} track {{ group.track }} decrement {{ group.decrement | default(10) }}
+{% endif %}
+{% elif protocol == "vrrp" %}
+ vrrp {{ group.group_id }} ip {{ group.virtual_ip }}
+ vrrp {{ group.group_id }} priority {{ group.priority | default(100) }}
+{% if group.preempt | default(false) %}
+ vrrp {{ group.group_id }} preempt
+{% endif %}
+{% elif protocol == "glbp" %}
+ glbp {{ group.group_id }} ip {{ group.virtual_ip }}
+ glbp {{ group.group_id }} priority {{ group.priority | default(100) }}
+{% if group.preempt | default(false) %}
+ glbp {{ group.group_id }} preempt
+{% endif %}
+{% endif %}
+{% endfor %}
 !

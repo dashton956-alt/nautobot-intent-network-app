@@ -1,0 +1,35 @@
+{# acl.j2 — nxos #}
+! Access Control List
+! Intent: {{ intent_id }}
+!
+{% if address_family | default("ipv4") == "ipv6" %}
+ipv6 access-list {{ acl_name }}
+{% for entry in entries | default([]) %}
+  {{ entry.seq | default(loop.index * 10) }} {{ entry.action }} {{ entry.protocol }} {{ entry.source }} {{ entry.destination }}{% if entry.port | default("") %} eq {{ entry.port }}{% endif %}{% if entry.log | default(false) %} log{% endif %}
+
+{% endfor %}
+{% else %}
+ip access-list {{ acl_name }}
+{% for entry in entries | default([]) %}
+  {{ entry.seq | default(loop.index * 10) }} {{ entry.action }} {{ entry.protocol }} {{ entry.source }} {{ entry.destination }}{% if entry.port | default("") %} eq {{ entry.port }}{% endif %}{% if entry.log | default(false) %} log{% endif %}
+
+{% endfor %}
+{% endif %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+{% if direction | default("in") == "in" or direction | default("in") == "both" %}
+{% if address_family | default("ipv4") == "ipv6" %}
+  ipv6 traffic-filter {{ acl_name }} in
+{% else %}
+  ip access-group {{ acl_name }} in
+{% endif %}
+{% endif %}
+{% if direction | default("in") == "out" or direction | default("in") == "both" %}
+{% if address_family | default("ipv4") == "ipv6" %}
+  ipv6 traffic-filter {{ acl_name }} out
+{% else %}
+  ip access-group {{ acl_name }} out
+{% endif %}
+{% endif %}
+{% endfor %}

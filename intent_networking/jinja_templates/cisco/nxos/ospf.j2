@@ -1,0 +1,36 @@
+{# ospf.j2 — nxos #}
+! OSPF Configuration
+! Intent: {{ intent_id }}
+!
+feature ospf
+!
+router ospf {{ process_id }}
+  router-id {{ router_id }}
+{% if max_lsa | default("") %}
+  max-lsa {{ max_lsa }}
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+  ip router ospf {{ process_id }} area {{ iface.area | default(area) }}
+{% if iface.cost | default("") %}
+  ip ospf cost {{ iface.cost }}
+{% endif %}
+{% if iface.network_type | default("") == "point-to-point" %}
+  ip ospf network point-to-point
+{% endif %}
+{% if iface.name in passive_interfaces | default([]) %}
+  ip ospf passive-interface
+{% endif %}
+{% if hello_interval | default("") %}
+  ip ospf hello-interval {{ hello_interval }}
+{% endif %}
+{% if dead_interval | default("") %}
+  ip ospf dead-interval {{ dead_interval }}
+{% endif %}
+{% endfor %}
+!
+{% for route in redistribute | default([]) %}
+router ospf {{ process_id }}
+  redistribute {{ route }} route-map PERMIT-ALL
+{% endfor %}

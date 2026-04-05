@@ -1,10 +1,9 @@
 {# storm_control.j2 — junos #}
-! Primitive: storm_control
+! Storm Control
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for storm_control on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+{% if broadcast_level | default("") %}
+set interfaces {{ iface }} unit 0 family ethernet-switching storm-control level {{ broadcast_level }}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,12 @@
+{# static_route_removal.j2 — ios-xe #}
+! Remove Static Routes
+! Intent: {{ intent_id }}
+!
+{% for route in routes | default([]) %}
+{% if route.vrf | default("") %}
+no ip route vrf {{ route.vrf }} {{ route.prefix }} {{ route.mask | default("") }} {{ route.next_hop }}
+{% else %}
+no ip route {{ route.prefix }} {{ route.mask | default("") }} {{ route.next_hop }}
+{% endif %}
+{% endfor %}
+!

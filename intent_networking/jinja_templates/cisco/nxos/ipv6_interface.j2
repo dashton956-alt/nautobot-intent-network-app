@@ -1,0 +1,14 @@
+{# ipv6_interface.j2 — nxos #}
+! IPv6 Interface Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+  ipv6 address {{ iface.ipv6_address }}
+{% if iface.link_local | default("") %}
+  ipv6 address {{ iface.link_local }} link-local
+{% endif %}
+{% if iface.ra_suppress | default(false) %}
+  ipv6 nd suppress-ra
+{% endif %}
+{% endfor %}

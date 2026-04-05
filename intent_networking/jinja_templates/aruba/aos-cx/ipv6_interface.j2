@@ -1,10 +1,10 @@
 {# ipv6_interface.j2 — aos-cx #}
-! Primitive: ipv6_interface
+! IPv6 Interface
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for ipv6_interface on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+interface {{ interface }}
+    ipv6 address {{ ipv6_address }}
+{% if description | default("") %}
+    description {{ description }}
+{% endif %}
+    no shutdown

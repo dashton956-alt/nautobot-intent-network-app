@@ -1,0 +1,11 @@
+{# dot1x_removal.j2 — nxos #}
+! Remove 802.1X
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+  no dot1x port-control
+  no dot1x host-mode
+{% endfor %}
+no feature dot1x
+!

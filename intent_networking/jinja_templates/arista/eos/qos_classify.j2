@@ -1,0 +1,47 @@
+{# qos_classify.j2 — arista-eos #}
+! QoS Classification Configuration
+! Intent: {{ intent_id }}
+!
+{% for cm in class_maps | default([]) %}
+{% if cm.acl %}
+ip access-list {{ cm.acl }}
+{% for rule in cm.rules | default([]) %}
+   {{ rule.seq | default(loop.index * 10) }} {{ rule.action | default("permit") }} {{ rule.protocol | default("ip") }} {{ rule.source | default("any") }} {{ rule.destination | default("any") }}{% if rule.dscp %} dscp {{ rule.dscp }}{% endif %}
+
+{% endfor %}
+!
+{% endif %}
+class-map match-any {{ cm.name }}
+{% if cm.acl %}
+   match ip access-group {{ cm.acl }}
+{% endif %}
+{% if cm.dscp %}
+   match dscp {{ cm.dscp }}
+{% endif %}
+{% if cm.cos %}
+   match cos {{ cm.cos }}
+{% endif %}
+{% if cm.protocol %}
+   match protocol {{ cm.protocol }}
+{% endif %}
+!
+{% endfor %}
+policy-map {{ policy_map }}
+{% for cm in class_maps | default([]) %}
+   class {{ cm.name }}
+{% if cm.set_dscp %}
+      set dscp {{ cm.set_dscp }}
+{% endif %}
+{% if cm.set_cos %}
+      set cos {{ cm.set_cos }}
+{% endif %}
+{% if cm.police_rate %}
+      police rate {{ cm.police_rate }} bps burst {{ cm.police_burst | default(8000) }} bytes
+{% endif %}
+{% endfor %}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+   service-policy {{ direction | default("input") }} {{ policy_map }}
+!
+{% endfor %}

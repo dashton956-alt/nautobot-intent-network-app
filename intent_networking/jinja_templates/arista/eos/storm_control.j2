@@ -1,0 +1,18 @@
+{# storm_control.j2 — arista-eos #}
+! Storm Control Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+{% if broadcast_level %}
+   storm-control broadcast level {{ broadcast_level }}
+{% endif %}
+{% if multicast_level %}
+   storm-control multicast level {{ multicast_level }}
+{% endif %}
+{% if unicast_level %}
+   storm-control unknown-unicast level {{ unicast_level }}
+{% endif %}
+{% if action %}
+   storm-control action {{ action }}
+{% endif %}
+!

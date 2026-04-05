@@ -1,0 +1,5 @@
+{# port_security_removal.j2 — aos-cx #}
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+    no port-access port-security
+{% endfor %}

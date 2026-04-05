@@ -1,0 +1,8 @@
+{# stp_removal.j2 — ios-xe #}
+! Remove STP Config
+! Intent: {{ intent_id }}
+!
+{% for vlan in vlans | default([]) %}
+no spanning-tree vlan {{ vlan.id | default(vlan) }} priority
+{% endfor %}
+!

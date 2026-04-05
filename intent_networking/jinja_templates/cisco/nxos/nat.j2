@@ -1,0 +1,31 @@
+{# nat.j2 — nxos #}
+! NAT Configuration
+! Intent: {{ intent_id }}
+!
+{% if nat_type == "static" %}
+{% for mapping in static_mappings | default([]) %}
+ip nat source static {{ mapping.inside }} {{ mapping.outside }}{% if mapping.vrf | default("") %} vrf {{ mapping.vrf }}{% endif %}
+
+{% endfor %}
+{% elif nat_type == "dynamic" %}
+{% if pool_name | default("") %}
+ip nat pool {{ pool_name }} {{ pool_start }} {{ pool_end }} prefix-length {{ prefix_length | default(24) }}
+{% endif %}
+{% if acl | default("") %}
+ip nat source list {{ acl }} pool {{ pool_name }}{% if overload | default(false) %} overload{% endif %}
+
+{% endif %}
+{% elif nat_type == "pat" or nat_type == "overload" %}
+{% if acl | default("") %}
+ip nat source list {{ acl }} interface {{ outside_interface }} overload
+{% endif %}
+{% endif %}
+!
+{% if inside_interface | default("") %}
+interface {{ inside_interface }}
+  ip nat inside
+{% endif %}
+{% if outside_interface | default("") %}
+interface {{ outside_interface }}
+  ip nat outside
+{% endif %}

@@ -1,0 +1,10 @@
+{# qos_marking.j2 — junos #}
+! QoS Marking (Rewrite)
+! Intent: {{ intent_id }}
+!
+{% for entry in entries | default([]) %}
+set class-of-service rewrite-rules dscp {{ rewrite_name | default("QOS-REWRITE") }} forwarding-class {{ entry.forwarding_class }} loss-priority {{ entry.loss_priority | default("low") }} code-point {{ entry.dscp }}
+{% endfor %}
+{% for iface in interfaces | default([]) %}
+set class-of-service interfaces {{ iface }} unit 0 rewrite-rules dscp {{ rewrite_name | default("QOS-REWRITE") }}
+{% endfor %}

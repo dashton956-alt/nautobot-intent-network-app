@@ -1,10 +1,24 @@
 {# eigrp.j2 — ios-xe #}
-! Primitive: eigrp
+! EIGRP Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for eigrp on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if named_mode | default(false) %}
+router eigrp {{ eigrp_name }}
+ address-family ipv4 unicast autonomous-system {{ asn }}
+{% for net in networks | default([]) %}
+  network {{ net.network }} {{ net.wildcard }}
+{% endfor %}
+{% if stub | default(false) %}
+  eigrp stub {{ stub_options | default("connected summary") }}
+{% endif %}
+ exit-address-family
+{% else %}
+router eigrp {{ asn }}
+{% for net in networks | default([]) %}
+ network {{ net.network }} {{ net.wildcard }}
+{% endfor %}
+{% if stub | default(false) %}
+ eigrp stub {{ stub_options | default("connected summary") }}
+{% endif %}
+{% endif %}
 !

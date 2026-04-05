@@ -1,10 +1,7 @@
 {# 6pe_6vpe.j2 — junos #}
-! Primitive: 6pe_6vpe
+! 6PE/6VPE
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for 6pe_6vpe on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for neighbor in neighbors | default([]) %}
+set protocols bgp group {{ bgp_group | default("6PE") }} neighbor {{ neighbor.ip }} family inet6 labeled-unicast
+{% endfor %}

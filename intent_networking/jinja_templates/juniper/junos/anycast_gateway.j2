@@ -1,10 +1,14 @@
 {# anycast_gateway.j2 — junos #}
-! Primitive: anycast_gateway
+! Anycast Gateway (IRB)
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for anycast_gateway on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set interfaces irb unit {{ vlan_id }} family inet address {{ ip_address }}/{{ prefix_len | default(24) }} virtual-gateway-address {{ virtual_ip | default("") }}
+{% if description | default("") %}
+set interfaces irb unit {{ vlan_id }} description "{{ description }}"
+{% endif %}
+{% if vrf | default("") %}
+set routing-instances {{ vrf }} interface irb.{{ vlan_id }}
+{% endif %}
+{% if virtual_mac | default("") %}
+set interfaces irb unit {{ vlan_id }} virtual-gateway-v4-mac {{ virtual_mac }}
+{% endif %}

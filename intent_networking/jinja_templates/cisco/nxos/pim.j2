@@ -1,0 +1,27 @@
+{# pim.j2 — nxos #}
+! PIM Configuration
+! Intent: {{ intent_id }}
+!
+feature pim
+!
+{% if rp_address | default("") %}
+{% if rp_type | default("static") == "static" %}
+ip pim rp-address {{ rp_address }}
+{% elif rp_type == "bsr" %}
+ip pim bsr bsr-candidate {{ bsr_candidate | default(rp_address) }}
+ip pim bsr rp-candidate {{ rp_address }}
+{% elif rp_type == "anycast" %}
+ip pim rp-address {{ rp_address }}
+{% for rp in anycast_rp_set | default([]) %}
+ip pim anycast-rp {{ rp_address }} {{ rp }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% if ssm_range | default("") %}
+ip pim ssm range {{ ssm_range }}
+{% endif %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+  ip pim sparse-mode
+{% endfor %}

@@ -1,0 +1,8 @@
+{# anycast_gateway_removal.j2 — ios-xe #}
+! Remove Anycast Gateway
+! Intent: {{ intent_id }}
+!
+interface Vlan{{ vlan_id }}
+ no standby {{ group_id | default(1) }}
+ no ip address
+!

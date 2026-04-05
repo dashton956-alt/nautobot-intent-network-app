@@ -1,10 +1,18 @@
 {# dhcp_pool.j2 — aos-cx #}
-! Primitive: dhcp_pool
+! DHCP Pool
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for dhcp_pool on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+dhcp-server pool {{ pool_name | default("POOL-1") }}
+    range {{ range_start | default("") }} {{ range_end | default("") }} prefix-length {{ prefix_len | default(24) }}
+{% if default_gateway | default("") %}
+    default-router {{ default_gateway }}
+{% endif %}
+{% if dns_servers | default([]) %}
+{% for dns in dns_servers %}
+    dns-server {{ dns }}
+{% endfor %}
+{% endif %}
+{% if lease_time | default("") %}
+    lease {{ lease_time }}
+{% endif %}
+    enable

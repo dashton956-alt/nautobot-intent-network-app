@@ -1,10 +1,11 @@
 {# vtep.j2 — junos #}
-! Primitive: vtep
+! VTEP / VXLAN Tunnel
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for vtep on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+set interfaces lo0 unit 0 family inet address {{ source_ip | default("") }}/32
+set switch-options vtep-source-interface lo0.0
+set protocols evpn encapsulation vxlan
+set protocols evpn multicast-mode ingress-replication
+{% for vni in vnis | default([]) %}
+set vlans VNI-{{ vni.id }} vxlan vni {{ vni.id }}
+{% endfor %}

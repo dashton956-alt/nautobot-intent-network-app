@@ -1,10 +1,13 @@
 {# dns.j2 — junos #}
-! Primitive: dns
+! DNS Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for dns on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for server in servers | default([]) %}
+set system name-server {{ server }}
+{% endfor %}
+{% if domain_name | default("") %}
+set system domain-name {{ domain_name }}
+{% endif %}
+{% for domain in search_domains | default([]) %}
+set system domain-search {{ domain }}
+{% endfor %}

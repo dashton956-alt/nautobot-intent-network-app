@@ -1,0 +1,24 @@
+{# bgp_evpn_af.j2 — arista-eos #}
+! BGP EVPN Address Family Configuration
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+   address-family evpn
+{% for neighbor in neighbors | default([]) %}
+      neighbor {{ neighbor.ip }} activate
+{% endfor %}
+{% if advertise_all_vni %}
+!
+{% endif %}
+{% if route_target_auto %}
+!
+{% endif %}
+!
+{% for neighbor in neighbors | default([]) %}
+   neighbor {{ neighbor.ip }} remote-as {{ neighbor.remote_asn | default(local_asn) }}
+{% if neighbor.update_source %}
+   neighbor {{ neighbor.ip }} update-source {{ neighbor.update_source }}
+{% endif %}
+   neighbor {{ neighbor.ip }} send-community extended
+{% endfor %}
+!

@@ -1,0 +1,11 @@
+{# stp_removal.j2 — nxos #}
+! Remove STP Configuration
+! Intent: {{ intent_id }}
+!
+{% for vlan in vlans | default([]) %}
+no spanning-tree vlan {{ vlan }} priority
+{% endfor %}
+{% if mode | default("") %}
+no spanning-tree mode
+{% endif %}
+!

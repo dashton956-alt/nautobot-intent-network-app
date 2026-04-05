@@ -1,10 +1,11 @@
 {# eigrp.j2 — ios-xr #}
-! Primitive: eigrp
+! EIGRP (IOS-XR — limited support)
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
+! Note: IOS-XR has limited EIGRP support. Consider OSPF/IS-IS.
 !
-! TODO: Implement vendor-specific CLI for eigrp on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router eigrp {{ asn }}
+ address-family ipv4
+{% for iface in interfaces | default([]) %}
+  interface {{ iface.name }}
+{% endfor %}
 !

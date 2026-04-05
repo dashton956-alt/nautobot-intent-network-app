@@ -1,0 +1,13 @@
+{# qos_classify_removal.j2 — nxos #}
+! Remove QoS Classification
+! Intent: {{ intent_id }}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+  no service-policy type qos input {{ policy_map }}
+{% endfor %}
+no policy-map type qos {{ policy_map }}
+{% for cm in class_maps | default([]) %}
+no class-map type qos {{ cm.name }}
+{% endfor %}
+!

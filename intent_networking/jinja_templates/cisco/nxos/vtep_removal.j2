@@ -1,0 +1,8 @@
+{# vtep_removal.j2 — nxos #}
+! Remove VTEP
+! Intent: {{ intent_id }}
+!
+no interface nve1
+no feature nv overlay
+no feature vn-segment-vlan-based
+!

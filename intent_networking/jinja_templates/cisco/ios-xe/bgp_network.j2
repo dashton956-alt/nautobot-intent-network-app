@@ -1,10 +1,16 @@
 {# bgp_network.j2 — ios-xe #}
-! Primitive: bgp_network
+! BGP Network Advertisement
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for bgp_network on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router bgp {{ local_asn }}
+{% if vrf | default("") %}
+ address-family ipv4 vrf {{ vrf }}
+{% else %}
+ address-family ipv4 unicast
+{% endif %}
+{% for net in networks | default([]) %}
+  network {{ net.prefix }}{% if net.mask | default("") %} mask {{ net.mask }}{% endif %}{% if net.route_map | default("") %} route-map {{ net.route_map }}{% endif %}
+
+{% endfor %}
+ exit-address-family
 !

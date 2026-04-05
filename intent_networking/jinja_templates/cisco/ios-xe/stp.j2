@@ -1,10 +1,15 @@
 {# stp.j2 — ios-xe #}
-! Primitive: stp
+! STP Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for stp on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+spanning-tree mode {{ mode | default("rapid-pvst") }}
+{% if bpdu_guard_default | default(false) %}
+spanning-tree portfast bpduguard default
+{% endif %}
+{% if portfast_default | default(false) %}
+spanning-tree portfast default
+{% endif %}
+{% for vlan in vlans | default([]) %}
+spanning-tree vlan {{ vlan.id }} priority {{ vlan.priority | default(32768) }}
+{% endfor %}
 !

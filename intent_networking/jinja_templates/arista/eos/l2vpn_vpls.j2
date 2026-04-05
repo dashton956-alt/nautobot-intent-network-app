@@ -1,0 +1,15 @@
+{# l2vpn_vpls.j2 — arista-eos #}
+! L2VPN VPLS Configuration
+! Intent: {{ intent_id }}
+!
+{% if vpls_id %}
+router bgp {{ local_asn }}
+   vlan {{ vlan_id }}
+      rd {{ route_distinguisher | default("auto") }}
+      route-target both {{ route_target }}
+!
+{% endif %}
+{% for pw in pseudowires | default([]) %}
+! Pseudowire: {{ pw.neighbor }} VC-ID {{ pw.vc_id }}
+{% endfor %}
+!

@@ -1,10 +1,11 @@
 {# dai.j2 — aos-cx #}
-! Primitive: dai
+! Dynamic ARP Inspection
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for dai on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for vlan_item in vlans | default([]) %}
+ip arp inspection vlan {{ vlan_item }}
+{% endfor %}
+{% for iface in trusted_interfaces | default([]) %}
+interface {{ iface }}
+    ip arp inspection trust
+{% endfor %}

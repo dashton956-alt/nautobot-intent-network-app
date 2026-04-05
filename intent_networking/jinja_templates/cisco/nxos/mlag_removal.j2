@@ -1,0 +1,7 @@
+{# mlag_removal.j2 — nxos #}
+! Remove vPC/MLAG
+! Intent: {{ intent_id }}
+!
+no vpc domain {{ domain_id }}
+no feature vpc
+!

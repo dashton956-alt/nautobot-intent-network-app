@@ -1,10 +1,11 @@
 {# l2vpn_vpls.j2 — ios-xe #}
-! Primitive: l2vpn_vpls
+! L2VPN VPLS
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for l2vpn_vpls on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+l2vpn vfi context {{ vfi_name }}
+ vpn id {{ vpn_id }}
+ autodiscovery bgp signaling ldp
+{% for peer in peers | default([]) %}
+  neighbor {{ peer.ip }} encapsulation mpls
+{% endfor %}
 !

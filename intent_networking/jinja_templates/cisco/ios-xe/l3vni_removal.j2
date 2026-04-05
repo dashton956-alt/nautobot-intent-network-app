@@ -1,0 +1,10 @@
+{# l3vni_removal.j2 — ios-xe #}
+! Remove L3 VNI
+! Intent: {{ intent_id }}
+!
+{% if vlan_id | default("") %}
+no interface Vlan{{ vlan_id }}
+no vlan {{ vlan_id }}
+{% endif %}
+no vrf definition {{ vrf_name }}
+!

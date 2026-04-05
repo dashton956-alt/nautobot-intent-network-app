@@ -1,0 +1,7 @@
+{# ip_sla_removal.j2 — ios-xe #}
+! Remove IP SLA
+! Intent: {{ intent_id }}
+!
+no ip sla schedule {{ sla_id }}
+no ip sla {{ sla_id }}
+!

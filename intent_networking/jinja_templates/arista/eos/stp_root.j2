@@ -1,0 +1,11 @@
+{# stp_root.j2 — arista-eos #}
+! STP Root Bridge Configuration
+! Intent: {{ intent_id }}
+!
+{% for vlan in primary_vlans | default([]) %}
+spanning-tree vlan {{ vlan }} priority {{ priority | default(4096) }}
+{% endfor %}
+{% for vlan in secondary_vlans | default([]) %}
+spanning-tree vlan {{ vlan }} priority {{ secondary_priority | default(8192) }}
+{% endfor %}
+!

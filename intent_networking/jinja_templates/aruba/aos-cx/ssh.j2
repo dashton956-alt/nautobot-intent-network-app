@@ -1,10 +1,14 @@
 {# ssh.j2 — aos-cx #}
-! Primitive: ssh
+! SSH Configuration
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for ssh on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+ssh server vrf {{ vrf | default("default") }}
+{% if max_sessions | default("") %}
+ssh maximum-sessions {{ max_sessions }}
+{% endif %}
+{% if timeout | default("") %}
+ssh idle-timeout {{ timeout }}
+{% endif %}
+{% for key_type in host_key_algorithms | default([]) %}
+ssh host-key {{ key_type }}
+{% endfor %}

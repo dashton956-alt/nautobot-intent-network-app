@@ -1,0 +1,22 @@
+{# ip_sla.j2 — nxos #}
+! IP SLA Configuration
+! Intent: {{ intent_id }}
+!
+feature sla sender
+!
+ip sla {{ sla_id }}
+{% if probe_type | default("icmp-echo") == "icmp-echo" %}
+  icmp-echo {{ target }}
+{% elif probe_type == "tcp-connect" %}
+  tcp-connect {{ target }}
+{% elif probe_type == "udp-echo" %}
+  udp-echo {{ target }}
+{% endif %}
+{% if threshold | default("") %}
+  threshold {{ threshold }}
+{% endif %}
+{% if timeout | default("") %}
+  timeout {{ timeout }}
+{% endif %}
+  frequency {{ frequency | default(60) }}
+ip sla schedule {{ sla_id }} life forever start-time now

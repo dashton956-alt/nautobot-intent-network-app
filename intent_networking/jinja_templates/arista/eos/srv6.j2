@@ -1,0 +1,17 @@
+{# srv6.j2 — arista-eos #}
+! SRv6 Configuration
+! Intent: {{ intent_id }}
+!
+segment-routing
+   srv6
+      locator {{ locator_name | default("SRv6-LOC") }}
+         prefix {{ prefix }}
+!
+{% for sid in sids | default([]) %}
+!  SID: {{ sid.function }} -> {{ sid.behavior }}
+{% endfor %}
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+   segment-routing srv6
+!
+{% endfor %}

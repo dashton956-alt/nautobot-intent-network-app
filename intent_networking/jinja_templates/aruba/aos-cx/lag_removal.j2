@@ -1,0 +1,6 @@
+{# lag_removal.j2 — aos-cx #}
+{% for member in members | default([]) %}
+interface {{ member }}
+    no lag {{ lag_id }}
+{% endfor %}
+no interface lag {{ lag_id }}

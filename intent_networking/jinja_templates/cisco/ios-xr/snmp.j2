@@ -1,10 +1,30 @@
 {# snmp.j2 — ios-xr #}
-! Primitive: snmp
+! SNMP Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for snmp on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if location | default("") %}
+snmp-server location {{ location }}
+{% endif %}
+{% if contact | default("") %}
+snmp-server contact {{ contact }}
+{% endif %}
+{% if version | default("v2c") == "v3" %}
+{% for view in views | default([]) %}
+snmp-server view {{ view.name }} {{ view.oid }} included
+{% endfor %}
+{% for group in groups | default([]) %}
+snmp-server group {{ group.name }} v3 {{ group.security_level | default("priv") }}{% if group.read_view | default("") %} read {{ group.read_view }}{% endif %}
+
+{% endfor %}
+{% for user in users | default([]) %}
+snmp-server user {{ user.name }} {{ user.group }} v3 auth {{ user.auth_protocol | default("sha") }} {{ user.auth_password }} priv {{ user.priv_protocol | default("aes") }} 128 {{ user.priv_password }}
+{% endfor %}
+{% elif community | default("") %}
+snmp-server community {{ community }} ro
+{% endif %}
+{% for target in trap_targets | default([]) %}
+snmp-server host {{ target }}{% if version | default("v2c") == "v3" %} traps version 3 priv{% elif community | default("") %} traps version 2c {{ community }}{% endif %}
+
+{% endfor %}
+snmp-server traps
 !

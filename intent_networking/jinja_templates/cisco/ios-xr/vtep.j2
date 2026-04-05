@@ -1,10 +1,13 @@
 {# vtep.j2 — ios-xr #}
-! Primitive: vtep
+! VTEP / NVE
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for vtep on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+interface nve1
+ source {{ source_interface | default("Loopback1") }}
+{% for vni in vnis | default([]) %}
+ member vni {{ vni.id }}
+{% if vni.ingress_replication | default(false) %}
+  ingress-replication bgp
+{% endif %}
+{% endfor %}
 !

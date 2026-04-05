@@ -1,0 +1,7 @@
+{# bgp_ipv6_af_removal.j2 — aos-cx #}
+router bgp {{ local_asn }}
+    address-family ipv6 unicast
+{% for neighbor in neighbors | default([]) %}
+        no neighbor {{ neighbor.ip }} activate
+{% endfor %}
+    exit-address-family

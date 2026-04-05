@@ -1,0 +1,9 @@
+{# l2vni_removal.j2 — ios-xr #}
+! Remove L2 VNI
+! Intent: {{ intent_id }}
+!
+no evpn evi {{ evi | default(vlan_id) }}
+l2vpn
+ bridge group {{ bridge_group | default("VXLAN-BG") }}
+  no bridge-domain {{ bridge_domain | default("BD-" ~ vlan_id) }}
+!

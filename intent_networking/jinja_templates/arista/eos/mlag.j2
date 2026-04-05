@@ -1,0 +1,34 @@
+{# mlag.j2 — arista-eos #}
+! MLAG Configuration
+! Intent: {{ intent_id }}
+!
+{% if keepalive_vlan %}
+vlan {{ keepalive_vlan }}
+   name MLAG-KEEPALIVE
+   trunk group MLAG-PEER
+!
+{% endif %}
+{% if peer_link_vlan %}
+vlan {{ peer_link_vlan }}
+   name MLAG-PEER
+   trunk group MLAG-PEER
+!
+{% endif %}
+{% for iface in peer_link_interfaces %}
+interface {{ iface }}
+{% if description %}
+   description {{ description }}
+{% endif %}
+   switchport mode trunk
+   switchport trunk group MLAG-PEER
+   no shutdown
+!
+{% endfor %}
+mlag configuration
+   domain-id {{ domain_id }}
+   local-interface Vlan{{ peer_link_vlan | default(4094) }}
+   peer-address {{ peer_address }}
+   peer-link Port-Channel{{ peer_link_channel | default(2000) }}
+   reload-delay mlag {{ reload_delay | default(300) }}
+   reload-delay non-mlag {{ reload_delay_non_mlag | default(330) }}
+!

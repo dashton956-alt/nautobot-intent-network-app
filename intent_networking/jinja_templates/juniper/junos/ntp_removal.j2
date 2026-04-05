@@ -1,0 +1,4 @@
+{# ntp_removal.j2 — junos #}
+{% for server in servers | default([]) %}
+delete system ntp server {{ server.ip }}
+{% endfor %}

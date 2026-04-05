@@ -1,0 +1,68 @@
+{# bgp_neighbor.j2 — arista-eos #}
+! BGP Neighbor — {{ neighbor_description | default(neighbor_ip) }}
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+{% if vrf_name %}
+   vrf {{ vrf_name }}
+{% endif %}
+   neighbor {{ neighbor_ip }} remote-as {{ neighbor_asn }}
+{% if neighbor_description %}
+   neighbor {{ neighbor_ip }} description {{ neighbor_description }}
+{% endif %}
+{% if update_source %}
+   neighbor {{ neighbor_ip }} update-source {{ update_source }}
+{% endif %}
+{% if multihop %}
+   neighbor {{ neighbor_ip }} ebgp-multihop {{ multihop }}
+{% endif %}
+{% if password %}
+   neighbor {{ neighbor_ip }} password {{ password }}
+{% endif %}
+{% if bfd_enabled %}
+   neighbor {{ neighbor_ip }} bfd
+{% endif %}
+{% if timers_keepalive and timers_hold %}
+   neighbor {{ neighbor_ip }} timers {{ timers_keepalive }} {{ timers_hold }}
+{% endif %}
+{% if next_hop_self %}
+   neighbor {{ neighbor_ip }} next-hop-self
+{% endif %}
+{% if route_reflector_client %}
+   neighbor {{ neighbor_ip }} route-reflector-client
+{% endif %}
+{% if send_community %}
+   neighbor {{ neighbor_ip }} send-community {{ send_community }}
+{% endif %}
+{% if max_prefix %}
+   neighbor {{ neighbor_ip }} maximum-routes {{ max_prefix }}
+{% endif %}
+{% if route_map_in %}
+   neighbor {{ neighbor_ip }} route-map {{ route_map_in }} in
+{% endif %}
+{% if route_map_out %}
+   neighbor {{ neighbor_ip }} route-map {{ route_map_out }} out
+{% endif %}
+{% if prefix_list_in %}
+   neighbor {{ neighbor_ip }} prefix-list {{ prefix_list_in }} in
+{% endif %}
+{% if prefix_list_out %}
+   neighbor {{ neighbor_ip }} prefix-list {{ prefix_list_out }} out
+{% endif %}
+{% if default_originate %}
+   neighbor {{ neighbor_ip }} default-originate
+{% endif %}
+{% if allowas_in %}
+   neighbor {{ neighbor_ip }} allowas-in {{ allowas_in }}
+{% endif %}
+   neighbor {{ neighbor_ip }} activate
+{% if maximum_paths %}
+   maximum-paths {{ maximum_paths }}
+{% endif %}
+{% if local_preference %}
+   bgp default local-preference {{ local_preference }}
+{% endif %}
+{% if graceful_restart %}
+   graceful-restart
+{% endif %}
+!

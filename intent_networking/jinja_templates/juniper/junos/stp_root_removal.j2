@@ -1,0 +1,4 @@
+{# stp_root_removal.j2 — junos #}
+{% for vlan in primary_vlans | default([]) %}
+delete protocols vstp vlan {{ vlan }} bridge-priority
+{% endfor %}

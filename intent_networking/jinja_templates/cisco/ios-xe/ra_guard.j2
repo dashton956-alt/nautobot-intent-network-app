@@ -1,10 +1,14 @@
 {# ra_guard.j2 — ios-xe #}
-! Primitive: ra_guard
+! IPv6 RA Guard
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for ra_guard on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% for policy in policies | default([]) %}
+ipv6 nd raguard policy {{ policy.name }}
+ device-role {{ policy.device_role | default("host") }}
+{% endfor %}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+ ipv6 nd raguard attach-policy {{ iface.policy }}
+{% endfor %}
 !

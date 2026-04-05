@@ -1,10 +1,14 @@
 {# mvpn.j2 — ios-xe #}
-! Primitive: mvpn
+! MVPN Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for mvpn on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+ip multicast-routing vrf {{ vrf }}
+!
+vrf definition {{ vrf }}
+ address-family ipv4
+  mdt default {{ mdt_default_group }}
+{% if mdt_data_group | default("") %}
+  mdt data {{ mdt_data_group }} threshold {{ mdt_data_threshold | default(0) }}
+{% endif %}
+ exit-address-family
 !

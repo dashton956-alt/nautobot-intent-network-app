@@ -1,0 +1,2 @@
+{# l2vni_removal.j2 — junos #}
+delete vlans {{ vlan_name | default("VLAN" ~ vlan_id) }} vxlan

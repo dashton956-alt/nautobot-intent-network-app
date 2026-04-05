@@ -1,10 +1,24 @@
 {# ipsec_tunnel.j2 — ios-xe #}
-! Primitive: ipsec_tunnel
+! IPsec Tunnel
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for ipsec_tunnel on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+crypto isakmp policy {{ policy_id | default(10) }}
+ encryption {{ encryption | default("aes 256") }}
+ hash {{ hash | default("sha256") }}
+ authentication {{ auth_method | default("pre-share") }}
+ group {{ dh_group | default(14) }}
+ lifetime {{ lifetime | default(86400) }}
+!
+crypto isakmp key {{ psk }} address {{ peer_ip }}
+!
+crypto ipsec transform-set {{ transform_set | default("TS-AES256-SHA") }} esp-aes 256 esp-sha256-hmac
+ mode {{ ipsec_mode | default("tunnel") }}
+!
+crypto map {{ crypto_map | default("CRYPTO-MAP") }} {{ sequence | default(10) }} ipsec-isakmp
+ set peer {{ peer_ip }}
+ set transform-set {{ transform_set | default("TS-AES256-SHA") }}
+ match address {{ acl_name }}
+!
+interface {{ interface }}
+ crypto map {{ crypto_map | default("CRYPTO-MAP") }}
 !

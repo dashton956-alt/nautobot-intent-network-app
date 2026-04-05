@@ -1,0 +1,16 @@
+{# qos_policing.j2 — junos #}
+! QoS Policing
+! Intent: {{ intent_id }}
+!
+{% for policer in policers | default([]) %}
+set firewall policer {{ policer.name }} if-exceeding bandwidth-limit {{ policer.rate }}
+set firewall policer {{ policer.name }} if-exceeding burst-size-limit {{ policer.burst | default("15k") }}
+{% if policer.action | default("discard") == "discard" %}
+set firewall policer {{ policer.name }} then discard
+{% else %}
+set firewall policer {{ policer.name }} then loss-priority high then forwarding-class best-effort
+{% endif %}
+{% endfor %}
+{% for iface in policy_interfaces | default([]) %}
+set interfaces {{ iface.name }} unit 0 family inet policer input {{ iface.policer }}
+{% endfor %}

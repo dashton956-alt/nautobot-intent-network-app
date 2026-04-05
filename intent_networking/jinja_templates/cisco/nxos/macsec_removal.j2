@@ -1,0 +1,13 @@
+{# macsec_removal.j2 — nxos #}
+! Remove MACsec
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+  no macsec policy
+{% if policy_name | default("") %}
+no macsec policy {{ policy_name }}
+{% endif %}
+{% if key_chain | default("") %}
+no key chain {{ key_chain }} macsec
+{% endif %}
+!

@@ -1,0 +1,14 @@
+{# ntp.j2 — nxos #}
+! NTP Configuration
+! Intent: {{ intent_id }}
+!
+{% if source_interface | default("") %}
+ntp source-interface {{ source_interface }}
+{% endif %}
+{% for server in servers | default([]) %}
+{% if server == prefer | default("") %}
+ntp server {{ server }} prefer
+{% else %}
+ntp server {{ server }}
+{% endif %}
+{% endfor %}

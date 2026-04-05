@@ -1,0 +1,24 @@
+{# msdp.j2 — arista-eos #}
+! MSDP Configuration
+! Intent: {{ intent_id }}
+!
+{% if originator_id %}
+ip msdp originator-id {{ originator_id }}
+{% endif %}
+{% for peer in peers | default([]) %}
+ip msdp peer {{ peer.ip }}{% if peer.remote_as %} remote-as {{ peer.remote_as }}{% endif %}
+
+{% if peer.connect_source %}
+ip msdp peer {{ peer.ip }} connect-source {{ peer.connect_source }}
+{% endif %}
+{% if peer.sa_limit %}
+ip msdp peer {{ peer.ip }} sa-limit {{ peer.sa_limit }}
+{% endif %}
+{% endfor %}
+{% if default_peer %}
+ip msdp default-peer {{ default_peer }}
+{% endif %}
+{% if sa_filter %}
+ip msdp sa-filter {{ sa_filter.direction }} {{ sa_filter.list }}
+{% endif %}
+!

@@ -1,10 +1,10 @@
 {# ldp.j2 — junos #}
-! Primitive: ldp
+! LDP Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for ldp on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+set protocols ldp interface {{ iface }}
+{% endfor %}
+{% if transport_address | default("") %}
+set protocols ldp transport-address {{ transport_address }}
+{% endif %}

@@ -1,0 +1,5 @@
+{# ipsec_tunnel_removal.j2 — junos #}
+delete security ipsec vpn {{ vpn_name | default("VPN-1") }}
+delete security ike gateway {{ gw_name | default("IKE-GW") }}
+delete security ike policy {{ ike_policy | default("IKE-POL") }}
+delete security ike proposal {{ proposal_name | default("IKE-PROP") }}

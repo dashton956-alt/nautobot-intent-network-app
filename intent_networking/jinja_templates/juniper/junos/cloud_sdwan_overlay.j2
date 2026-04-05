@@ -1,0 +1,9 @@
+{# cloud_sdwan_overlay.j2 — junos #}
+! Cloud SD-WAN Overlay
+! Intent: {{ intent_id }}
+! Note: SD-WAN overlays on JunOS are provisioned via Mist Cloud/128T.
+{% if tunnel_source | default("") %}
+set interfaces {{ tunnel_interface | default("gr-0/0/0") }} unit 0 tunnel source {{ tunnel_source }}
+set interfaces {{ tunnel_interface | default("gr-0/0/0") }} unit 0 tunnel destination {{ tunnel_destination | default("") }}
+set interfaces {{ tunnel_interface | default("gr-0/0/0") }} unit 0 family inet address {{ tunnel_ip | default("") }}/{{ prefix_len | default(30) }}
+{% endif %}

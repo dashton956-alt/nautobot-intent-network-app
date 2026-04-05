@@ -1,0 +1,15 @@
+{# macsec_removal.j2 — ios-xe #}
+! Remove MACsec
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+ no macsec network-link
+ no mka policy
+ no mka pre-shared-key key-chain
+{% if policy_name | default("") %}
+no mka policy {{ policy_name }}
+{% endif %}
+{% if key_chain | default("") %}
+no key chain {{ key_chain }} macsec
+{% endif %}
+!

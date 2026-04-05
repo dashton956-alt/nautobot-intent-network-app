@@ -1,0 +1,10 @@
+{# storm_control_removal.j2 — arista-eos #}
+! Remove Storm Control Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+   no storm-control broadcast level
+   no storm-control multicast level
+   no storm-control unknown-unicast level
+   no storm-control action
+!

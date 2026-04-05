@@ -1,10 +1,17 @@
 {# wan_uplink.j2 — ios-xe #}
-! Primitive: wan_uplink
+! WAN Uplink
 ! Intent: {{ intent_id }}
-! Platform: ios-xe
 !
-! TODO: Implement vendor-specific CLI for wan_uplink on ios-xe
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+interface {{ interface }}
+ no shutdown
+{% if description | default("") %}
+ description {{ description }}{% if isp_name | default("") %} — {{ isp_name }}{% endif %}
+
+{% endif %}
+ ip address {{ ip_address }} {{ subnet_mask | default("255.255.255.252") }}
+{% if default_route | default("") %}
+!
+ip route 0.0.0.0 0.0.0.0 {{ default_route }}{% if admin_distance | default("") %} {{ admin_distance }}{% endif %}
+
+{% endif %}
 !

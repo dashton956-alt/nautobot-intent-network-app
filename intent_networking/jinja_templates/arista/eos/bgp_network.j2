@@ -1,0 +1,13 @@
+{# bgp_network.j2 — arista-eos #}
+! BGP Network Advertisements
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+{% if vrf %}
+   vrf {{ vrf }}
+{% endif %}
+{% for net in networks %}
+   network {{ net }}{% if route_map %} route-map {{ route_map }}{% endif %}
+
+{% endfor %}
+!

@@ -1,0 +1,35 @@
+{# route_policy.j2 — arista-eos #}
+! Route-Map / Route Policy Configuration
+! Intent: {{ intent_id }}
+!
+{% for entry in entries %}
+route-map {{ policy_name }} {{ entry.action | default("permit") }} {{ entry.seq | default(loop.index * 10) }}
+{% if entry.match_prefix_list %}
+   match ip address prefix-list {{ entry.match_prefix_list }}
+{% endif %}
+{% if entry.match_community %}
+   match community {{ entry.match_community }}
+{% endif %}
+{% if entry.match_as_path %}
+   match as-path {{ entry.match_as_path }}
+{% endif %}
+{% if entry.set_local_preference %}
+   set local-preference {{ entry.set_local_preference }}
+{% endif %}
+{% if entry.set_med %}
+   set metric {{ entry.set_med }}
+{% endif %}
+{% if entry.set_community %}
+   set community {{ entry.set_community }}
+{% endif %}
+{% if entry.set_next_hop %}
+   set ip next-hop {{ entry.set_next_hop }}
+{% endif %}
+{% if entry.set_weight %}
+   set weight {{ entry.set_weight }}
+{% endif %}
+{% if entry.set_as_path_prepend %}
+   set as-path prepend {{ entry.set_as_path_prepend }}
+{% endif %}
+!
+{% endfor %}

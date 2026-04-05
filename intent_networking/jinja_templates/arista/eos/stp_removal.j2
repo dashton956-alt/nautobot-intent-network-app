@@ -1,0 +1,18 @@
+{# stp_removal.j2 — arista-eos #}
+! Remove Spanning Tree Configuration
+! Intent: {{ intent_id }}
+!
+no spanning-tree mode
+{% if priority %}
+no spanning-tree priority
+{% endif %}
+{% if portfast_default %}
+no spanning-tree edge-port default
+{% endif %}
+{% if bpdu_guard_default %}
+no spanning-tree guard root default
+{% endif %}
+{% if loopguard_default %}
+no spanning-tree guard loop default
+{% endif %}
+!

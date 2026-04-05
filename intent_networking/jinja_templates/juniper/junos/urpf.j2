@@ -1,10 +1,7 @@
 {# urpf.j2 — junos #}
-! Primitive: urpf
+! uRPF Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for urpf on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+set interfaces {{ iface }} unit 0 family inet rpf-check mode {{ mode | default("strict") }}
+{% endfor %}

@@ -1,0 +1,7 @@
+{# community_list.j2 — junos #}
+! Community List
+! Intent: {{ intent_id }}
+!
+{% for entry in entries | default([]) %}
+set policy-options community {{ community_name }} members {{ entry.community }}
+{% endfor %}

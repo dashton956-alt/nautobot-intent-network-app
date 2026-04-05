@@ -1,0 +1,25 @@
+{# dmvpn.j2 — nxos #}
+! DMVPN Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ tunnel_interface }}
+  no shutdown
+{% if description | default("") %}
+  description {{ description }}
+{% endif %}
+  ip address {{ tunnel_ip }}
+  tunnel source {{ tunnel_source | default('Ethernet1') }}
+{% if tunnel_key | default("") %}
+  tunnel key {{ tunnel_key }}
+{% endif %}
+  ip nhrp network-id {{ nhrp_network_id }}
+{% if nhrp_nhs | default("") %}
+  ip nhrp nhs {{ nhrp_nhs }}
+{% endif %}
+{% if nhrp_map | default("") %}
+  ip nhrp map {{ nhrp_map.tunnel_ip }} {{ nhrp_map.nbma_ip }}
+  ip nhrp map multicast {{ nhrp_map.nbma_ip }}
+{% endif %}
+{% if ipsec_profile | default("") %}
+  tunnel protection ipsec profile {{ ipsec_profile }}
+{% endif %}

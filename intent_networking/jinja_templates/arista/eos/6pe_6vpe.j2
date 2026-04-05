@@ -1,0 +1,20 @@
+{# 6pe_6vpe.j2 — arista-eos #}
+! 6PE/6VPE Configuration
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+   address-family ipv6
+{% for neighbor in neighbors | default([]) %}
+      neighbor {{ neighbor.ip }} activate
+      neighbor {{ neighbor.ip }} send-label
+{% endfor %}
+{% for net in networks | default([]) %}
+      network {{ net }}
+{% endfor %}
+!
+{% if vrf %}
+   vrf {{ vrf }}
+      address-family ipv6
+         redistribute connected
+!
+{% endif %}

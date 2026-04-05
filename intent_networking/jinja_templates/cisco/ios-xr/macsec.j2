@@ -1,10 +1,18 @@
 {# macsec.j2 — ios-xr #}
-! Primitive: macsec
+! MACsec Configuration
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for macsec on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+{% if key_chain | default("") %}
+key chain {{ key_chain }} macsec
+ key {{ key_id | default("01") }}
+  key-string password {{ key_string }}
+  lifetime {{ lifetime | default("00:00:00 january 1 2025 infinite") }}
+  macsec-cipher-suite {{ cipher_suite | default("gcm-aes-xpn-256") }}
+{% endif %}
+!
+interface {{ interface }}
+ macsec psk-keychain {{ key_chain | default("") }}
+{% if policy_name | default("") %}
+ macsec-policy {{ policy_name }}
+{% endif %}
 !

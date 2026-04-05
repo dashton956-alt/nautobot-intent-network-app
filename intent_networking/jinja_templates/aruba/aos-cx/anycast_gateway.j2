@@ -1,10 +1,17 @@
 {# anycast_gateway.j2 — aos-cx #}
-! Primitive: anycast_gateway
+! Anycast Gateway
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for anycast_gateway on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+interface vlan {{ vlan_id }}
+    ip address {{ ip_address }}/{{ prefix_len | default(24) }}
+{% if virtual_ip | default("") %}
+    active-gateway ip mac {{ virtual_mac | default("00:00:00:00:01:00") }}
+    active-gateway ip {{ virtual_ip }}
+{% endif %}
+{% if description | default("") %}
+    description {{ description }}
+{% endif %}
+{% if vrf | default("") %}
+    vrf attach {{ vrf }}
+{% endif %}
+    no shutdown

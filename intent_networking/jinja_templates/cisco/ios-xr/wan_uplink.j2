@@ -1,10 +1,19 @@
 {# wan_uplink.j2 — ios-xr #}
-! Primitive: wan_uplink
+! WAN Uplink
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for wan_uplink on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+interface {{ interface }}
+ no shutdown
+{% if description | default("") %}
+ description {{ description }}{% if isp_name | default("") %} — {{ isp_name }}{% endif %}
+
+{% endif %}
+ ipv4 address {{ ip_address }} {{ subnet_mask | default("255.255.255.252") }}
+{% if default_route | default("") %}
+!
+router static
+ address-family ipv4 unicast
+  0.0.0.0/0 {{ default_route }}{% if admin_distance | default("") %} {{ admin_distance }}{% endif %}
+
+{% endif %}
 !

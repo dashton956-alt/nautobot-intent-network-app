@@ -1,0 +1,4 @@
+{# bgp_ipv6_af_removal.j2 — junos #}
+{% for neighbor in neighbors | default([]) %}
+delete protocols bgp group {{ bgp_group | default("IPv6-PEERS") }} neighbor {{ neighbor.ip }} family inet6
+{% endfor %}

@@ -1,0 +1,13 @@
+{# multicast_pim.j2 — junos #}
+! PIM Multicast
+! Intent: {{ intent_id }}
+!
+{% if rp_address | default("") %}
+set protocols pim rp static address {{ rp_address }}
+{% endif %}
+{% for iface in interfaces | default([]) %}
+set protocols pim interface {{ iface.name }} mode {{ iface.mode | default("sparse") }}
+{% endfor %}
+{% if ssm_range | default("") %}
+set protocols pim rp static address {{ rp_address | default("") }} group-ranges {{ ssm_range }}
+{% endif %}

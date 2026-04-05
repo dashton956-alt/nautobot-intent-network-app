@@ -1,0 +1,4 @@
+{# vlan_removal.j2 — aos-cx #}
+{% for vlan in vlans | default([]) %}
+no vlan {{ vlan.id }}
+{% endfor %}

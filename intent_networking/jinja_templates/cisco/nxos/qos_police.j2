@@ -1,0 +1,12 @@
+{# qos_police.j2 — nxos #}
+! QoS Policing
+! Intent: {{ intent_id }}
+!
+policy-map type qos {{ policy_map }}
+  class class-default
+    police cir {{ rate_bps }} bc {{ burst_bytes | default(8000) }} conform {{ conform_action | default('transmit') }} violate {{ violate_action | default('drop') }} exceed {{ exceed_action | default('drop') }}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+  service-policy type qos input {{ policy_map }}
+{% endfor %}

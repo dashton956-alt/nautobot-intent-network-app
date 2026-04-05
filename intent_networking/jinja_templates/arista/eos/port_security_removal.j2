@@ -1,0 +1,7 @@
+{# port_security_removal.j2 — arista-eos #}
+! Remove Port Security Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+   no switchport port-security
+!

@@ -1,10 +1,18 @@
 {# syslog.j2 — junos #}
-! Primitive: syslog
+! Syslog Configuration
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for syslog on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for server in servers | default([]) %}
+set system syslog host {{ server.ip }} any {{ server.severity | default("warning") }}
+{% if server.port | default("") %}
+set system syslog host {{ server.ip }} port {{ server.port }}
+{% endif %}
+{% if server.source_address | default("") %}
+set system syslog host {{ server.ip }} source-address {{ server.source_address }}
+{% endif %}
+{% endfor %}
+{% if console_severity | default("") %}
+set system syslog console {{ console_severity }}
+{% endif %}
+set system syslog file messages any notice
+set system syslog file interactive-commands interactive-commands any

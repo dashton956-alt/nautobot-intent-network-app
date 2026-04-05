@@ -1,0 +1,22 @@
+{# evpn_multisite.j2 — nxos #}
+! EVPN Multi-Site (DCI) Configuration
+! Intent: {{ intent_id }}
+!
+evpn multisite border-gateway {{ site_id }}
+  delay-restore time 300
+!
+router bgp {{ local_asn }}
+  address-family l2vpn evpn
+{% for neighbor in dci_neighbors | default([]) %}
+  neighbor {{ neighbor.ip }}
+    remote-as {{ neighbor.remote_asn }}
+{% if neighbor.update_source | default("") %}
+    update-source {{ neighbor.update_source }}
+{% endif %}
+{% if neighbor.multihop | default("") %}
+    ebgp-multihop {{ neighbor.multihop }}
+{% endif %}
+    address-family l2vpn evpn
+      send-community extended
+      rewrite-evpn-rt-asn
+{% endfor %}

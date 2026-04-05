@@ -1,10 +1,22 @@
 {# route_policy.j2 — aos-cx #}
-! Primitive: route_policy
+! Route Map
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for route_policy on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for entry in entries | default([]) %}
+route-map {{ policy_name }} {{ entry.action | default("permit") }} {{ entry.sequence | default(loop.index * 10) }}
+{% if entry.match_prefix_list | default("") %}
+    match ip address prefix-list {{ entry.match_prefix_list }}
+{% endif %}
+{% if entry.match_community | default("") %}
+    match community {{ entry.match_community }}
+{% endif %}
+{% if entry.set_local_pref | default("") %}
+    set local-preference {{ entry.set_local_pref }}
+{% endif %}
+{% if entry.set_med | default("") %}
+    set metric {{ entry.set_med }}
+{% endif %}
+{% if entry.set_community | default("") %}
+    set community {{ entry.set_community }}
+{% endif %}
+{% endfor %}

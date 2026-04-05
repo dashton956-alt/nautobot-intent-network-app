@@ -1,10 +1,12 @@
 {# dhcp_snooping.j2 — aos-cx #}
-! Primitive: dhcp_snooping
+! DHCP Snooping
 ! Intent: {{ intent_id }}
-! Platform: aos-cx
 !
-! TODO: Implement vendor-specific CLI for dhcp_snooping on aos-cx
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+dhcp-snooping
+{% for vlan_item in vlans | default([]) %}
+dhcp-snooping vlan {{ vlan_item }}
+{% endfor %}
+{% for iface in trusted_interfaces | default([]) %}
+interface {{ iface }}
+    dhcp-snooping trust
+{% endfor %}

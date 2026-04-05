@@ -1,0 +1,2 @@
+{# fw_rule_removal.j2 — junos #}
+delete firewall family inet filter {{ filter_name | default(acl_name | default("")) }}

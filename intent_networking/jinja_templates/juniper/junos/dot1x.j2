@@ -1,10 +1,16 @@
 {# dot1x.j2 — junos #}
-! Primitive: dot1x
+! 802.1X Authentication
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for dot1x on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for iface in interfaces | default([]) %}
+set protocols dot1x authenticator interface {{ iface.name }}
+{% if iface.mac_radius | default(false) %}
+set protocols dot1x authenticator interface {{ iface.name }} mac-radius
+{% endif %}
+{% if iface.guest_vlan | default("") %}
+set protocols dot1x authenticator interface {{ iface.name }} guest-vlan {{ iface.guest_vlan }}
+{% endif %}
+{% if iface.reauthentication | default("") %}
+set protocols dot1x authenticator interface {{ iface.name }} reauthentication {{ iface.reauthentication }}
+{% endif %}
+{% endfor %}

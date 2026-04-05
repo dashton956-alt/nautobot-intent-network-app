@@ -1,10 +1,16 @@
 {# sr_mpls.j2 — ios-xr #}
-! Primitive: sr_mpls
+! Segment Routing MPLS
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for sr_mpls on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+segment-routing
+ global-block {{ srgb_start | default(16000) }} {{ srgb_end | default(23999) }}
+!
+router isis {{ process_tag | default("CORE") }}
+ address-family ipv4 unicast
+  segment-routing mpls
+{% for prefix in prefix_sids | default([]) %}
+ interface {{ prefix.interface | default("Loopback0") }}
+  address-family ipv4 unicast
+   prefix-sid index {{ prefix.index }}
+{% endfor %}
 !

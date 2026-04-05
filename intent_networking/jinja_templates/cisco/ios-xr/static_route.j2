@@ -1,10 +1,11 @@
 {# static_route.j2 — ios-xr #}
-! Primitive: static_route
+! Static Routes
 ! Intent: {{ intent_id }}
-! Platform: ios-xr
 !
-! TODO: Implement vendor-specific CLI for static_route on ios-xr
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
+router static
+ address-family ipv4 unicast
+{% for route in routes | default([]) %}
+  {{ route.prefix }} {{ route.next_hop }}{% if route.admin_distance | default("") %} {{ route.admin_distance }}{% endif %}{% if route.description | default("") %} description {{ route.description }}{% endif %}
+
+{% endfor %}
 !

@@ -1,10 +1,11 @@
 {# dhcp_relay.j2 — junos #}
-! Primitive: dhcp_relay
+! DHCP Relay
 ! Intent: {{ intent_id }}
-! Platform: junos
 !
-! TODO: Implement vendor-specific CLI for dhcp_relay on junos
-! This stub is rendered but produces no configuration commands.
-! Fill in the Jinja2 template using the primitive variables passed
-! from the resolver.
-!
+{% for server in servers | default([]) %}
+set forwarding-options dhcp-relay server-group DHCP-SERVERS {{ server }}
+{% endfor %}
+{% for iface in interfaces | default([]) %}
+set forwarding-options dhcp-relay group RELAY interface {{ iface }}
+{% endfor %}
+set forwarding-options dhcp-relay group RELAY active-server-group DHCP-SERVERS
