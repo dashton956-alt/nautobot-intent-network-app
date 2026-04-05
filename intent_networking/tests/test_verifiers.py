@@ -189,9 +189,9 @@ class TestNutsVerifier(TestCase):
     def test_nuts_import_error_when_not_installed(self):
         import sys
 
-        # Temporarily remove nuts/pytest from modules to simulate not-installed
-        original_pytest = sys.modules.get("pytest")
-        sys.modules["pytest"] = None
+        # Temporarily remove nuts from modules to simulate not-installed
+        original_nuts = sys.modules.get("nuts")
+        sys.modules["nuts"] = None
         try:
             from importlib import reload
 
@@ -203,10 +203,10 @@ class TestNutsVerifier(TestCase):
                 ext_mod.NutsVerifier(intent)
             self.assertIn("pip install", str(ctx.exception))
         finally:
-            if original_pytest is not None:
-                sys.modules["pytest"] = original_pytest
+            if original_nuts is not None:
+                sys.modules["nuts"] = original_nuts
             else:
-                sys.modules.pop("pytest", None)
+                sys.modules.pop("nuts", None)
 
     @patch("intent_networking.verifiers.extended.NutsVerifier._ensure_nuts_installed")
     def test_nuts_verifier_initialises_with_intent(self, _mock_check):

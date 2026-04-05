@@ -198,7 +198,121 @@ class VerificationResultDetailView(ObjectDetailView):
     """Read-only detail view for a verification result."""
 
     queryset = VerificationResult.objects.all().select_related("intent")
-    template_name = "generic/object_detail.html"
+    template_name = "intent_networking/verificationresult_detail.html"
+
+    # ── NUTS test-class → human label mapping ─────────────────────────
+    _NUTS_CLASS_LABELS = {
+        "TestNapalmInterfaces": "Interface State",
+        "TestNapalmBgpNeighbors": "BGP Neighbors",
+        "TestNapalmLldpNeighbors": "LLDP Neighbors",
+        "TestNetmikoOspfNeighbors": "OSPF Neighbors",
+        "TestNetmikoCdpNeighbors": "CDP Neighbors",
+        "TestNetmikoLldpNeighbors": "LLDP Neighbors",
+        "TestNapalmNtp": "NTP Servers",
+        "TestNapalmUsers": "User Accounts",
+        "TestNapalmPing": "Ping Reachability",
+        "TestNapalmTraceroute": "Traceroute",
+    }
+
+    def get_extra_context(self, request, instance):
+        """Pre-process checks for the template."""
+        ctx = super().get_extra_context(request, instance)
+
+        checks = instance.checks or []
+        total = len(checks)
+        passed = sum(1 for c in checks if c.get("passed"))
+        failed = total - passed
+        pass_rate = int(passed / total * 100) if total else 0
+
+        # --- enrich each check with parsed fields -----------------------
+        enriched = []
+        for c in checks:
+            raw_id = c.get("check", "")
+            e = {**c, "raw_id": raw_id}
+
+            # Parse NUTS node-ids like
+            #   "test_bundle.yaml::TestNapalmInterfaces::test[host=sw01 …]"
+            parts = raw_id.split("::")
+            if len(parts) >= 2:
+                class_name = parts[1] if len(parts) >= 2 else ""
+                e["test_class"] = self._NUTS_CLASS_LABELS.get(class_name, class_name)
+                # extract param string from test[host=sw01 name=Mgmt0 …]
+                param_match = None
+                test_part = parts[-1] if len(parts) >= 3 else ""
+                if "[" in test_part:
+                    param_match = test_part[test_part.index("[") + 1 : test_part.rindex("]")]
+                e["params"] = param_match or ""
+            else:
+                e["test_class"] = raw_id
+                e["params"] = ""
+
+            # Parse "device" from either the explicit field or from params
+            device = c.get("device", "")
+            if not device and "host=" in e["params"]:
+                try:
+                    device = e["params"].split("host=")[1].split()[0].rstrip(",")
+                except IndexError:
+                    pass
+            e["device"] = device or "—"
+
+            # Parse detail into structured parts
+            detail = c.get("detail", "")
+            e["outcome"] = ""
+            e["duration"] = ""
+            e["error_message"] = ""
+            if detail:
+                for part in detail.split("; "):
+                    if part.startswith("outcome="):
+                        e["outcome"] = part.split("=", 1)[1]
+                    elif part.startswith("duration="):
+                        e["duration"] = part.split("=", 1)[1]
+                    else:
+                        e["error_message"] = (e["error_message"] + " " + part).strip()
+
+            enriched.append(e)
+
+        # --- group by device --------------------------------------------
+        device_groups = {}
+        for e in enriched:
+            dev = e["device"]
+            if dev not in device_groups:
+                device_groups[dev] = {
+                    "device": dev,
+                    "checks": [],
+                    "passed": 0,
+                    "failed": 0,
+                    "total": 0,
+                }
+            device_groups[dev]["checks"].append(e)
+            device_groups[dev]["total"] += 1
+            if e.get("passed"):
+                device_groups[dev]["passed"] += 1
+            else:
+                device_groups[dev]["failed"] += 1
+
+        # sort: devices with failures first
+        sorted_groups = sorted(device_groups.values(), key=lambda g: (-g["failed"], g["device"]))
+
+        # --- previous runs for this intent (last 10, excluding self) ----
+        prev = (
+            VerificationResult.objects.filter(intent=instance.intent)
+            .exclude(pk=instance.pk)
+            .order_by("-verified_at")[:10]
+        )
+
+        ctx.update(
+            {
+                "enriched_checks": enriched,
+                "device_groups": sorted_groups,
+                "failed_checks": [e for e in enriched if not e.get("passed")],
+                "total_checks": total,
+                "passed_checks_count": passed,
+                "failed_checks_count": failed,
+                "pass_rate": pass_rate,
+                "previous_results": prev,
+            }
+        )
+        return ctx
 
 
 # ─────────────────────────────────────────────────────────────────────────────

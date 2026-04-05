@@ -254,18 +254,23 @@ class NutsVerifier:
 
             # Run pytest programmatically with JSON report
             json_report_path = os.path.join(tmpdir, "results.json")
-            exit_code = pytest.main(
-                [
-                    bundle_path,
-                    f"--json-report-file={json_report_path}",
-                    "--json-report",
-                    "--no-header",
-                    "-q",
-                    "--tb=short",
-                    "--override-ini=addopts=",
-                ],
-                plugins=[],
-            )
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                exit_code = pytest.main(
+                    [
+                        bundle_path,
+                        f"--json-report-file={json_report_path}",
+                        "--json-report",
+                        "--no-header",
+                        "-q",
+                        "--tb=short",
+                        "--override-ini=addopts=",
+                    ],
+                    plugins=[],
+                )
+            finally:
+                os.chdir(original_cwd)
 
             # Parse results
             return self._parse_results(json_report_path, exit_code)

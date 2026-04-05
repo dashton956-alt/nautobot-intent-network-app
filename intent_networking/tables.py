@@ -93,16 +93,36 @@ class ResolutionPlanTable(BaseTable):
 class VerificationResultTable(BaseTable):
     """Table for the Verification Result list view."""
 
+    intent = tables.Column(linkify=True)
     passed = tables.BooleanColumn(verbose_name="Passed")
+    verification_engine = tables.Column(verbose_name="Engine")
+    check_summary = tables.Column(verbose_name="Checks", empty_values=(), orderable=False)
     triggered_by = tables.Column(verbose_name="Trigger")
     measured_latency_ms = tables.Column(verbose_name="Latency (ms)")
     verified_at = tables.DateTimeColumn(verbose_name="Verified")
+
+    def render_check_summary(self, record):
+        """Render passed/failed check counts."""
+        checks = record.checks or []
+        if not checks:
+            return "—"
+        passed = sum(1 for c in checks if c.get("passed"))
+        failed = len(checks) - passed
+        return f"{passed} passed · {failed} failed"
 
     class Meta(BaseTable.Meta):
         """Meta options for VerificationResultTable."""
 
         model = VerificationResult
-        fields = ["intent", "passed", "triggered_by", "measured_latency_ms", "verified_at"]
+        fields = [
+            "intent",
+            "passed",
+            "verification_engine",
+            "check_summary",
+            "triggered_by",
+            "measured_latency_ms",
+            "verified_at",
+        ]
 
 
 # ─────────────────────────────────────────────────────────────────────────────

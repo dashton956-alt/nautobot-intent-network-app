@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load helpers %}
+{% load intent_extras %}
 
 {% block title %}Intent Engine Dashboard{% endblock title %}
 
@@ -177,13 +178,15 @@
                             <th>Checks</th>
                             <th>Escalation</th>
                             <th>When</th>
+                            <th style="width: 30px;"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for v in recent_nuts_results %}
-                            <tr style="{% if not v.passed %}background: #fdf2f2;{% endif %}">
+                            <tr style="{% if not v.passed %}background: #fdf2f2;{% endif %} cursor: pointer;"
+                                onclick="var el=document.getElementById('checks-{{ v.pk }}'); el.style.display = el.style.display === 'none' ? 'table-row' : 'none';">
                                 <td>{% if v.passed %}✅{% else %}❌{% endif %}</td>
-                                <td><a href="{{ v.intent.get_absolute_url }}"><strong>{{ v.intent.intent_id }}</strong></a></td>
+                                <td><a href="{% url 'plugins:intent_networking:verificationresult' pk=v.pk %}" onclick="event.stopPropagation();"><strong>{{ v.intent.intent_id }}</strong></a></td>
                                 <td>
                                     <span class="label {% if v.verification_engine == 'nuts' %}label-info{% elif v.verification_engine == 'escalated' %}label-warning{% else %}label-default{% endif %}">
                                         {{ v.verification_engine|title }}
@@ -192,8 +195,13 @@
                                 <td>
                                     {% with total=v.checks|length %}
                                         {% if total %}
-                                            {% for c in v.checks %}{% if not c.passed %}{% with failed=True %}{% endwith %}{% endif %}{% endfor %}
-                                            <span class="text-muted">{{ total }} check{{ total|pluralize }}</span>
+                                            {% for c in v.checks %}{% if c.passed %}{% endif %}{% endfor %}
+                                            {% with pass_count=v.passed_check_count fail_count=v.failed_check_count %}
+                                                {% if pass_count %}<span class="text-success"><strong>{{ pass_count }}</strong> passed</span>{% endif %}
+                                                {% if pass_count and fail_count %} · {% endif %}
+                                                {% if fail_count %}<span class="text-danger"><strong>{{ fail_count }}</strong> failed</span>{% endif %}
+                                                {% if not pass_count and not fail_count %}<span class="text-muted">{{ total }} check{{ total|pluralize }}</span>{% endif %}
+                                            {% endwith %}
                                         {% else %}
                                             <span class="text-muted">—</span>
                                         {% endif %}
@@ -209,15 +217,80 @@
                                     {% endif %}
                                 </td>
                                 <td><span class="text-muted">{{ v.verified_at|timesince }} ago</span></td>
+                                <td>
+                                    <i class="mdi mdi-chevron-down text-muted"></i>
+                                </td>
+                            </tr>
+                            {# ── Expandable check details row ── #}
+                            <tr id="checks-{{ v.pk }}" style="display: none;">
+                                <td colspan="7" style="padding: 0; border-top: none;">
+                                    <div style="padding: 0; border-top: 2px solid {% if v.passed %}#5cb85c{% else %}#d9534f{% endif %};">
+                                        {% if v.checks %}
+                                            <table class="table table-condensed table-hover" style="margin: 0; font-size: 12px;">
+                                                <thead>
+                                                    <tr class="active">
+                                                        <th style="width: 28px; padding: 5px 8px;"></th>
+                                                        <th style="padding: 5px 8px;">Check</th>
+                                                        <th style="padding: 5px 8px;">Device</th>
+                                                        <th style="padding: 5px 8px;">Target</th>
+                                                        <th style="padding: 5px 8px;">Result</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for c in v.checks %}
+                                                        {% with outcome=c.detail|nuts_outcome %}
+                                                        <tr class="{% if c.passed %}success{% elif outcome == 'skipped' %}warning{% else %}danger{% endif %}">
+                                                            <td style="padding: 4px 8px; text-align: center;">
+                                                                {% if c.passed %}
+                                                                    <i class="mdi mdi-check-circle text-success"></i>
+                                                                {% elif outcome == 'skipped' %}
+                                                                    <i class="mdi mdi-minus-circle text-warning"></i>
+                                                                {% else %}
+                                                                    <i class="mdi mdi-close-circle text-danger"></i>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td style="padding: 4px 8px;">{{ c.check|nuts_test_label }}</td>
+                                                            <td style="padding: 4px 8px;"><code>{{ c.check|nuts_device|default:"—" }}</code></td>
+                                                            <td style="padding: 4px 8px;">{{ c.check|nuts_context|default:"—" }}</td>
+                                                            <td style="padding: 4px 8px;">
+                                                                {% if outcome == 'passed' %}
+                                                                    <span class="label label-success">Passed</span>
+                                                                {% elif outcome == 'skipped' %}
+                                                                    <span class="label label-warning">Skipped</span>
+                                                                {% else %}
+                                                                    {% with err=c.detail|nuts_error_summary %}
+                                                                        {% if err %}
+                                                                            <span class="text-danger" style="font-family: monospace; font-size: 11px;">{{ err }}</span>
+                                                                        {% else %}
+                                                                            <span class="label label-danger">Failed</span>
+                                                                        {% endif %}
+                                                                    {% endwith %}
+                                                                {% endif %}
+                                                            </td>
+                                                        </tr>
+                                                        {% endwith %}
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        {% else %}
+                                            <p class="text-muted text-center" style="padding: 10px; margin: 0;">No individual checks recorded.</p>
+                                        {% endif %}
+                                        <div class="text-right" style="padding: 6px 10px; background: #f5f5f5; border-top: 1px solid #ddd;">
+                                            <a href="{% url 'plugins:intent_networking:verificationresult' pk=v.pk %}" class="btn btn-xs btn-default">
+                                                <i class="mdi mdi-open-in-new"></i> Full Details
+                                            </a>
+                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                         {% empty %}
-                            <tr><td colspan="6" class="text-muted text-center">No NUTS verifications yet. Set an intent's verification level to "NUTS" to start.</td></tr>
+                            <tr><td colspan="7" class="text-muted text-center">No NUTS verifications yet. Set an intent's verification level to "NUTS" to start.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
                 {% if recent_nuts_results %}
                     <div class="panel-footer text-muted" style="font-size: 12px; padding: 8px 15px;">
-                        Showing last {{ recent_nuts_results|length }} NUTS/escalated verification runs.
+                        Showing last {{ recent_nuts_results|length }} NUTS/escalated verification runs. Click a row to expand check details.
                         <span class="label label-info">NUTS</span> = user-requested &middot;
                         <span class="label label-warning">Escalated</span> = auto-triggered from basic warnings.
                     </div>
