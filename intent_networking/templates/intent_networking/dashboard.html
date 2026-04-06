@@ -239,35 +239,35 @@
                                                 <tbody>
                                                     {% for c in v.checks %}
                                                         {% with outcome=c.detail|nuts_outcome %}
-                                                        <tr class="{% if c.passed %}success{% elif outcome == 'skipped' %}warning{% else %}danger{% endif %}">
-                                                            <td style="padding: 4px 8px; text-align: center;">
-                                                                {% if c.passed %}
-                                                                    <i class="mdi mdi-check-circle text-success"></i>
-                                                                {% elif outcome == 'skipped' %}
-                                                                    <i class="mdi mdi-minus-circle text-warning"></i>
-                                                                {% else %}
-                                                                    <i class="mdi mdi-close-circle text-danger"></i>
-                                                                {% endif %}
-                                                            </td>
-                                                            <td style="padding: 4px 8px;">{{ c.check|nuts_test_label }}</td>
-                                                            <td style="padding: 4px 8px;"><code>{{ c.check|nuts_device|default:"—" }}</code></td>
-                                                            <td style="padding: 4px 8px;">{{ c.check|nuts_context|default:"—" }}</td>
-                                                            <td style="padding: 4px 8px;">
-                                                                {% if outcome == 'passed' %}
-                                                                    <span class="label label-success">Passed</span>
-                                                                {% elif outcome == 'skipped' %}
-                                                                    <span class="label label-warning">Skipped</span>
-                                                                {% else %}
-                                                                    {% with err=c.detail|nuts_error_summary %}
-                                                                        {% if err %}
-                                                                            <span class="text-danger" style="font-family: monospace; font-size: 11px;">{{ err }}</span>
-                                                                        {% else %}
-                                                                            <span class="label label-danger">Failed</span>
-                                                                        {% endif %}
-                                                                    {% endwith %}
-                                                                {% endif %}
-                                                            </td>
-                                                        </tr>
+                                                            <tr class="{% if c.passed %}success{% elif outcome == 'skipped' %}warning{% else %}danger{% endif %}">
+                                                                <td style="padding: 4px 8px; text-align: center;">
+                                                                    {% if c.passed %}
+                                                                        <i class="mdi mdi-check-circle text-success"></i>
+                                                                    {% elif outcome == 'skipped' %}
+                                                                        <i class="mdi mdi-minus-circle text-warning"></i>
+                                                                    {% else %}
+                                                                        <i class="mdi mdi-close-circle text-danger"></i>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td style="padding: 4px 8px;">{{ c.check|nuts_test_label }}</td>
+                                                                <td style="padding: 4px 8px;"><code>{{ c.check|nuts_device|default:"—" }}</code></td>
+                                                                <td style="padding: 4px 8px;">{{ c.check|nuts_context|default:"—" }}</td>
+                                                                <td style="padding: 4px 8px;">
+                                                                    {% if outcome == 'passed' %}
+                                                                        <span class="label label-success">Passed</span>
+                                                                    {% elif outcome == 'skipped' %}
+                                                                        <span class="label label-warning">Skipped</span>
+                                                                    {% else %}
+                                                                        {% with err=c.detail|nuts_error_summary %}
+                                                                            {% if err %}
+                                                                                <span class="text-danger" style="font-family: monospace; font-size: 11px;">{{ err }}</span>
+                                                                            {% else %}
+                                                                                <span class="label label-danger">Failed</span>
+                                                                            {% endif %}
+                                                                        {% endwith %}
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
                                                         {% endwith %}
                                                     {% endfor %}
                                                 </tbody>

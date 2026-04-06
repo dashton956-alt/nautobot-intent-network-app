@@ -102,7 +102,7 @@ class NutsVerifier:
         try:
             __import__("nuts")
         except ImportError as exc:
-            raise ImportError("NUTS is required for extended verification. " "Install with: pip install nuts") from exc
+            raise ImportError("NUTS is required for extended verification. Install with: pip install nuts") from exc
 
     def run(self):
         """Execute NUTS test bundles from the intent's verification.tests.
@@ -128,7 +128,10 @@ class NutsVerifier:
                 "passed": True,
                 "has_warnings": True,
                 "warning_reasons": [
-                    "No NUTS test bundles defined in verification.tests — " "add test definitions to your intent YAML"
+                    (
+                        "No NUTS test bundles defined in verification.tests —"
+                        " add test definitions to your intent YAML"
+                    )
                 ],
                 "checks": [
                     {
@@ -408,11 +411,19 @@ class NutsVerifier:
             }
 
         tests = report.get("tests", [])
+        skipped_count = 0
         for test in tests:
             test_id = test.get("nodeid", "unknown")
             outcome = test.get("outcome", "unknown")
             test_passed = outcome == "passed"
             duration = test.get("duration", 0)
+
+            # Skip tests that NUTS skipped because the field wasn't in
+            # test_data (e.g. mac_address, mtu, speed).  These are not
+            # user-requested checks and only add noise to the results.
+            if outcome == "skipped":
+                skipped_count += 1
+                continue
 
             detail_parts = [f"outcome={outcome}"]
             if duration:
@@ -429,7 +440,7 @@ class NutsVerifier:
                     if crash.get("message"):
                         detail_parts.append(crash["message"][:200])
 
-            if not test_passed and outcome != "skipped":
+            if not test_passed:
                 passed = False
 
             checks.append(
@@ -440,15 +451,17 @@ class NutsVerifier:
                 }
             )
 
-            nuts_output_lines.append(f"{'PASS' if test_passed else outcome.upper()} {test_id}")
+            nuts_output_lines.append(f"{'PASS' if test_passed else 'FAILED'} {test_id}")
 
         # Summary line
         summary = report.get("summary", {})
         summary_parts = []
-        for key in ("passed", "failed", "error", "skipped"):
+        for key in ("passed", "failed", "error"):
             count = summary.get(key, 0)
             if count:
                 summary_parts.append(f"{count} {key}")
+        if skipped_count:
+            summary_parts.append(f"{skipped_count} skipped (not in test_data)")
         if summary_parts:
             nuts_output_lines.append(f"\nSummary: {', '.join(summary_parts)}")
 

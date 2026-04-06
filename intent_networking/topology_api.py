@@ -616,61 +616,104 @@ def _collect_live_data(device) -> dict:
         return {"error": "Device is in maintenance mode — live collection skipped"}
 
     platform = device.platform.name if device.platform else ""
-    if platform not in ("cisco-ios-xe", "cisco-ios-xr", "juniper-junos", "aruba-aos-cx"):
+    supported = (
+        "arista-eos",
+        "cisco-ios-xe",
+        "cisco-ios-xr",
+        "cisco-nxos",
+        "juniper-junos",
+        "nokia-sros",
+        "aruba-aos-cx",
+    )
+    if platform not in supported:
         return {"error": f"Unsupported platform '{platform}' for live collection"}
 
     try:
+        import shutil
+        import tempfile
+
+        import yaml as _yaml
         from nornir import InitNornir
         from nornir_netmiko.tasks import netmiko_send_command
 
-        nr = InitNornir(
-            inventory={
-                "plugin": "SimpleInventory",
-                "options": {
-                    "hosts": {
-                        device.name: {
-                            "hostname": str(device.primary_ip4.address.ip),
-                            "username": _get_device_credential("username"),
-                            "password": _get_device_credential("password"),
-                            "platform": _nornir_platform(platform),
-                            "port": 22,
-                        }
-                    }
+        username = _get_device_credential("username")
+        password = _get_device_credential("password")
+
+        tmpdir = tempfile.mkdtemp(prefix="topo-live-")
+        try:
+            hosts = {
+                device.name: {
+                    "hostname": str(device.primary_ip4.address.ip),
+                    "platform": _nornir_platform(platform),
+                    "port": 22,
+                }
+            }
+            defaults = {"username": username, "password": password}
+
+            host_file = os.path.join(tmpdir, "hosts.yaml")
+            defaults_file = os.path.join(tmpdir, "defaults.yaml")
+            with open(host_file, "w", encoding="utf-8") as f:
+                _yaml.dump(hosts, f, default_flow_style=False)
+            with open(defaults_file, "w", encoding="utf-8") as f:
+                _yaml.dump(defaults, f, default_flow_style=False)
+
+            nr = InitNornir(
+                inventory={
+                    "plugin": "SimpleInventory",
+                    "options": {
+                        "host_file": host_file,
+                        "defaults_file": defaults_file,
+                    },
                 },
-            },
-            runner={"plugin": "threaded", "options": {"num_workers": 1}},
-            logging={"enabled": False},
-        )
-
-        commands = _platform_commands(platform)
-        collected = {}
-
-        for key, command in commands.items():
-            result = nr.run(
-                task=netmiko_send_command,
-                command_string=command,
-                use_textfsm=True,
+                runner={"plugin": "threaded", "options": {"num_workers": 1}},
+                logging={"enabled": False},
             )
-            if result[device.name].failed:
-                collected[key] = []
-            else:
-                raw = result[device.name].result
-                collected[key] = raw if isinstance(raw, list) else []
 
-        return {
-            "arp_table": _normalise_arp(collected.get("arp", []), platform),
-            "routing_table": _normalise_routes(collected.get("routes", []), platform),
-            "vrfs": _normalise_vrfs(collected.get("vrfs", []), platform),
-            "bgp_neighbors": _normalise_bgp(collected.get("bgp", []), platform),
-        }
+            commands = _platform_commands(platform)
+            collected = {}
+
+            for key, command in commands.items():
+                result = nr.run(
+                    task=netmiko_send_command,
+                    command_string=command,
+                    use_textfsm=True,
+                )
+                if result[device.name].failed:
+                    collected[key] = []
+                else:
+                    raw = result[device.name].result
+                    collected[key] = raw if isinstance(raw, list) else []
+
+            return {
+                "arp_table": _normalise_arp(collected.get("arp", []), platform),
+                "routing_table": _normalise_routes(collected.get("routes", []), platform),
+                "vrfs": _normalise_vrfs(collected.get("vrfs", []), platform),
+                "bgp_neighbors": _normalise_bgp(collected.get("bgp", []), platform),
+            }
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
     except Exception as exc:
         logger.warning("Live data collection failed for %s: %s", device.name, exc)
         return {"error": f"Collection failed: {str(exc)[:120]}"}
 
 
-def _platform_commands(platform: str) -> dict:
+def _platform_commands(platform: str) -> dict:  # pylint: disable=too-many-return-statements
     """Return show commands per platform."""
+    if platform == "arista-eos":
+        return {
+            "arp": "show arp",
+            "routes": "show ip route",
+            "vrfs": "show vrf",
+            "bgp": "show ip bgp summary",
+        }
+    if platform == "cisco-nxos":
+        return {
+            "arp": "show ip arp",
+            "routes": "show ip route",
+            "vrfs": "show vrf",
+            "bgp": "show bgp sessions",
+        }
     if "ios" in platform:
         return {
             "arp": "show arp",
@@ -685,6 +728,13 @@ def _platform_commands(platform: str) -> dict:
             "vrfs": "show routing-instances",
             "bgp": "show bgp summary",
         }
+    if platform == "nokia-sros":
+        return {
+            "arp": "show router arp",
+            "routes": "show router route-table",
+            "vrfs": "show service id",
+            "bgp": "show router bgp summary",
+        }
     if "aos-cx" in platform:
         return {
             "arp": "show arp",
@@ -697,9 +747,12 @@ def _platform_commands(platform: str) -> dict:
 
 def _nornir_platform(nautobot_platform: str) -> str:
     return {
+        "arista-eos": "arista_eos",
         "cisco-ios-xe": "cisco_ios",
         "cisco-ios-xr": "cisco_xr",
+        "cisco-nxos": "cisco_nxos",
         "juniper-junos": "juniper_junos",
+        "nokia-sros": "nokia_sros",
         "aruba-aos-cx": "aruba_aoscx",
     }.get(nautobot_platform, "cisco_ios")
 

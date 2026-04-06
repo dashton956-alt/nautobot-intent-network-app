@@ -27,6 +27,7 @@ ENV INVOKE_INTENT_NETWORKING_LOCAL=true
 # and CI and local development may have a newer version of Poetry
 # Since this is only used for development and we don't ship this container, pinning Poetry back is not expressly necessary
 # We also don't need virtual environments in container
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN which poetry || curl -sSL https://install.python-poetry.org | python3 - && \
     poetry config virtualenvs.create false
 
@@ -62,14 +63,12 @@ ARG PYTHON_VER
 ARG CI
 RUN if [ -z "${CI+x}" ]; then \
     INSTALLED_NAUTOBOT_VER=$(pip show nautobot | grep "^Version" | sed "s/Version: //"); \
-    poetry add --lock nautobot@${INSTALLED_NAUTOBOT_VER} --python ${PYTHON_VER} || \
-    poetry add --lock git+https://github.com/nautobot/nautobot.git#${NAUTOBOT_VER} --python ${PYTHON_VER}; fi
+    poetry add --lock nautobot@"${INSTALLED_NAUTOBOT_VER}" --python "${PYTHON_VER}" || \
+    poetry add --lock git+https://github.com/nautobot/nautobot.git#"${NAUTOBOT_VER}" --python "${PYTHON_VER}"; fi
 
-# Install the app
-RUN poetry install --extras all --with dev
-
-# Pin setuptools < 71 so that napalm's "import pkg_resources" keeps working
-RUN pip install "setuptools<71"
+# Install the app and pin setuptools < 71 so that napalm's "import pkg_resources" keeps working
+RUN poetry install --extras all --with dev && \
+    pip install --no-cache-dir "setuptools<71"
 
 COPY development/nautobot_config.py ${NAUTOBOT_ROOT}/nautobot_config.py
 # !!! USE CAUTION WHEN MODIFYING LINES ABOVE

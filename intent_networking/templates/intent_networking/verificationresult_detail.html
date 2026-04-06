@@ -45,12 +45,12 @@
                 </div>
             </div>
             {% if total_checks %}
-            <div class="progress" style="margin: 12px 0 0; height: 8px;">
-                <div class="progress-bar progress-bar-success" style="width: {{ pass_rate }}%"></div>
-                {% if failed_checks_count %}
-                <div class="progress-bar progress-bar-danger" style="width: {% widthratio failed_checks_count total_checks 100 %}%"></div>
-                {% endif %}
-            </div>
+                <div class="progress" style="margin: 12px 0 0; height: 8px;">
+                    <div class="progress-bar progress-bar-success" style="width: {{ pass_rate }}%"></div>
+                    {% if failed_checks_count %}
+                        <div class="progress-bar progress-bar-danger" style="width: {% widthratio failed_checks_count total_checks 100 %}%"></div>
+                    {% endif %}
+                </div>
             {% endif %}
         </div>
     </div>
@@ -59,152 +59,152 @@
 {# FAILED CHECKS (only when failures exist)                               #}
 {# ══════════════════════════════════════════════════════════════════════════ #}
     {% if failed_checks %}
-    <div class="panel panel-danger">
-        <div class="panel-heading">
-            <strong><i class="mdi mdi-close-circle-outline"></i> {{ failed_checks_count }} Failed Check{{ failed_checks_count|pluralize }}</strong>
+        <div class="panel panel-danger">
+            <div class="panel-heading">
+                <strong><i class="mdi mdi-close-circle-outline"></i> {{ failed_checks_count }} Failed Check{{ failed_checks_count|pluralize }}</strong>
+            </div>
+            <table class="table table-condensed" style="margin-bottom: 0;">
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">Device</th>
+                        <th>Check</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in failed_checks %}
+                        <tr class="danger">
+                            <td><code>{{ c.device }}</code></td>
+                            <td>
+                                <strong>{{ c.test_class }}</strong>
+                                {% if c.params %}
+                                    <br><small class="text-muted" style="font-family: monospace;">{{ c.params }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if c.error_message %}
+                                    <code class="text-danger">{{ c.error_message }}</code>
+                                {% else %}
+                                    <span class="label label-danger">{{ c.outcome|default:"failed" }}</span>
+                                {% endif %}
+                                {% if c.duration %}
+                                    <span class="label label-default pull-right">{{ c.duration }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        <table class="table table-condensed" style="margin-bottom: 0;">
-            <thead>
-                <tr>
-                    <th style="width: 140px;">Device</th>
-                    <th>Check</th>
-                    <th>Error</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for c in failed_checks %}
-                <tr class="danger">
-                    <td><code>{{ c.device }}</code></td>
-                    <td>
-                        <strong>{{ c.test_class }}</strong>
-                        {% if c.params %}
-                            <br><small class="text-muted" style="font-family: monospace;">{{ c.params }}</small>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if c.error_message %}
-                            <code class="text-danger">{{ c.error_message }}</code>
-                        {% else %}
-                            <span class="label label-danger">{{ c.outcome|default:"failed" }}</span>
-                        {% endif %}
-                        {% if c.duration %}
-                            <span class="label label-default pull-right">{{ c.duration }}</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
     {% endif %}
 
 {# ══════════════════════════════════════════════════════════════════════════ #}
 {# ALL CHECKS BY DEVICE                                                   #}
 {# ══════════════════════════════════════════════════════════════════════════ #}
     {% if device_groups %}
-    <div class="panel panel-default">
-        <div class="panel-heading">
-            <strong><i class="mdi mdi-server-network"></i> All Checks by Device</strong>
-            <span class="pull-right text-muted" style="font-size: 12px;">{{ device_groups|length }} device{{ device_groups|length|pluralize }}</span>
-        </div>
-        <div class="panel-body" style="padding: 0;">
-            {% for group in device_groups %}
-            <div{% if not forloop.last %} style="border-bottom: 2px solid #ddd;"{% endif %}>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <strong><i class="mdi mdi-server-network"></i> All Checks by Device</strong>
+                <span class="pull-right text-muted" style="font-size: 12px;">{{ device_groups|length }} device{{ device_groups|length|pluralize }}</span>
+            </div>
+            <div class="panel-body" style="padding: 0;">
+                {% for group in device_groups %}
+                    <div{% if not forloop.last %} style="border-bottom: 2px solid #ddd;"{% endif %}>
                 {# ── Device header ── #}
-                <div style="padding: 10px 15px; background: #f5f5f5; cursor: pointer;"
-                     onclick="var el=document.getElementById('dev-{{ forloop.counter }}'); el.style.display=el.style.display==='none'?'':'none'; this.querySelector('.caret-icon').classList.toggle('mdi-chevron-down'); this.querySelector('.caret-icon').classList.toggle('mdi-chevron-up');">
-                    <div class="clearfix">
-                        <strong style="font-size: 14px;">
-                            {% if group.failed %}
-                                <i class="mdi mdi-alert-circle text-danger"></i>
-                            {% else %}
-                                <i class="mdi mdi-check-circle text-success"></i>
-                            {% endif %}
-                            {{ group.device }}
-                        </strong>
-                        <span class="pull-right">
-                            <span class="text-success">{{ group.passed }} passed</span>
-                            {% if group.failed %} · <span class="text-danger">{{ group.failed }} failed</span>{% endif %}
-                            <i class="mdi {% if group.failed %}mdi-chevron-up{% else %}mdi-chevron-down{% endif %} caret-icon text-muted"></i>
-                        </span>
-                    </div>
-                    <div class="progress" style="margin: 6px 0 0; height: 4px;">
-                        <div class="progress-bar progress-bar-success" style="width: {{ group.passed|percentage_of:group.total }}%;"></div>
-                        {% if group.failed %}
-                        <div class="progress-bar progress-bar-danger" style="width: {{ group.failed|percentage_of:group.total }}%;"></div>
-                        {% endif %}
-                    </div>
-                </div>
+                        <div style="padding: 10px 15px; background: #f5f5f5; cursor: pointer;"
+                             onclick="var el=document.getElementById('dev-{{ forloop.counter }}'); el.style.display=el.style.display==='none'?'':'none'; this.querySelector('.caret-icon').classList.toggle('mdi-chevron-down'); this.querySelector('.caret-icon').classList.toggle('mdi-chevron-up');">
+                            <div class="clearfix">
+                                <strong style="font-size: 14px;">
+                                    {% if group.failed %}
+                                        <i class="mdi mdi-alert-circle text-danger"></i>
+                                    {% else %}
+                                        <i class="mdi mdi-check-circle text-success"></i>
+                                    {% endif %}
+                                    {{ group.device }}
+                                </strong>
+                                <span class="pull-right">
+                                    <span class="text-success">{{ group.passed }} passed</span>
+                                    {% if group.failed %} · <span class="text-danger">{{ group.failed }} failed</span>{% endif %}
+                                    <i class="mdi {% if group.failed %}mdi-chevron-up{% else %}mdi-chevron-down{% endif %} caret-icon text-muted"></i>
+                                </span>
+                            </div>
+                            <div class="progress" style="margin: 6px 0 0; height: 4px;">
+                                <div class="progress-bar progress-bar-success" style="width: {{ group.passed|percentage_of:group.total }}%;"></div>
+                                {% if group.failed %}
+                                    <div class="progress-bar progress-bar-danger" style="width: {{ group.failed|percentage_of:group.total }}%;"></div>
+                                {% endif %}
+                            </div>
+                        </div>
 
                 {# ── Device checks table ── #}
-                <div id="dev-{{ forloop.counter }}" style="{% if not group.failed %}display: none;{% endif %}">
-                    <table class="table table-condensed table-hover" style="margin: 0; font-size: 12px;">
-                        <thead>
-                            <tr class="active">
-                                <th style="width: 28px; padding: 4px 8px;"></th>
-                                <th style="padding: 4px 8px;">Check</th>
-                                <th style="padding: 4px 8px;">Target</th>
-                                <th style="padding: 4px 8px;">Result</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for c in group.checks %}
-                            {% with outcome=c.outcome %}
-                            <tr class="{% if c.passed %}success{% elif outcome == 'skipped' %}warning{% else %}danger{% endif %}">
-                                <td style="padding: 4px 8px; text-align: center;">
-                                    {% if c.passed %}
-                                        <i class="mdi mdi-check-circle text-success"></i>
-                                    {% elif outcome == 'skipped' %}
-                                        <i class="mdi mdi-minus-circle text-warning"></i>
-                                    {% else %}
-                                        <i class="mdi mdi-close-circle text-danger"></i>
-                                    {% endif %}
-                                </td>
-                                <td style="padding: 4px 8px;"><strong>{{ c.test_class }}</strong></td>
-                                <td style="padding: 4px 8px;">{{ c.params|default:"—" }}</td>
-                                <td style="padding: 4px 8px;">
-                                    {% if c.passed %}
-                                        <span class="label label-success">Passed</span>
-                                    {% elif outcome == 'skipped' %}
-                                        <span class="label label-warning">Skipped</span>
-                                    {% else %}
-                                        {% if c.error_message %}
-                                            <code class="text-danger" style="font-size: 11px;">{{ c.error_message }}</code>
-                                        {% else %}
-                                            <span class="label label-danger">Failed</span>
-                                        {% endif %}
-                                    {% endif %}
-                                    {% if c.duration %}<small class="text-muted pull-right">{{ c.duration }}</small>{% endif %}
-                                </td>
-                            </tr>
-                            {% endwith %}
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                        <div id="dev-{{ forloop.counter }}" style="{% if not group.failed %}display: none;{% endif %}">
+                            <table class="table table-condensed table-hover" style="margin: 0; font-size: 12px;">
+                                <thead>
+                                    <tr class="active">
+                                        <th style="width: 28px; padding: 4px 8px;"></th>
+                                        <th style="padding: 4px 8px;">Check</th>
+                                        <th style="padding: 4px 8px;">Target</th>
+                                        <th style="padding: 4px 8px;">Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for c in group.checks %}
+                                        {% with outcome=c.outcome %}
+                                            <tr class="{% if c.passed %}success{% elif outcome == 'skipped' %}warning{% else %}danger{% endif %}">
+                                                <td style="padding: 4px 8px; text-align: center;">
+                                                    {% if c.passed %}
+                                                        <i class="mdi mdi-check-circle text-success"></i>
+                                                    {% elif outcome == 'skipped' %}
+                                                        <i class="mdi mdi-minus-circle text-warning"></i>
+                                                    {% else %}
+                                                        <i class="mdi mdi-close-circle text-danger"></i>
+                                                    {% endif %}
+                                                </td>
+                                                <td style="padding: 4px 8px;"><strong>{{ c.test_class }}</strong></td>
+                                                <td style="padding: 4px 8px;">{{ c.params|default:"—" }}</td>
+                                                <td style="padding: 4px 8px;">
+                                                    {% if c.passed %}
+                                                        <span class="label label-success">Passed</span>
+                                                    {% elif outcome == 'skipped' %}
+                                                        <span class="label label-warning">Skipped</span>
+                                                    {% else %}
+                                                        {% if c.error_message %}
+                                                            <code class="text-danger" style="font-size: 11px;">{{ c.error_message }}</code>
+                                                        {% else %}
+                                                            <span class="label label-danger">Failed</span>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                    {% if c.duration %}<small class="text-muted pull-right">{{ c.duration }}</small>{% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endwith %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
-    </div>
     {% elif not enriched_checks %}
-    <div class="panel panel-default">
-        <div class="panel-body text-center text-muted" style="padding: 30px;">
-            <i class="mdi mdi-clipboard-text-off-outline" style="font-size: 40px; opacity: .4;"></i>
-            <p style="margin-top: 10px;">No individual check data recorded for this verification run.</p>
+        <div class="panel panel-default">
+            <div class="panel-body text-center text-muted" style="padding: 30px;">
+                <i class="mdi mdi-clipboard-text-off-outline" style="font-size: 40px; opacity: .4;"></i>
+                <p style="margin-top: 10px;">No individual check data recorded for this verification run.</p>
+            </div>
         </div>
-    </div>
     {% endif %}
 
 {# ══════════════════════════════════════════════════════════════════════════ #}
 {# ESCALATION                                                             #}
 {# ══════════════════════════════════════════════════════════════════════════ #}
     {% if object.escalation_reason %}
-    <div class="panel panel-warning">
-        <div class="panel-heading">
-            <strong><i class="mdi mdi-arrow-up-bold-circle-outline"></i> Escalation Reason</strong>
+        <div class="panel panel-warning">
+            <div class="panel-heading">
+                <strong><i class="mdi mdi-arrow-up-bold-circle-outline"></i> Escalation Reason</strong>
+            </div>
+            <div class="panel-body">{{ object.escalation_reason }}</div>
         </div>
-        <div class="panel-body">{{ object.escalation_reason }}</div>
-    </div>
     {% endif %}
 
 {% endblock content_left_page %}
@@ -240,16 +240,16 @@
                 </td>
             </tr>
             {% if object.total_duration_seconds %}
-            <tr>
-                <td><strong>Duration</strong></td>
-                <td>{{ object.total_duration_seconds }}s</td>
-            </tr>
+                <tr>
+                    <td><strong>Duration</strong></td>
+                    <td>{{ object.total_duration_seconds }}s</td>
+                </tr>
             {% endif %}
             {% if object.measured_latency_ms %}
-            <tr>
-                <td><strong>Latency</strong></td>
-                <td>{{ object.measured_latency_ms }} ms</td>
-            </tr>
+                <tr>
+                    <td><strong>Latency</strong></td>
+                    <td>{{ object.measured_latency_ms }} ms</td>
+                </tr>
             {% endif %}
         </table>
     </div>
@@ -258,93 +258,93 @@
 {# BGP HEALTH                                                             #}
 {# ══════════════════════════════════════════════════════════════════════════ #}
     {% if object.bgp_sessions_expected %}
-    <div class="panel panel-default">
-        <div class="panel-heading">
-            <strong><i class="mdi mdi-swap-horizontal-bold"></i> BGP Health</strong>
-        </div>
-        <div class="panel-body text-center">
-            <h2 style="margin: 0;" class="{% if object.bgp_health_pct >= 90 %}text-success{% elif object.bgp_health_pct >= 70 %}text-warning{% else %}text-danger{% endif %}">{{ object.bgp_health_pct }}%</h2>
-            <div class="progress" style="margin: 8px 0; height: 6px;">
-                <div class="progress-bar {% if object.bgp_health_pct >= 90 %}progress-bar-success{% elif object.bgp_health_pct >= 70 %}progress-bar-warning{% else %}progress-bar-danger{% endif %}" style="width: {{ object.bgp_health_pct }}%;"></div>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <strong><i class="mdi mdi-swap-horizontal-bold"></i> BGP Health</strong>
             </div>
-            <small class="text-muted">{{ object.bgp_sessions_established }} / {{ object.bgp_sessions_expected }} sessions established</small>
-            {% if object.prefixes_expected %}
-            <br><small class="text-muted">{{ object.prefixes_received }} / {{ object.prefixes_expected }} prefixes received</small>
-            {% endif %}
+            <div class="panel-body text-center">
+                <h2 style="margin: 0;" class="{% if object.bgp_health_pct >= 90 %}text-success{% elif object.bgp_health_pct >= 70 %}text-warning{% else %}text-danger{% endif %}">{{ object.bgp_health_pct }}%</h2>
+                <div class="progress" style="margin: 8px 0; height: 6px;">
+                    <div class="progress-bar {% if object.bgp_health_pct >= 90 %}progress-bar-success{% elif object.bgp_health_pct >= 70 %}progress-bar-warning{% else %}progress-bar-danger{% endif %}" style="width: {{ object.bgp_health_pct }}%;"></div>
+                </div>
+                <small class="text-muted">{{ object.bgp_sessions_established }} / {{ object.bgp_sessions_expected }} sessions established</small>
+                {% if object.prefixes_expected %}
+                    <br><small class="text-muted">{{ object.prefixes_received }} / {{ object.prefixes_expected }} prefixes received</small>
+                {% endif %}
+            </div>
         </div>
-    </div>
     {% endif %}
 
 {# ══════════════════════════════════════════════════════════════════════════ #}
 {# DRIFT                                                                   #}
 {# ══════════════════════════════════════════════════════════════════════════ #}
     {% if object.drift_details %}
-    <div class="panel panel-danger">
-        <div class="panel-heading">
-            <strong><i class="mdi mdi-delta"></i> Configuration Drift</strong>
-            {% if object.remediation_triggered %}
-                <span class="label label-warning pull-right">Auto-Remediated</span>
-            {% endif %}
-        </div>
-        <div class="panel-body">
-            {% for device, diff in object.drift_details.items %}
-                <div{% if not forloop.last %} style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #ddd;"{% endif %}>
-                    <strong><i class="mdi mdi-server-network text-muted"></i> {{ device }}</strong>
+        <div class="panel panel-danger">
+            <div class="panel-heading">
+                <strong><i class="mdi mdi-delta"></i> Configuration Drift</strong>
+                {% if object.remediation_triggered %}
+                    <span class="label label-warning pull-right">Auto-Remediated</span>
+                {% endif %}
+            </div>
+            <div class="panel-body">
+                {% for device, diff in object.drift_details.items %}
+                    <div{% if not forloop.last %} style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #ddd;"{% endif %}>
+                        <strong><i class="mdi mdi-server-network text-muted"></i> {{ device }}</strong>
                     <pre style="font-size: 11px; max-height: 180px; overflow-y: auto; margin: 6px 0 0;">{{ diff }}</pre>
-                </div>
-            {% endfor %}
-            {% if object.github_issue_url %}
-                <a href="{{ object.github_issue_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-default" style="margin-top: 8px;">
-                    <i class="mdi mdi-github"></i> View GitHub Issue
-                </a>
-            {% endif %}
+                    </div>
+                {% endfor %}
+                {% if object.github_issue_url %}
+                    <a href="{{ object.github_issue_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-default" style="margin-top: 8px;">
+                        <i class="mdi mdi-github"></i> View GitHub Issue
+                    </a>
+                {% endif %}
+            </div>
         </div>
-    </div>
     {% endif %}
 
 {# ══════════════════════════════════════════════════════════════════════════ #}
 {# PREVIOUS RUNS                                                          #}
 {# ══════════════════════════════════════════════════════════════════════════ #}
     {% if previous_results %}
-    <div class="panel panel-default">
-        <div class="panel-heading">
-            <strong><i class="mdi mdi-history"></i> Previous Runs</strong>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <strong><i class="mdi mdi-history"></i> Previous Runs</strong>
+            </div>
+            <table class="table table-condensed table-hover" style="margin-bottom: 0; font-size: 12px;">
+                <tbody>
+                    {% for prev in previous_results %}
+                        <tr class="{% if prev.passed %}success{% else %}danger{% endif %}">
+                            <td style="width: 24px; padding: 4px 8px;">
+                                <i class="mdi {% if prev.passed %}mdi-check-circle text-success{% else %}mdi-close-circle text-danger{% endif %}"></i>
+                            </td>
+                            <td style="padding: 4px 8px;">
+                                <a href="{% url 'plugins:intent_networking:verificationresult' pk=prev.pk %}">{{ prev.verified_at|date:"M j H:i" }}</a>
+                            </td>
+                            <td style="padding: 4px 8px; text-align: right;">
+                                {{ prev.passed_check_count }}/{{ prev.checks|length }}
+                                <span class="label {% if prev.verification_engine == 'nuts' %}label-info{% elif prev.verification_engine == 'escalated' %}label-warning{% else %}label-default{% endif %}" style="font-size: 10px;">{{ prev.verification_engine|upper }}</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        <table class="table table-condensed table-hover" style="margin-bottom: 0; font-size: 12px;">
-            <tbody>
-                {% for prev in previous_results %}
-                <tr class="{% if prev.passed %}success{% else %}danger{% endif %}">
-                    <td style="width: 24px; padding: 4px 8px;">
-                        <i class="mdi {% if prev.passed %}mdi-check-circle text-success{% else %}mdi-close-circle text-danger{% endif %}"></i>
-                    </td>
-                    <td style="padding: 4px 8px;">
-                        <a href="{% url 'plugins:intent_networking:verificationresult' pk=prev.pk %}">{{ prev.verified_at|date:"M j H:i" }}</a>
-                    </td>
-                    <td style="padding: 4px 8px; text-align: right;">
-                        {{ prev.passed_check_count }}/{{ prev.checks|length }}
-                        <span class="label {% if prev.verification_engine == 'nuts' %}label-info{% elif prev.verification_engine == 'escalated' %}label-warning{% else %}label-default{% endif %}" style="font-size: 10px;">{{ prev.verification_engine|upper }}</span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
     {% endif %}
 
 {# ══════════════════════════════════════════════════════════════════════════ #}
 {# RAW OUTPUT (collapsible)                                                #}
 {# ══════════════════════════════════════════════════════════════════════════ #}
     {% if object.nuts_output %}
-    <div class="panel panel-default">
-        <div class="panel-heading" style="cursor: pointer;"
-             onclick="var el=document.getElementById('raw-output'); el.style.display=el.style.display==='none'?'block':'none'; this.querySelector('.caret-icon').classList.toggle('mdi-chevron-down'); this.querySelector('.caret-icon').classList.toggle('mdi-chevron-up');">
-            <strong><i class="mdi mdi-console"></i> Raw Test Output</strong>
-            <i class="mdi mdi-chevron-down caret-icon pull-right text-muted"></i>
-        </div>
-        <div id="raw-output" style="display: none;">
+        <div class="panel panel-default">
+            <div class="panel-heading" style="cursor: pointer;"
+                 onclick="var el=document.getElementById('raw-output'); el.style.display=el.style.display==='none'?'block':'none'; this.querySelector('.caret-icon').classList.toggle('mdi-chevron-down'); this.querySelector('.caret-icon').classList.toggle('mdi-chevron-up');">
+                <strong><i class="mdi mdi-console"></i> Raw Test Output</strong>
+                <i class="mdi mdi-chevron-down caret-icon pull-right text-muted"></i>
+            </div>
+            <div id="raw-output" style="display: none;">
             <pre style="font-size: 11px; max-height: 400px; overflow-y: auto; margin: 0; border-radius: 0;">{{ object.nuts_output }}</pre>
+            </div>
         </div>
-    </div>
     {% endif %}
 
 {# ══════════════════════════════════════════════════════════════════════════ #}

@@ -3,12 +3,12 @@
 import re
 
 from django import template
-from django.utils.safestring import mark_safe
 
 register = template.Library()
 
 
 # ── Arithmetic ────────────────────────────────────────────────────────────
+
 
 @register.filter
 def percentage_of(value, total):
@@ -109,7 +109,7 @@ def nuts_context(raw_check):
 
 @register.filter
 def nuts_error_summary(detail_str):
-    """Extract a clean one-line error from NUTS detail string.
+    r"""Extract a clean one-line error from NUTS detail string.
 
     Strips outcome=/duration= prefixes. Finds the key assertion error.
     Input:  "outcome=failed; /usr/local/.../napalm_interfaces.py:37: in test_is_enabled\\n    assert ...\\nE   KeyError: 'Loopback0'"

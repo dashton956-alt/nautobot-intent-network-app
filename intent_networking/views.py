@@ -475,7 +475,7 @@ class _BulkIntentJobView(View):
         """Return extra keyword arguments to pass to _enqueue_job."""
         return {}
 
-    def validate_intent(self, intent):  # pylint: disable=no-self-use
+    def validate_intent(self, intent):
         """Return an error string if the intent cannot be actioned, or None."""
         return None
 

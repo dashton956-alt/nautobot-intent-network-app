@@ -844,7 +844,7 @@ class IntentVerificationJob(Job):
             return NutsVerifier(intent).run()
         except ImportError:
             self.logger.warning(
-                "NUTS not installed — cannot run extended verification for %s. " "Install with: pip install nuts",
+                "NUTS not installed — cannot run extended verification for %s. Install with: pip install nuts",
                 intent.intent_id,
             )
             return None
