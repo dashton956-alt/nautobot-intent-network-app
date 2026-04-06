@@ -128,7 +128,7 @@ class NutsVerifier:
                 "passed": True,
                 "has_warnings": True,
                 "warning_reasons": [
-                    ("No NUTS test bundles defined in verification.tests —" " add test definitions to your intent YAML")
+                    "No NUTS test bundles defined in verification.tests — add test definitions to your intent YAML"
                 ],
                 "checks": [
                     {
