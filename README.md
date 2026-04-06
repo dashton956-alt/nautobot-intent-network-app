@@ -46,7 +46,7 @@ Git Repository (YAML intents)
 
 - **Native Nautobot Git integration** — configure a GitRepository with the "intent definitions" content type; Nautobot auto-syncs intent YAML files on every pull (no CI scripts needed)
 - **Firewall rule intents** — declarative firewall policies that render to device ACLs and can be pushed to centralized firewall controllers (Panorama, FortiManager, generic REST)
-- **[134 intent types](models/intent.md#intent-type-categories)** across 14 network domains — L2/L3, MPLS, EVPN/VXLAN, Security, WAN, Wireless, Cloud, QoS, Multicast, and more
+- **[141 intent types](models/intent.md#intent-type-categories)** across 14 network domains — L2/L3, MPLS, EVPN/VXLAN, Security, WAN, Wireless, Cloud, QoS, Multicast, Management, and more
 - **YAML-first intent authoring** — engineers write what they want, not how to configure it
 - **Atomic resource allocation** — route distinguishers and route targets allocated from pools using `select_for_update()`, preventing duplicates even under concurrent deployments
 - **Multi-vendor rendering** — Jinja2 templates per platform (Cisco IOS-XE, IOS-XR, Juniper JunOS, Aruba AOS-CX); swap the router, keep the intent

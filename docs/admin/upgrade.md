@@ -28,6 +28,33 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0 (NUTS Verification Engine, Bulk Actions, 847 Templates)
+
+v2.0 is a **major release**. The pyATS/Genie verification engine is removed and replaced by NUTS.
+
+**Migrations** `0014` is applied automatically by `post_upgrade`.
+
+**Remove pyATS (optional but recommended):**
+
+```shell
+pip uninstall pyats genie
+```
+
+**Install NUTS extras:**
+
+```shell
+pip install "nautobot-app-intent-networking[nuts]==2.0.0"
+```
+
+**Update your intent YAML** — the `verification.tests` block now uses NUTS test bundle definitions instead of pyATS test specs. See the [Getting Started guide](../../user/app_getting_started.md).
+
+**Restart services after upgrade:**
+
+```shell
+nautobot-server post_upgrade
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
 ### Upgrading to v1.1.5 (Docs + Deployment)
 
 v1.1.5 is a documentation and deployment pipeline release. There are no database changes.
