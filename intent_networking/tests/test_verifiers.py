@@ -1,4 +1,4 @@
-"""Tests for BasicVerifier and PyATSVerifier."""
+"""Tests for BasicVerifier and NutsVerifier."""
 
 from unittest.mock import MagicMock, patch
 
@@ -141,8 +141,8 @@ class TestBasicVerifier(TestCase):
         self.assertFalse(result["passed"])
 
 
-class TestPyATSVerifier(TestCase):
-    """Tests for PyATSVerifier."""
+class TestNutsVerifier(TestCase):
+    """Tests for NutsVerifier."""
 
     @classmethod
     def setUpTestData(cls):
@@ -165,81 +165,34 @@ class TestPyATSVerifier(TestCase):
             plan.affected_devices.set(affected_devices)
         return plan
 
-    @patch.dict("sys.modules", {"pyats": MagicMock(), "pyats.topology": MagicMock(), "genie": MagicMock()})
-    def test_extended_learns_correct_features_for_connectivity_intent(self):
-        from intent_networking.verifiers.extended import EXTENDED_CHECKS
+    def test_allowed_test_classes_contains_expected_entries(self):
+        from intent_networking.verifiers.extended import ALLOWED_TEST_CLASSES
 
-        self.assertEqual(EXTENDED_CHECKS["connectivity"], ["bgp", "routing", "ospf", "mpls"])
+        self.assertIn("TestNapalmBgpNeighbors", ALLOWED_TEST_CLASSES)
+        self.assertIn("TestNapalmInterfaces", ALLOWED_TEST_CLASSES)
+        self.assertIn("TestNapalmLldpNeighbors", ALLOWED_TEST_CLASSES)
+        self.assertIn("TestNetmikoCdpNeighbors", ALLOWED_TEST_CLASSES)
 
-    @patch.dict("sys.modules", {"pyats": MagicMock(), "pyats.topology": MagicMock(), "genie": MagicMock()})
-    def test_extended_learns_correct_features_for_mpls_intent(self):
-        from intent_networking.verifiers.extended import EXTENDED_CHECKS
+    def test_disallowed_test_class_is_rejected(self):
+        from intent_networking.verifiers.extended import ALLOWED_TEST_CLASSES
 
-        self.assertEqual(EXTENDED_CHECKS["mpls"], ["mpls", "ldp", "ospf", "bgp"])
+        self.assertNotIn("MaliciousTestClass", ALLOWED_TEST_CLASSES)
 
-    @patch.dict("sys.modules", {"pyats": MagicMock(), "pyats.topology": MagicMock(), "genie": MagicMock()})
-    def test_extended_falls_back_for_junos_device(self):
-        from nautobot.dcim.models import (
-            Device,
-            DeviceType,
-            Location,
-            LocationType,
-            Manufacturer,
-            Platform,
-        )
-        from nautobot.extras.models import Role
+    def test_platform_mappings_exist(self):
+        from intent_networking.verifiers.extended import PLATFORM_TO_NAPALM, PLATFORM_TO_NETMIKO
 
-        from intent_networking.verifiers.extended import UNSUPPORTED_PLATFORMS, PyATSVerifier
+        self.assertEqual(PLATFORM_TO_NAPALM["arista-eos"], "eos")
+        self.assertEqual(PLATFORM_TO_NETMIKO["arista-eos"], "arista_eos")
+        self.assertIn("cisco-ios-xe", PLATFORM_TO_NAPALM)
+        self.assertIn("cisco-ios-xe", PLATFORM_TO_NETMIKO)
 
-        # Verify junos is in unsupported list
-        self.assertIn("juniper-junos", UNSUPPORTED_PLATFORMS)
-
-        intent = self._get_intent()
-        mfg, _ = Manufacturer.objects.get_or_create(name="Juniper-Test")
-        dt, _ = DeviceType.objects.get_or_create(model="MX480-Test", manufacturer=mfg)
-        platform, _ = Platform.objects.get_or_create(name="juniper-junos")
-        status = Status.objects.filter(name="Active").first() or Status.objects.first()
-
-        from django.contrib.contenttypes.models import ContentType
-
-        loc_type, _ = LocationType.objects.get_or_create(name="Site-Junos-Test")
-        device_ct = ContentType.objects.get_for_model(Device)
-        loc_type.content_types.add(device_ct)
-        role, _ = Role.objects.get_or_create(name="Router-Junos-Test")
-        role.content_types.add(device_ct)
-        loc, _ = Location.objects.get_or_create(
-            name="test-site-junos", location_type=loc_type, defaults={"status": status}
-        )
-        device, _ = Device.objects.get_or_create(
-            name="test-junos-device",
-            defaults={
-                "device_type": dt,
-                "location": loc,
-                "status": status,
-                "platform": platform,
-                "role": role,
-            },
-        )
-
-        self._create_plan(intent, affected_devices=[device])
-
-        verifier = PyATSVerifier(intent)
-        result = verifier.run()
-
-        # Should return a warning instead of failing
-        self.assertTrue(result["has_warnings"])
-        self.assertTrue(any("limited Genie coverage" in r for r in result["warning_reasons"]))
-
-    def test_extended_raises_import_error_when_pyats_not_installed(self):
+    def test_nuts_import_error_when_not_installed(self):
         import sys
 
-        # Temporarily remove pyats from modules to simulate not-installed
-        original_pyats = sys.modules.get("pyats")
-        original_genie = sys.modules.get("genie")
-        sys.modules["pyats"] = None
-        sys.modules["genie"] = None
+        # Temporarily remove nuts from modules to simulate not-installed
+        original_nuts = sys.modules.get("nuts")
+        sys.modules["nuts"] = None
         try:
-            # Force reimport to pick up the missing module
             from importlib import reload
 
             import intent_networking.verifiers.extended as ext_mod
@@ -247,66 +200,43 @@ class TestPyATSVerifier(TestCase):
             reload(ext_mod)
             intent = self._get_intent()
             with self.assertRaises(ImportError) as ctx:
-                ext_mod.PyATSVerifier(intent)
+                ext_mod.NutsVerifier(intent)
             self.assertIn("pip install", str(ctx.exception))
         finally:
-            if original_pyats is not None:
-                sys.modules["pyats"] = original_pyats
+            if original_nuts is not None:
+                sys.modules["nuts"] = original_nuts
             else:
-                sys.modules.pop("pyats", None)
-            if original_genie is not None:
-                sys.modules["genie"] = original_genie
-            else:
-                sys.modules.pop("genie", None)
+                sys.modules.pop("nuts", None)
 
-    @patch.dict("sys.modules", {"pyats": MagicMock(), "pyats.topology": MagicMock(), "genie": MagicMock()})
-    def test_semaphore_limits_concurrent_connections_to_five(self):
-        from intent_networking.verifiers.extended import PyATSVerifier
+    @patch("intent_networking.verifiers.extended.NutsVerifier._ensure_nuts_installed")
+    def test_nuts_verifier_initialises_with_intent(self, _mock_check):
+        from intent_networking.verifiers.extended import NutsVerifier
 
         intent = self._get_intent()
         self._create_plan(intent)
 
-        verifier = PyATSVerifier(intent)
-        self.assertEqual(verifier.MAX_CONCURRENT_SESSIONS, 5)
+        verifier = NutsVerifier(intent)
+        self.assertEqual(verifier.intent, intent)
 
-    @patch.dict("sys.modules", {"pyats": MagicMock(), "pyats.topology": MagicMock(), "genie": MagicMock()})
-    @patch("intent_networking.verifiers.extended.get_device_credentials", return_value=("user", "pass"))
-    def test_devices_disconnected_in_finally_block(self, mock_creds):
-        from intent_networking.verifiers.extended import PyATSVerifier
+    @patch("intent_networking.verifiers.extended.NutsVerifier._ensure_nuts_installed")
+    def test_nuts_verifier_has_cleanup_in_execute(self, _mock_check):
+        from intent_networking.verifiers.extended import NutsVerifier
 
         intent = self._get_intent()
         self._create_plan(intent)
 
-        verifier = PyATSVerifier(intent)
+        verifier = NutsVerifier(intent)
 
-        # Create a mock device with connect/disconnect
-        mock_pyats_device = MagicMock()
-        mock_pyats_device.learn.side_effect = Exception("simulated failure")
+        # Verify the _execute_nuts method has cleanup (shutil.rmtree in finally)
+        import inspect
 
-        mock_testbed = MagicMock()
-        mock_testbed.devices = {"test-device": mock_pyats_device}
-
-        with patch("intent_networking.verifiers.extended.PyATSVerifier._build_testbed") as mock_build:
-            mock_build.return_value = {"testbed": {"name": "test"}, "devices": {}}
-
-            # The _verify_device method should always disconnect
-            mock_device = MagicMock()
-            mock_device.name = "test-device"
-            mock_device.platform = MagicMock()
-            mock_device.platform.name = "cisco-ios-xe"
-            mock_device.primary_ip = None
-
-            # We can't easily test the full flow without real pyATS,
-            # but we verify the class structure has the finally block
-            import inspect
-
-            source = inspect.getsource(verifier._verify_device)  # pylint: disable=protected-access
-            self.assertIn("finally", source)
-            self.assertIn("disconnect", source)
+        source = inspect.getsource(verifier._execute_nuts)  # pylint: disable=protected-access
+        self.assertIn("finally", source)
+        self.assertIn("shutil.rmtree", source)
 
 
 class TestAutoEscalation(TestCase):
-    """Tests for auto-escalation from basic to extended."""
+    """Tests for auto-escalation from basic to NUTS."""
 
     @classmethod
     def setUpTestData(cls):
@@ -327,10 +257,10 @@ class TestAutoEscalation(TestCase):
         )
         return plan
 
-    @patch("intent_networking.jobs.IntentVerificationJob._run_extended")
+    @patch("intent_networking.jobs.IntentVerificationJob._run_nuts")
     @patch("intent_networking.verifiers.basic.BasicVerifier.run")
     @patch("intent_networking.jobs.notify_slack")
-    def test_basic_with_warnings_triggers_extended(self, mock_slack, mock_basic_run, mock_extended):
+    def test_basic_with_warnings_triggers_nuts(self, mock_slack, mock_basic_run, mock_nuts):
         intent = self._get_intent()
         self._create_plan(intent)
 
@@ -340,12 +270,12 @@ class TestAutoEscalation(TestCase):
             "warning_reasons": ["Latency near threshold"],
             "checks": [],
         }
-        mock_extended.return_value = {
+        mock_nuts.return_value = {
             "passed": True,
             "has_warnings": False,
             "warning_reasons": [],
             "checks": [],
-            "pyats_diff_output": "",
+            "nuts_output": "",
         }
 
         from intent_networking.jobs import IntentVerificationJob
@@ -354,11 +284,11 @@ class TestAutoEscalation(TestCase):
         job.logger = MagicMock()
         job.run(intent_id=intent.intent_id, triggered_by="test")
 
-        mock_extended.assert_called_once_with(intent)
+        mock_nuts.assert_called_once_with(intent)
 
     @patch("intent_networking.verifiers.basic.BasicVerifier.run")
     @patch("intent_networking.jobs.notify_slack")
-    def test_basic_without_warnings_does_not_trigger_extended(self, mock_slack, mock_basic_run):
+    def test_basic_without_warnings_does_not_trigger_nuts(self, mock_slack, mock_basic_run):
         intent = self._get_intent()
         self._create_plan(intent)
 
@@ -374,14 +304,14 @@ class TestAutoEscalation(TestCase):
         job = IntentVerificationJob()
         job.logger = MagicMock()
 
-        with patch("intent_networking.jobs.IntentVerificationJob._run_extended") as mock_extended:
+        with patch("intent_networking.jobs.IntentVerificationJob._run_nuts") as mock_nuts:
             job.run(intent_id=intent.intent_id, triggered_by="test")
-            mock_extended.assert_not_called()
+            mock_nuts.assert_not_called()
 
-    @patch("intent_networking.jobs.IntentVerificationJob._run_extended")
+    @patch("intent_networking.jobs.IntentVerificationJob._run_nuts")
     @patch("intent_networking.verifiers.basic.BasicVerifier.run")
     @patch("intent_networking.jobs.notify_slack")
-    def test_escalation_reason_stored_in_verification_result(self, mock_slack, mock_basic_run, mock_extended):
+    def test_escalation_reason_stored_in_verification_result(self, mock_slack, mock_basic_run, mock_nuts):
         intent = self._get_intent()
         self._create_plan(intent)
 
@@ -391,12 +321,12 @@ class TestAutoEscalation(TestCase):
             "warning_reasons": ["BGP prefix count above baseline"],
             "checks": [],
         }
-        mock_extended.return_value = {
+        mock_nuts.return_value = {
             "passed": True,
             "has_warnings": False,
             "warning_reasons": [],
             "checks": [],
-            "pyats_diff_output": "",
+            "nuts_output": "",
         }
 
         from intent_networking.jobs import IntentVerificationJob

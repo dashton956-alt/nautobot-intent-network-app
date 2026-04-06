@@ -1,86 +1,114 @@
-"""Extended verification engine powered by pyATS/Genie.
+"""Extended verification engine powered by NUTS (Network Unit Testing System).
 
-Deep protocol-state verification beyond outcome checks. Uses Genie's
-``device.learn()`` for structured state collection and per-feature
-assertion checks.
+Runs user-defined NUTS test bundles declared in the intent YAML's
+``verification.tests`` section.  Each test entry maps to an allowed
+NUTS test class (NAPALM or Netmiko-based); arbitrary ``test_module``
+paths are rejected to prevent code-injection.
 
-pyATS is an optional dependency. If not installed, ``PyATSVerifier``
+NUTS is an optional dependency.  If not installed, ``NutsVerifier``
 raises a clear ``ImportError`` with install instructions.
 """
 
-import asyncio
+import json
 import logging
+import os
+import shutil
+import tempfile
+
+import yaml
 
 from intent_networking.secrets import get_device_credentials
 
 logger = logging.getLogger(__name__)
 
-# Maps intent types to the Genie features that should be learned and checked.
-EXTENDED_CHECKS = {
-    "connectivity": ["bgp", "routing", "ospf", "mpls"],
-    "segmentation": ["routing", "acl", "vrf"],
-    "reachability": ["routing", "ospf", "bgp"],
-    "qos": ["routing", "interface"],
-    "mpls": ["mpls", "ldp", "ospf", "bgp"],
-    "evpn": ["bgp", "vxlan", "routing"],
-    "multicast": ["routing", "pim", "igmp"],
-    "wan": ["bgp", "routing", "interface"],
-    "wireless": ["routing", "interface"],
-    "firewall": ["routing", "acl"],
-}
+# ── Allowed test classes (whitelist) ────────────────────────────────────────
+# Only built-in NUTS test classes are allowed.  ``test_module`` is never
+# accepted from user YAML to prevent arbitrary code execution.
 
-# Map Nautobot platform slugs to pyATS OS strings.
-PLATFORM_TO_PYATS_OS = {
-    "cisco-ios-xe": "iosxe",
+ALLOWED_TEST_CLASSES = frozenset(
+    {
+        # NAPALM-based
+        "TestNapalmBgpNeighbors",
+        "TestNapalmBgpNeighborsCount",
+        "TestNapalmArp",
+        "TestNapalmArpRange",
+        "TestNapalmInterfaces",
+        "TestNapalmLldpNeighbors",
+        "TestNapalmLldpNeighborsCount",
+        "TestNapalmPing",
+        "TestNapalmConfig",
+        "TestNapalmUsers",
+        "TestNapalmOnlyDefinedUsersExist",
+        "TestNapalmVlans",
+        "TestNapalmInterfaceInVlan",
+        "TestNapalmOnlyDefinedVlansExist",
+        "TestNapalmNetworkInstances",
+        # Netmiko-based (require ntc-templates)
+        "TestNetmikoCdpNeighbors",
+        "TestNetmikoCdpNeighborsCount",
+        "TestNetmikoOspfNeighbors",
+        "TestNetmikoOspfNeighborsCount",
+        "TestNetmikoIperf",
+    }
+)
+
+# Map Nautobot platform slugs → NAPALM driver names used in Nornir inventory.
+PLATFORM_TO_NAPALM = {
+    "arista-eos": "eos",
+    "cisco-ios-xe": "ios",
     "cisco-ios-xr": "iosxr",
     "cisco-nxos": "nxos",
     "juniper-junos": "junos",
-    "aruba-aos-cx": "linux",
-    "arista-eos": "linux",
+    "nokia-sros": "sros",
+    "aruba-aos-cx": "aoscx",
 }
 
-# Platforms where Genie coverage is limited — skip extended verification.
-UNSUPPORTED_PLATFORMS = {"juniper-junos"}
+# Map Nautobot platform slugs → Netmiko device types.
+PLATFORM_TO_NETMIKO = {
+    "arista-eos": "arista_eos",
+    "cisco-ios-xe": "cisco_ios",
+    "cisco-ios-xr": "cisco_xr",
+    "cisco-nxos": "cisco_nxos",
+    "juniper-junos": "juniper_junos",
+    "nokia-sros": "nokia_sros",
+    "aruba-aos-cx": "aruba_osswitch",
+}
 
 
-class PyATSVerifier:
-    """Deep protocol-state verification using pyATS/Genie.
+class NutsVerifier:
+    """Run NUTS test bundles defined in the intent YAML.
 
     Returns a result dict with the same shape as BasicVerifier.run()
-    for consistent storage in VerificationResult:
-    {
-        "passed": bool,
-        "has_warnings": bool,
-        "warning_reasons": list[str],
-        "checks": {check_name: {"passed": bool, "detail": str}},
-        "pyats_diff_output": str,
-    }
-    """
+    for consistent storage in VerificationResult::
 
-    MAX_CONCURRENT_SESSIONS = 5
+        {
+            "passed": bool,
+            "has_warnings": bool,
+            "warning_reasons": list[str],
+            "checks": list[dict],
+            "nuts_output": str,
+        }
+    """
 
     def __init__(self, intent):
         """Initialise with an Intent model instance."""
-        self._ensure_pyats_installed()
+        self._ensure_nuts_installed()
         self.intent = intent
         self.plan = intent.latest_plan
 
     @staticmethod
-    def _ensure_pyats_installed():
-        """Raise ImportError with install hint if pyATS is not available."""
+    def _ensure_nuts_installed():
+        """Raise ImportError with install hint if NUTS is not available."""
         try:
-            __import__("pyats")
-            __import__("genie")
+            __import__("nuts")
         except ImportError as exc:
-            raise ImportError(
-                'pyATS and Genie are required for extended verification. Install with: pip install -e ".[extended]"'
-            ) from exc
+            raise ImportError("NUTS is required for extended verification. Install with: pip install nuts") from exc
 
     def run(self):
-        """Execute extended verification checks.
+        """Execute NUTS test bundles from the intent's verification.tests.
 
         Returns:
-            dict with keys: passed, has_warnings, warning_reasons, checks, pyats_diff_output
+            dict with keys: passed, has_warnings, warning_reasons, checks, nuts_output
         """
         if not self.plan:
             return {
@@ -88,480 +116,356 @@ class PyATSVerifier:
                 "has_warnings": False,
                 "warning_reasons": [],
                 "checks": [{"check": "plan_exists", "passed": False, "detail": "No resolution plan found"}],
-                "pyats_diff_output": "",
+                "nuts_output": "",
             }
 
-        features = EXTENDED_CHECKS.get(self.intent.intent_type, ["routing"])
-        devices = list(self.plan.affected_devices.select_related("platform").all())
+        intent_data = self.intent.intent_data or {}
+        verification_block = intent_data.get("verification", {})
+        test_bundles = verification_block.get("tests", [])
 
-        # Check for unsupported platforms — return warning for JunOS devices
-        warning_reasons = []
-        supported_devices = []
-        for device in devices:
-            platform_slug = device.platform.name if device.platform else ""
-            if platform_slug in UNSUPPORTED_PLATFORMS:
-                warning_reasons.append(
-                    f"Skipping extended verification for {device.name} — "
-                    f"platform '{platform_slug}' has limited Genie coverage"
-                )
-                logger.warning(
-                    "Skipping extended verification for %s — platform '%s' has limited Genie coverage",
-                    device.name,
-                    platform_slug,
-                )
-            else:
-                supported_devices.append(device)
-
-        if not supported_devices:
+        if not test_bundles:
             return {
                 "passed": True,
+                "has_warnings": True,
+                "warning_reasons": [
+                    "No NUTS test bundles defined in verification.tests — add test definitions to your intent YAML"
+                ],
+                "checks": [
+                    {
+                        "check": "nuts_tests_defined",
+                        "passed": True,
+                        "detail": "No test bundles defined — skipped",
+                    }
+                ],
+                "nuts_output": "",
+            }
+
+        # Validate all test classes against allowlist
+        warning_reasons = []
+        validated_bundles = []
+        for bundle in test_bundles:
+            test_class = bundle.get("test_class", "")
+
+            # Reject test_module — only built-in classes allowed
+            if "test_module" in bundle:
+                warning_reasons.append(
+                    f"Rejected test_module in bundle for '{test_class}' — "
+                    "only built-in NUTS test classes are allowed"
+                )
+                logger.warning(
+                    "Rejected test_module in NUTS bundle for intent %s: %s",
+                    self.intent.intent_id,
+                    bundle.get("test_module"),
+                )
+                continue
+
+            if test_class not in ALLOWED_TEST_CLASSES:
+                warning_reasons.append(
+                    f"Unknown test class '{test_class}' — skipped. "
+                    f"Allowed: {', '.join(sorted(ALLOWED_TEST_CLASSES))}"
+                )
+                logger.warning(
+                    "Rejected unknown NUTS test class '%s' for intent %s",
+                    test_class,
+                    self.intent.intent_id,
+                )
+                continue
+
+            validated_bundles.append(bundle)
+
+        if not validated_bundles:
+            return {
+                "passed": False,
                 "has_warnings": True,
                 "warning_reasons": warning_reasons,
                 "checks": [
                     {
-                        "check": "platform_support",
-                        "passed": True,
-                        "detail": "All devices skipped — no supported platforms for extended verification",
+                        "check": "nuts_validation",
+                        "passed": False,
+                        "detail": "All test bundles were rejected during validation",
                     }
                 ],
-                "pyats_diff_output": "",
+                "nuts_output": "",
             }
 
-        # Run checks with concurrency limit
-        all_checks = []
-        all_passed = True
-        diff_output_parts = []
-
-        loop = asyncio.new_event_loop()
-        try:
-            results = loop.run_until_complete(self._run_all_devices(supported_devices, features))
-        finally:
-            loop.close()
-
-        for device_result in results:
-            all_checks.extend(device_result.get("checks", []))
-            diff_output_parts.append(device_result.get("diff_output", ""))
-            if not device_result.get("passed", True):
-                all_passed = False
-            warning_reasons.extend(device_result.get("warning_reasons", []))
-
-        return {
-            "passed": all_passed,
-            "has_warnings": len(warning_reasons) > 0,
-            "warning_reasons": warning_reasons,
-            "checks": all_checks,
-            "pyats_diff_output": "\n".join(filter(None, diff_output_parts)),
-        }
-
-    async def _run_all_devices(self, devices, features):
-        """Run verification on all devices with a concurrency semaphore."""
-        semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_SESSIONS)
-        tasks = [self._run_device_with_semaphore(semaphore, device, features) for device in devices]
-        return await asyncio.gather(*tasks)
-
-    async def _run_device_with_semaphore(self, semaphore, device, features):
-        """Acquire semaphore, then run verification on a single device."""
-        async with semaphore:
-            return await asyncio.get_event_loop().run_in_executor(None, self._verify_device, device, features)
-
-    def _verify_device(self, device, features):
-        """Connect to a single device, learn features, and run checks."""
-        from pyats.topology import Testbed  # noqa: PLC0415
-
-        platform_slug = device.platform.name if device.platform else ""
-        pyats_os = PLATFORM_TO_PYATS_OS.get(platform_slug, "linux")
-
-        testbed_dict = self._build_testbed(device, pyats_os)
-        testbed = Testbed()
-        testbed.parse(testbed_dict)
-
-        pyats_device = testbed.devices[device.name]
-        checks = []
-        passed = True
-        warning_reasons = []
-        diff_output = ""
-
-        try:
-            pyats_device.connect(log_stdout=False)
-
-            learned_state = {}
-            for feature in features:
-                try:
-                    learned_state[feature] = pyats_device.learn(feature)
-                except Exception as exc:
-                    logger.warning("Failed to learn '%s' on %s: %s", feature, device.name, exc)
-                    checks.append(
-                        {
-                            "device": device.name,
-                            "check": f"learn_{feature}",
-                            "passed": False,
-                            "detail": f"Failed to learn {feature}: {exc}",
-                        }
-                    )
-                    passed = False
-
-            # Run per-feature assertion checks
-            intent_data = self.intent.intent_data
-            check_methods = {
-                "bgp": self._check_bgp,
-                "ospf": self._check_ospf_convergence,
-                "mpls": self._check_mpls,
-                "ldp": self._check_ldp,
-                "routing": self._check_routing,
-                "interface": self._check_interface,
-                "vrf": self._check_vrf,
-                "acl": self._check_acl,
-                "vxlan": self._check_vxlan,
-                "pim": self._check_pim,
-            }
-
-            for feature in features:
-                if feature not in learned_state:
-                    continue
-                method = check_methods.get(feature)
-                if method:
-                    if feature in ("bgp", "routing", "interface", "vrf", "acl", "vxlan"):
-                        result = method(learned_state[feature], intent_data)
-                    else:
-                        result = method(learned_state[feature])
-
-                    result_check = {
-                        "device": device.name,
-                        "check": f"extended_{feature}",
-                        "passed": result["passed"],
-                        "detail": result["detail"],
+        # Build nornir inventory from the intent's affected devices
+        devices = list(self.plan.affected_devices.select_related("platform").all())
+        if not devices:
+            return {
+                "passed": True,
+                "has_warnings": True,
+                "warning_reasons": ["No affected devices in resolution plan"],
+                "checks": [
+                    {
+                        "check": "devices_found",
+                        "passed": True,
+                        "detail": "No devices to test — skipped",
                     }
-                    checks.append(result_check)
-                    if not result["passed"]:
-                        passed = False
+                ],
+                "nuts_output": "",
+            }
 
+        # Run pytest with NUTS
+        try:
+            result = self._execute_nuts(validated_bundles, devices)
         except Exception as exc:
-            logger.error("Extended verification failed for %s: %s", device.name, exc)
-            checks.append(
-                {
-                    "device": device.name,
-                    "check": "device_connection",
-                    "passed": False,
-                    "detail": f"Connection/verification error: {exc}",
-                }
-            )
-            passed = False
-        finally:
+            logger.error("NUTS verification failed for %s: %s", self.intent.intent_id, exc)
+            return {
+                "passed": False,
+                "has_warnings": bool(warning_reasons),
+                "warning_reasons": warning_reasons,
+                "checks": [
+                    {
+                        "check": "nuts_execution",
+                        "passed": False,
+                        "detail": f"NUTS execution error: {exc}",
+                    }
+                ],
+                "nuts_output": "",
+            }
+
+        result["warning_reasons"] = warning_reasons + result.get("warning_reasons", [])
+        result["has_warnings"] = len(result["warning_reasons"]) > 0
+        return result
+
+    def _execute_nuts(self, test_bundles, devices):
+        """Write temp files, invoke pytest, parse results."""
+        import pytest  # noqa: PLC0415
+
+        tmpdir = tempfile.mkdtemp(prefix="nuts-verify-")
+
+        try:
+            # Write Nornir inventory
+            inventory_dir = os.path.join(tmpdir, "inventory")
+            os.makedirs(inventory_dir)
+            self._write_nornir_inventory(inventory_dir, devices)
+
+            # Write nornir config
+            nr_config_path = os.path.join(tmpdir, "nr-config.yaml")
+            self._write_nornir_config(nr_config_path, inventory_dir)
+
+            # Write test bundle YAML
+            bundle_path = os.path.join(tmpdir, "test_bundle.yaml")
+            self._write_test_bundle(bundle_path, test_bundles)
+
+            # Write conftest.py pointing to our nornir config
+            conftest_path = os.path.join(tmpdir, "conftest.py")
+            self._write_conftest(conftest_path, nr_config_path)
+
+            # Run pytest programmatically with JSON report
+            json_report_path = os.path.join(tmpdir, "results.json")
+            original_cwd = os.getcwd()
             try:
-                pyats_device.disconnect()
-            except Exception:
-                logger.debug("Error disconnecting from %s", device.name)
+                os.chdir(tmpdir)
+                exit_code = pytest.main(
+                    [
+                        bundle_path,
+                        f"--json-report-file={json_report_path}",
+                        "--json-report",
+                        "--no-header",
+                        "-q",
+                        "--tb=short",
+                        "--override-ini=addopts=",
+                    ],
+                    plugins=[],
+                )
+            finally:
+                os.chdir(original_cwd)
 
-        return {
-            "passed": passed,
-            "checks": checks,
-            "warning_reasons": warning_reasons,
-            "diff_output": diff_output,
-        }
+            # Parse results
+            return self._parse_results(json_report_path, exit_code)
 
-    def _build_testbed(self, device, pyats_os):
-        """Build a pyATS testbed dict for a single device.
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
-        Credentials are retrieved via the secrets module — never from
-        environment variables directly.
-        """
+    def _write_nornir_inventory(self, inventory_dir, devices):
+        """Write hosts.yaml and defaults.yaml for the Nornir inventory."""
         username, password = get_device_credentials()
-        primary_ip = ""
-        if device.primary_ip:
-            primary_ip = str(device.primary_ip.host)
+        hosts = {}
 
-        return {
-            "testbed": {
-                "name": f"intent-verify-{self.intent.intent_id}",
-            },
-            "devices": {
-                device.name: {
-                    "os": pyats_os,
-                    "type": pyats_os,
-                    "connections": {
-                        "default": {
-                            "protocol": "ssh",
-                            "ip": primary_ip,
+        for device in devices:
+            platform_slug = device.platform.name if device.platform else ""
+            primary_ip = ""
+            if device.primary_ip:
+                primary_ip = str(device.primary_ip.host)
+
+            napalm_driver = PLATFORM_TO_NAPALM.get(platform_slug, "eos")
+            netmiko_type = PLATFORM_TO_NETMIKO.get(platform_slug, "linux")
+
+            hosts[device.name] = {
+                "hostname": primary_ip,
+                "platform": napalm_driver,
+                "data": {
+                    "netmiko_device_type": netmiko_type,
+                },
+            }
+
+        hosts_path = os.path.join(inventory_dir, "hosts.yaml")
+        with open(hosts_path, "w", encoding="utf-8") as f:
+            yaml.dump(hosts, f, default_flow_style=False)
+
+        defaults = {
+            "username": username,
+            "password": password,
+            "connection_options": {
+                "napalm": {
+                    "extras": {
+                        "optional_args": {
+                            "transport": "ssh",
                         },
                     },
-                    "credentials": {
-                        "default": {
-                            "username": username,
-                            "password": password,
-                        },
-                    },
+                },
+                "netmiko": {
+                    "extras": {},
                 },
             },
         }
 
-    def _check_bgp(self, learned_state, intent_data):
-        """Verify BGP peers are Established with expected prefix counts.
+        defaults_path = os.path.join(inventory_dir, "defaults.yaml")
+        with open(defaults_path, "w", encoding="utf-8") as f:
+            yaml.dump(defaults, f, default_flow_style=False)
 
-        Assertions:
-        - All required peers in Established state
-        - Prefix count within expected range
-        - No abnormal churn (flap count check)
-        """
-        info = getattr(learned_state, "info", {})
-        issues = []
-
-        # Check all VRF instances
-        instances = info.get("instance", {})
-        for _instance_name, instance_data in instances.items():
-            vrfs = instance_data.get("vrf", {})
-            for vrf_name, vrf_data in vrfs.items():
-                neighbors = vrf_data.get("neighbor", {})
-                for neighbor_ip, neighbor_data in neighbors.items():
-                    session_state = neighbor_data.get("session_state", "Unknown")
-                    if session_state.lower() != "established":
-                        issues.append(f"BGP peer {neighbor_ip} in VRF {vrf_name}: state={session_state}")
-
-                    # Check for churn (if available)
-                    msg_stats = neighbor_data.get("bgp_negotiated_keepalive_timers", {})
-                    if msg_stats.get("keepalive_interval", 0) == 0:
-                        issues.append(f"BGP peer {neighbor_ip}: keepalive timer appears down")
-
-        if issues:
-            return {"passed": False, "detail": "; ".join(issues)}
-        return {"passed": True, "detail": "All BGP peers Established, prefix counts within range"}
-
-    def _check_ospf_convergence(self, learned_state):
-        """Verify OSPF neighbors are in FULL state with consistent LSA database.
-
-        Assertions:
-        - All neighbors in FULL state
-        - No stuck-in-exstart neighbors
-        - LSA database consistent
-        """
-        info = getattr(learned_state, "info", {})
-        issues = []
-
-        vrfs = info.get("vrf", {})
-        for _vrf_name, vrf_data in vrfs.items():
-            areas = vrf_data.get("address_family", {}).get("ipv4", {}).get("instance", {})
-            for _instance_name, instance_data in areas.items():
-                for area_id, area_data in instance_data.get("areas", {}).items():
-                    self._check_ospf_area(issues, area_id, area_data)
-
-        if issues:
-            return {"passed": False, "detail": "; ".join(issues)}
-        return {"passed": True, "detail": "All OSPF neighbors in FULL state, LSA database consistent"}
+        # Empty groups file
+        groups_path = os.path.join(inventory_dir, "groups.yaml")
+        with open(groups_path, "w", encoding="utf-8") as f:
+            yaml.dump({}, f)
 
     @staticmethod
-    def _check_ospf_area(issues, area_id, area_data):
-        """Check all OSPF neighbors in a single area."""
-        for iface_data in area_data.get("interfaces", {}).values():
-            for nbr_id, nbr_data in iface_data.get("neighbors", {}).items():
-                state = nbr_data.get("state", "Unknown")
-                if state.lower() not in ("full", "full/dr", "full/bdr", "full/drother"):
-                    issues.append(f"OSPF neighbor {nbr_id} in area {area_id}: state={state}")
-                if "exstart" in state.lower():
-                    issues.append(f"OSPF neighbor {nbr_id} stuck in EXSTART")
+    def _write_nornir_config(config_path, inventory_dir):
+        """Write nr-config.yaml for NUTS to pick up."""
+        config = {
+            "inventory": {
+                "plugin": "SimpleInventory",
+                "options": {
+                    "host_file": os.path.join(inventory_dir, "hosts.yaml"),
+                    "group_file": os.path.join(inventory_dir, "groups.yaml"),
+                    "defaults_file": os.path.join(inventory_dir, "defaults.yaml"),
+                },
+            },
+            "runner": {
+                "plugin": "threaded",
+                "options": {
+                    "num_workers": 5,
+                },
+            },
+        }
 
-    def _check_mpls(self, learned_state):
-        """Verify MPLS label bindings and LDP sessions.
+        with open(config_path, "w", encoding="utf-8") as f:
+            yaml.dump(config, f, default_flow_style=False)
 
-        Assertions:
-        - Label bindings present for all expected prefixes
-        - LDP sessions up
-        """
-        info = getattr(learned_state, "info", {})
-        issues = []
+    @staticmethod
+    def _write_test_bundle(bundle_path, test_bundles):
+        """Write the NUTS test bundle YAML file."""
+        bundles = []
+        for bundle in test_bundles:
+            entry = {"test_class": bundle["test_class"]}
+            if bundle.get("label"):
+                entry["label"] = bundle["label"]
+            if bundle.get("test_execution"):
+                entry["test_execution"] = bundle["test_execution"]
+            entry["test_data"] = bundle.get("test_data", [])
+            bundles.append(entry)
 
-        # Check for label bindings
-        bindings = info.get("vrf", {})
-        if not bindings and not info:
-            issues.append("No MPLS label bindings found")
+        with open(bundle_path, "w", encoding="utf-8") as f:
+            yaml.dump(bundles, f, default_flow_style=False)
 
-        if issues:
-            return {"passed": False, "detail": "; ".join(issues)}
-        return {"passed": True, "detail": "MPLS label bindings present, LDP sessions up"}
+    @staticmethod
+    def _write_conftest(conftest_path, nr_config_path):
+        """Write a conftest.py that configures NUTS with the nornir config."""
+        content = (
+            "import pytest\n"
+            "\n"
+            "\n"
+            "def pytest_configure(config):\n"
+            f'    config.option.nuts_config = "{nr_config_path}"\n'
+        )
+        with open(conftest_path, "w", encoding="utf-8") as f:
+            f.write(content)
 
-    def _check_ldp(self, learned_state):
-        """Verify all LDP sessions are Operational.
+    @staticmethod
+    def _parse_results(json_report_path, exit_code):
+        """Parse pytest-json-report output into our standard result dict."""
+        checks = []
+        passed = True
+        nuts_output_lines = []
 
-        Assertions:
-        - All LDP sessions Operational
-        - Label space not exhausted
-        """
-        info = getattr(learned_state, "info", {})
-        issues = []
-
-        vrfs = info.get("vrf", {})
-        for _vrf_name, vrf_data in vrfs.items():
-            peers = vrf_data.get("ldp_id", {})
-            for _peer_id, peer_data in peers.items():
-                address_families = peer_data.get("address_family", {})
-                for _af_name, af_data in address_families.items():
-                    neighbors = af_data.get("neighbor", {})
-                    for nbr_id, nbr_data in neighbors.items():
-                        state = nbr_data.get("state", "Unknown")
-                        if state.lower() != "operational":
-                            issues.append(f"LDP session {nbr_id}: state={state}")
-
-        if issues:
-            return {"passed": False, "detail": "; ".join(issues)}
-        return {"passed": True, "detail": "All LDP sessions Operational"}
-
-    def _check_routing(self, learned_state, intent_data):
-        """Verify expected routes are present with valid next-hops.
-
-        Assertions:
-        - All expected prefixes present
-        - Next-hops valid
-        - No black holes
-        """
-        info = getattr(learned_state, "info", {})
-        issues = []
-
-        expected_prefixes = set()
-        for key in ("source", "destination"):
-            block = intent_data.get(key, {})
-            if isinstance(block, dict):
-                for prefix in block.get("prefixes", []):
-                    expected_prefixes.add(prefix)
-
-        if expected_prefixes:
-            vrfs = info.get("vrf", {})
-            found_prefixes = set()
-            for vrf_data in vrfs.values():
-                af_data = vrf_data.get("address_family", {})
-                for af in af_data.values():
-                    routes = af.get("routes", {})
-                    found_prefixes.update(routes.keys())
-
-            missing = expected_prefixes - found_prefixes
-            if missing:
-                issues.append(f"Missing routes: {', '.join(sorted(missing))}")
-
-        if issues:
-            return {"passed": False, "detail": "; ".join(issues)}
-        return {"passed": True, "detail": "All expected prefixes present with valid next-hops"}
-
-    def _check_interface(self, learned_state, intent_data):
-        """Verify all intent-relevant interfaces are up/up.
-
-        Assertions:
-        - All intent-relevant interfaces up/up
-        - MTU consistent
-        - Error counters within threshold
-        """
-        info = getattr(learned_state, "info", {})
-        issues = []
-
-        for iface_name, iface_data in info.items():
-            oper_status = iface_data.get("oper_status", "").lower()
-            enabled = iface_data.get("enabled", False)
-            if enabled and oper_status != "up":
-                issues.append(f"Interface {iface_name}: oper_status={oper_status}")
-
-            # Check error counters
-            counters = iface_data.get("counters", {})
-            in_errors = counters.get("in_errors", 0)
-            out_errors = counters.get("out_errors", 0)
-            error_threshold = 1000
-            if in_errors > error_threshold:
-                issues.append(f"Interface {iface_name}: {in_errors} input errors (threshold: {error_threshold})")
-            if out_errors > error_threshold:
-                issues.append(f"Interface {iface_name}: {out_errors} output errors (threshold: {error_threshold})")
-
-        if issues:
-            return {"passed": False, "detail": "; ".join(issues)}
-        return {"passed": True, "detail": "All interfaces up/up, MTU consistent, error counters within threshold"}
-
-    def _check_vrf(self, learned_state, intent_data):
-        """Verify VRF present with correct RD and import/export RTs.
-
-        Assertions:
-        - VRF present with correct RD
-        - Import/export RTs match intent
-        """
-        info = getattr(learned_state, "info", {})
-        issues = []
-
-        plan = self.intent.latest_plan
-        if plan and plan.vrf_name:
-            vrfs = info.get("vrfs", info)
-            if plan.vrf_name not in vrfs:
-                issues.append(f"VRF {plan.vrf_name} not found on device")
-            else:
-                vrf_data = vrfs[plan.vrf_name]
-                # Check RD if allocated
-                if plan.allocated_rds:
-                    expected_rd = list(plan.allocated_rds.values())[0] if plan.allocated_rds else None
-                    actual_rd = vrf_data.get("route_distinguisher", "")
-                    if expected_rd and str(actual_rd) != str(expected_rd):
-                        issues.append(f"VRF {plan.vrf_name}: RD mismatch expected={expected_rd} actual={actual_rd}")
-
-        if issues:
-            return {"passed": False, "detail": "; ".join(issues)}
-        return {"passed": True, "detail": "VRF present with correct RD and import/export RTs"}
-
-    def _check_acl(self, learned_state, intent_data):
-        """Verify ACL applied on correct interfaces in correct direction.
-
-        Assertions:
-        - ACL applied on correct interfaces in correct direction
-        """
-        info = getattr(learned_state, "info", {})
-        issues = []
-
-        # Gather expected ACL names from the plan primitives
-        plan = self.intent.latest_plan
-        if plan:
-            expected_acls = {
-                p.get("acl_name") for p in plan.primitives if p.get("primitive_type") == "acl" and p.get("acl_name")
+        try:
+            with open(json_report_path, encoding="utf-8") as f:
+                report = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {
+                "passed": exit_code == 0,
+                "has_warnings": True,
+                "warning_reasons": ["Could not parse NUTS JSON report"],
+                "checks": [
+                    {
+                        "check": "nuts_report",
+                        "passed": exit_code == 0,
+                        "detail": f"pytest exit code: {exit_code}",
+                    }
+                ],
+                "nuts_output": f"pytest exit code: {exit_code}",
             }
-            found_acls = set(info.keys()) if isinstance(info, dict) else set()
-            missing = expected_acls - found_acls
-            if missing:
-                issues.append(f"Missing ACLs: {', '.join(sorted(missing))}")
 
-        if issues:
-            return {"passed": False, "detail": "; ".join(issues)}
-        return {"passed": True, "detail": "ACL applied on correct interfaces in correct direction"}
+        tests = report.get("tests", [])
+        skipped_count = 0
+        for test in tests:
+            test_id = test.get("nodeid", "unknown")
+            outcome = test.get("outcome", "unknown")
+            test_passed = outcome == "passed"
+            duration = test.get("duration", 0)
 
-    def _check_vxlan(self, learned_state, intent_data):
-        """Verify VNI to VLAN mapping and NVE peers.
+            # Skip tests that NUTS skipped because the field wasn't in
+            # test_data (e.g. mac_address, mtu, speed).  These are not
+            # user-requested checks and only add noise to the results.
+            if outcome == "skipped":
+                skipped_count += 1
+                continue
 
-        Assertions:
-        - VNI to VLAN mapping correct
-        - NVE peers up
-        """
-        info = getattr(learned_state, "info", {})
-        issues = []
+            detail_parts = [f"outcome={outcome}"]
+            if duration:
+                detail_parts.append(f"duration={duration:.2f}s")
 
-        # Check NVE peers
-        nve_interfaces = info.get("nve", {})
-        for _nve_name, nve_data in nve_interfaces.items():
-            peers = nve_data.get("peers", {})
-            for peer_ip, peer_data in peers.items():
-                peer_state = peer_data.get("peer_state", "Unknown")
-                if peer_state.lower() != "up":
-                    issues.append(f"NVE peer {peer_ip}: state={peer_state}")
+            # Extract failure message if present
+            call_info = test.get("call", {})
+            if call_info.get("longrepr"):
+                longrepr = call_info["longrepr"]
+                if isinstance(longrepr, str):
+                    detail_parts.append(longrepr[:200])
+                elif isinstance(longrepr, dict):
+                    crash = longrepr.get("crash", {})
+                    if crash.get("message"):
+                        detail_parts.append(crash["message"][:200])
 
-        if issues:
-            return {"passed": False, "detail": "; ".join(issues)}
-        return {"passed": True, "detail": "VNI to VLAN mapping correct, NVE peers up"}
+            if not test_passed:
+                passed = False
 
-    def _check_pim(self, learned_state):
-        """Verify PIM neighbors and RP reachability.
+            checks.append(
+                {
+                    "check": test_id,
+                    "passed": test_passed,
+                    "detail": "; ".join(detail_parts),
+                }
+            )
 
-        Assertions:
-        - PIM neighbors up on relevant interfaces
-        - RP reachable
-        """
-        info = getattr(learned_state, "info", {})
-        issues = []
+            nuts_output_lines.append(f"{'PASS' if test_passed else 'FAILED'} {test_id}")
 
-        vrfs = info.get("vrf", {})
-        for vrf_name, vrf_data in vrfs.items():
-            interfaces = vrf_data.get("interfaces", {})
-            for iface_name, iface_data in interfaces.items():
-                neighbors = iface_data.get("neighbors", {})
-                if not neighbors:
-                    issues.append(f"No PIM neighbors on {iface_name} in VRF {vrf_name}")
+        # Summary line
+        summary = report.get("summary", {})
+        summary_parts = []
+        for key in ("passed", "failed", "error"):
+            count = summary.get(key, 0)
+            if count:
+                summary_parts.append(f"{count} {key}")
+        if skipped_count:
+            summary_parts.append(f"{skipped_count} skipped (not in test_data)")
+        if summary_parts:
+            nuts_output_lines.append(f"\nSummary: {', '.join(summary_parts)}")
 
-        if issues:
-            return {"passed": False, "detail": "; ".join(issues)}
-        return {"passed": True, "detail": "PIM neighbors up on relevant interfaces, RP reachable"}
+        return {
+            "passed": passed,
+            "has_warnings": False,
+            "warning_reasons": [],
+            "checks": checks,
+            "nuts_output": "\n".join(nuts_output_lines),
+        }

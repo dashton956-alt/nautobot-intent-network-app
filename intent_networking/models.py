@@ -216,7 +216,7 @@ class VerificationLevel(models.TextChoices):
     """Verification depth for an intent."""
 
     BASIC = "basic", "Basic"
-    EXTENDED = "extended", "Extended"
+    NUTS = "nuts", "NUTS"
 
 
 class VerificationTrigger(models.TextChoices):
@@ -948,11 +948,11 @@ class VerificationResult(BaseModel):
     # ── Verification engine metadata ───────────────────────────────────────
     verification_engine = models.CharField(
         max_length=20,
-        choices=[("basic", "Basic"), ("extended", "Extended"), ("escalated", "Escalated")],
+        choices=[("basic", "Basic"), ("nuts", "NUTS"), ("escalated", "Escalated")],
         default="basic",
     )
     escalation_reason = models.TextField(blank=True, default="")
-    pyats_diff_output = models.TextField(blank=True, default="")
+    nuts_output = models.TextField(blank=True, default="")
 
     # ── Drift detail ──────────────────────────────────────────────────────
     drift_details = models.JSONField(
@@ -981,6 +981,38 @@ class VerificationResult(BaseModel):
         if self.bgp_sessions_expected == 0:
             return 100
         return int(self.bgp_sessions_established / self.bgp_sessions_expected * 100)
+
+    @property
+    def passed_check_count(self):
+        """Return count of passed checks."""
+        return sum(1 for c in (self.checks or []) if c.get("passed"))
+
+    @property
+    def failed_check_count(self):
+        """Return count of failed/skipped checks."""
+        return sum(1 for c in (self.checks or []) if not c.get("passed"))
+
+    @property
+    def pass_rate_pct(self):
+        """Return check pass-rate as an integer 0-100."""
+        total = len(self.checks or [])
+        if not total:
+            return 100
+        return int(self.passed_check_count / total * 100)
+
+    @property
+    def total_duration_seconds(self):
+        """Sum durations parsed from check details (e.g. 'duration=0.42s')."""
+        total = 0.0
+        for c in self.checks or []:
+            detail = c.get("detail", "")
+            if "duration=" in detail:
+                try:
+                    part = detail.split("duration=")[1].split(";")[0].split()[0].rstrip("s")
+                    total += float(part)
+                except (ValueError, IndexError):
+                    pass
+        return round(total, 2)
 
 
 # ────────────────────────────────────────────────────────────────────────────
