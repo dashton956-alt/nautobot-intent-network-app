@@ -17,7 +17,7 @@ Git YAML → Sync → Validate (OPA) → Resolve → Deploy (Nornir) → Verify 
 
 Key capabilities:
 
-- **134 intent types** across 14 network domains (L2/L3, MPLS, EVPN/VXLAN, Security, WAN, Wireless, Cloud, QoS, and more)
+- **141 intent types** across 14 network domains (L2/L3, MPLS, EVPN/VXLAN, Security, WAN, Wireless, Cloud, QoS, Management, and more)
 - **Git-native workflow** — intents are synced from a Git repository via Nautobot's native `GitRepository` integration
 - **Policy enforcement** — optional OPA (Open Policy Agent) integration for pre-deployment policy checks
 - **Resource allocation** — automatic VRF, Route Target, VNI, Tunnel ID, Loopback IP, and VLAN allocation using Nautobot's native IPAM models

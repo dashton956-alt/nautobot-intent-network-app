@@ -4,6 +4,7 @@ All published release notes are listed below. Patch releases are included within
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [v2.0](version_2.0.md) | 2026-04-06 | NUTS verification engine (replaces pyATS), bulk intent actions, 847 Jinja2 templates, multi-vendor live topology (7 platforms), 141 intent types, new verification detail UI |
 | [v1.1.8](version_1.1.8.md) | 2026-03-23 | Fix Nornir inventory plugin registration, correct plugin name to 'nautobot-inventory', add nautobot_plugin_nornir to PLUGINS |
 | [v1.1.7](version_1.1.7.md) | 2026-03-21 | Nornir ORM inventory fix, nautobot-plugin-nornir v3 dependency, Secrets Group integration, intent data resolver corrections |
 | [v1.1.6](version_1.1.6.md) | 2026-03-20 | Git sync error surfacing, verification_schedule NULL fix, .intentignore, Approve/Reject UI, Catalyst Center adapter, intent dependency graph, fw_rule intent type, Retired status |
