@@ -46,7 +46,7 @@ pip uninstall pyats genie
 pip install "nautobot-app-intent-networking[nuts]==2.0.0"
 ```
 
-**Update your intent YAML** — the `verification.tests` block now uses NUTS test bundle definitions instead of pyATS test specs. See the [Getting Started guide](../../user/app_getting_started.md).
+**Update your intent YAML** — the `verification.tests` block now uses NUTS test bundle definitions instead of pyATS test specs. See the [Getting Started guide](../user/app_getting_started.md).
 
 **Restart services after upgrade:**
 
