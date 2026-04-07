@@ -138,6 +138,12 @@ dmypy.json
 # Editor
 .vscode/
 
+# OPA local development
+development/opa/
+development/docker-compose.opa.yml
+development/test_opa_integration.py
+development/run_opa_tests.sh
+
 ### macOS ###
 # General
 .DS_Store
