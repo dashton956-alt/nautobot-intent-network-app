@@ -151,6 +151,10 @@ PLUGINS_CONFIG = {
         "max_prefixes_per_vrf": 5000,
         "reconciliation_interval_hours": 1,
         "auto_remediation_enabled": True,
+        # OPA (leave unset to use defaults)
+        "opa_verify_ssl": True,
+        "opa_ca_bundle": None,
+        "opa_custom_packages": [],
         # Notifications (leave None to disable)
         "slack_webhook_url": None,
         "github_api_url": None,   # defaults to https://api.github.com
@@ -314,6 +318,112 @@ Both modes can coexist — the native GitRepository is the source of truth for i
 
 ---
 
+## OPA Policy Enforcement
+
+The app integrates with [Open Policy Agent (OPA)](https://www.openpolicyagent.org/) at two points in the intent lifecycle:
+
+| Check point | When | OPA package queried |
+|-------------|------|---------------------|
+| Pre-resolution | Before primitives are generated (status → Validated) | `network.common`, `network.compliance`, `network.capacity`, plus per-tenant and per-type packages |
+| Auto-remediation approval | During reconciliation, before drift is remediated | `network.remediation` |
+
+If OPA returns any `deny` decisions the intent is blocked and the reasons are surfaced on the Intent detail page. Auto-remediation decisions are evaluated separately — if the remediation package returns `auto_remediate = false` the drift is left for manual review and a GitHub issue is created.
+
+### Setting up OPA
+
+**Option A — use an existing OPA instance**
+
+Set `OPA_URL` to the URL of your existing OPA service (see [Environment Variables](#environment-variables)).
+
+**Option B — run the development OPA container**
+
+A ready-made Docker Compose file is provided for local development and testing.
+
+```bash
+# Start OPA with hot-reload watching ./development/opa/policies/
+docker compose -f development/docker-compose.opa.yml up -d
+```
+
+OPA loads all `.rego` files from `development/opa/policies/` on start and reloads automatically when files change.
+
+### App Configuration
+
+Add these keys to `PLUGINS_CONFIG["intent_networking"]` in `nautobot_config.py`:
+
+```python
+PLUGINS_CONFIG = {
+    "intent_networking": {
+        # ... other settings ...
+
+        # --- OPA (all optional) ---
+        # Toggle auto-remediation globally (default: True).
+        # When False, drift is always left for manual intervention.
+        "auto_remediation_enabled": True,
+
+        # Verify the OPA server's TLS certificate (default: True).
+        # Set to False for self-signed certs in dev, or supply a CA bundle.
+        "opa_verify_ssl": True,
+
+        # Path to a custom CA bundle PEM file for OPA TLS (default: None).
+        "opa_ca_bundle": None,  # e.g. "/etc/ssl/opa-ca.pem"
+
+        # Additional Rego package paths to query for every intent,
+        # beyond the built-in common/compliance/capacity checks (default: []).
+        "opa_custom_packages": [],  # e.g. ["network.internal.change_freeze"]
+    },
+}
+```
+
+### Built-in Policy Packages
+
+| Package | What it enforces |
+|---------|------------------|
+| `network.common` | Required fields: `change_ticket` format, positive `version`, `description` ≥ 10 chars, `tenant` present; `approved_by` required for high-impact intent types |
+| `network.compliance` | PCI-DSS (encryption, protocol, IPSec strength), HIPAA (wireless/cloud controls), SOC2 (SNMPv3), blocks open Wi-Fi and cloud security group rules permitting SSH/RDP from 0.0.0.0/0 |
+| `network.capacity` | BGP peer limits (8 eBGP, 64 iBGP per intent), VLAN ID range 1–4094, `scope.devices` 1–50 |
+| `network.remediation` | Auto-remediation: low-risk types approved for simple/missing drift; high-risk types always blocked |
+| `network.customers.<tenant_slug>` | Per-tenant rules queried when a matching tenant slug package exists |
+| `network.intent_types.<type>` | Per-intent-type rules queried when a matching type package exists |
+
+### Running the Integration Tests
+
+A test suite exercises both the OPA HTTP API directly and the `opa_client.py` module layer.
+
+```bash
+cd development
+
+# Start OPA, run 61 tests, then stop OPA
+bash run_opa_tests.sh
+
+# Leave the OPA container running after tests finish
+KEEP_OPA=1 bash run_opa_tests.sh
+
+# Run tests against an already-running OPA container
+pytest test_opa_integration.py -v
+```
+
+### Writing Custom Policies
+
+Add `.rego` files under `development/opa/policies/network/` (or any path mounted into OPA). Use the `deny[msg]` pattern:
+
+```rego
+package network.internal.change_freeze
+
+# Block all deployments during a maintenance window
+deny[msg] {
+    input.metadata.tenant == "acme-corp"
+    msg := "Change freeze active for acme-corp until 2025-02-01"
+}
+```
+
+Then register the package in `PLUGINS_CONFIG`:
+
+```python
+"opa_custom_packages": ["network.internal.change_freeze"]
+```
+
+---
+
 ## REST API
 
 All endpoints are under `/api/plugins/intent-networking/`.
@@ -428,6 +538,14 @@ invoke ruff --fix
 
 # Pylint
 invoke pylint
+```
+
+**OPA integration tests** (separate from the Nautobot test suite — requires Docker):
+
+```bash
+cd development
+bash run_opa_tests.sh          # start OPA, run 61 tests, stop OPA
+KEEP_OPA=1 bash run_opa_tests.sh  # leave OPA running after tests
 ```
 
 For full development environment setup including Docker Compose, see the [developer documentation](dev/dev_environment.md).
