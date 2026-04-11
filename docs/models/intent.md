@@ -10,9 +10,9 @@ Each `Intent` corresponds to one YAML file in the repo. It is created or updated
 |---|---|---|
 | `intent_id` | string | Unique identifier — matches the `id` field in the YAML file, e.g. `fin-pci-connectivity-001` |
 | `version` | integer | Version number, incremented each time the YAML changes |
-| `intent_type` | choice | One of 133 supported types (see below) |
+| `intent_type` | choice | One of 134 supported types (see below) |
 | `tenant` | FK → Tenant | Business owner of the intent |
-| `status` | StatusField | Current lifecycle status: `Draft → Validated → Deploying → Deployed → Failed → Rolled Back → Deprecated` |
+| `status` | StatusField | Current lifecycle status: `Draft → Validated → Deploying → Deployed → Failed → Rolled Back → Deprecated / Retired` |
 | `intent_data` | JSON | Full parsed YAML stored as JSON — the single source of truth |
 | `rendered_configs` | JSON | Per-device rendered Jinja2 configuration output, populated during dry-run or live deployments |
 | `deployment_strategy` | choice | How to deploy across multiple sites: `all_at_once`, `canary` (single site first), `rolling` (one site at a time) |
@@ -42,34 +42,38 @@ Each `Intent` corresponds to one YAML file in the repo. It is created or updated
 
 ## Intent Type Categories
 
-The 133 intent types are organised into 14 domains:
+The 134 intent types are organised into 14 domains:
 
-| Domain | Example Types |
-|--------|--------------|
-| Layer 2 / Switching | `vlan_provision`, `l2_access_port`, `l2_trunk_port`, `lag`, `mlag`, `stp_policy`, `macsec` |
-| Layer 3 / Routing | `static_route`, `ospf`, `bgp_ebgp`, `bgp_ibgp`, `isis`, `vrf_basic`, `bfd`, `fhrp` |
-| MPLS & Service Provider | `mpls_l3vpn`, `mpls_l2vpn`, `evpn_mpls`, `sr_mpls`, `srv6`, `rsvp_te` |
-| Data Centre / EVPN/VXLAN | `evpn_vxlan_fabric`, `vxlan_l2_vni`, `vxlan_l3_vni`, `vtep`, `dc_dci_interconnect` |
-| Security | `acl_ipv4`, `acl_ipv6`, `zone_based_firewall`, `fw_rule`, `ipsec_tunnel`, `nac_802_1x` |
-| WAN / SD-WAN | `dmvpn_hub`, `dmvpn_spoke`, `sdwan_edge`, `sdwan_policy`, `wan_optimisation` |
-| Wireless | `wireless_ssid`, `wireless_rf_profile`, `wireless_roaming`, `wireless_mesh` |
-| Cloud / Hybrid | `cloud_interconnect`, `cloud_vpn_gw`, `cloud_vnet_peering`, `hybrid_dns` |
-| QoS | `qos_policy`, `traffic_shaping`, `dscp_marking`, `ecn`, `wred` |
-| Multicast | `igmp`, `pim_sparse`, `pim_ssm`, `msdp`, `multicast_boundary` |
-| Management | `snmp`, `syslog`, `ntp`, `aaa_radius`, `aaa_tacacs`, `netflow`, `mgmt_motd`, `mgmt_netconf`, `mgmt_dhcp_server`, `mgmt_global_config` |
-| Reachability | `reachability` |
-| Service | `service` |
+| Domain | Types |
+|--------|-------|
+| Layer 2 / Switching | `vlan_provision`, `l2_access_port`, `l2_trunk_port`, `lag`, `mlag`, `stp_policy`, `qinq`, `pvlan`, `storm_control`, `port_security`, `dhcp_snooping`, `dai`, `ip_source_guard`, `macsec` |
+| Layer 3 / Routing | `static_route`, `ospf`, `bgp_ebgp`, `bgp_ibgp`, `isis`, `eigrp`, `route_redistribution`, `route_policy`, `prefix_list`, `vrf_basic`, `bfd`, `pbr`, `ipv6_dual_stack`, `ospfv3`, `bgp_ipv6_af`, `fhrp` |
+| MPLS & Service Provider | `mpls_l3vpn`, `mpls_l2vpn`, `pseudowire`, `evpn_mpls`, `ldp`, `rsvp_te`, `sr_mpls`, `srv6`, `6pe_6vpe`, `mvpn` |
+| Data Centre / EVPN/VXLAN | `evpn_vxlan_fabric`, `l2vni`, `l3vni`, `bgp_evpn_af`, `anycast_gateway`, `vtep`, `evpn_multisite`, `dc_underlay`, `dc_mlag` |
+| Security & Firewalling | `acl`, `zbf`, `ipsec_s2s`, `ipsec_ikev2`, `gre_tunnel`, `gre_over_ipsec`, `dmvpn`, `macsec_policy`, `copp`, `urpf`, `dot1x_nac`, `aaa`, `ra_guard`, `ssl_inspection`, `fw_rule` |
+| WAN & SD-WAN | `wan_uplink`, `bgp_isp`, `sdwan_overlay`, `sdwan_app_policy`, `sdwan_qos`, `sdwan_dia`, `nat_pat`, `nat64`, `wan_failover` |
+| Wireless | `wireless_ssid`, `wireless_vlan_map`, `wireless_dot1x`, `wireless_guest`, `wireless_rf`, `wireless_qos`, `wireless_band_steer`, `wireless_roam`, `wireless_segment`, `wireless_mesh`, `wireless_flexconnect` |
+| Cloud & Hybrid Cloud | `cloud_vpc_peer`, `cloud_transit_gw`, `cloud_direct_connect`, `cloud_vpn_gw`, `cloud_bgp`, `cloud_security_group`, `cloud_nat`, `cloud_route_table`, `hybrid_dns`, `cloud_sdwan` |
+| QoS | `qos_classify`, `qos_dscp_mark`, `qos_cos_remark`, `qos_queue`, `qos_police`, `qos_shape`, `qos_trust` |
+| Multicast | `multicast_pim_sm`, `multicast_pim_ssm`, `igmp_snooping`, `multicast_vrf`, `msdp` |
+| Management & Operations | `mgmt_ntp`, `mgmt_dns_dhcp`, `mgmt_snmp`, `mgmt_syslog`, `mgmt_netflow`, `mgmt_telemetry`, `mgmt_ssh`, `mgmt_aaa_device`, `mgmt_interface`, `mgmt_lldp_cdp`, `mgmt_stp_root`, `mgmt_motd`, `mgmt_netconf`, `mgmt_dhcp_server`, `mgmt_global_config` |
+| Reachability | `reachability`, `reachability_static`, `reachability_bgp_network`, `reachability_floating`, `reachability_ip_sla` |
+| Service | `service`, `service_lb_vip`, `service_dns`, `service_dhcp`, `service_nat`, `service_proxy` |
 | Legacy | `connectivity`, `security` |
 
 ## Lifecycle Status Flow
 
 ```
 Draft → Validated → Deploying → Deployed
-                        ↓           ↓
-                      Failed    (drift detected)
-                        ↓           ↓
-                   Rolled Back  Auto-remediate / Alert
+  ↑         ↓            ↓          ↓
+  │     Deprecated    Failed    (drift detected)
+  │     Retired          ↓          ↓
+  │                  Rolled Back  Auto-remediate / Alert
+  │                      ↓
+  └──────────── Retired (re-activatable → Draft)
 ```
+
+`Deprecated` and `Retired` are both terminal-ish states reachable from any active status. `Retired` is the only state that can transition back to `Draft` for re-activation.
 
 ---
 
