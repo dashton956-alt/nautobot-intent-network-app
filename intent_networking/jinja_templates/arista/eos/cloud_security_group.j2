@@ -1,0 +1,6 @@
+{# cloud_security_group.j2 — arista-eos #}
+! Cloud Security Group (cloud API managed)
+! Intent: {{ intent_id }}
+! Group: {{ group_name | default("") }}
+! Provider: {{ provider | default("aws") }}
+! Note: Cloud security groups are managed via cloud provider API, not device CLI.

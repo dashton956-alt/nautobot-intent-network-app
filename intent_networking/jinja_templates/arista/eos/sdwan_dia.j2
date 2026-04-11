@@ -1,0 +1,14 @@
+{# sdwan_dia.j2 — arista-eos #}
+! SD-WAN Direct Internet Access
+! Intent: {{ intent_id }}
+!
+interface {{ interface | default("Ethernet1") }}
+   description SD-WAN-DIA-{{ intent_id }}
+   no switchport
+{% if ip_address | default("") %}
+   ip address {{ ip_address }}
+{% else %}
+   ip address dhcp
+{% endif %}
+   no shutdown
+!

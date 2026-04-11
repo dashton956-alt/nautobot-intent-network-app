@@ -1,0 +1,9 @@
+{# hybrid_dns.j2 — arista-eos #}
+! Hybrid DNS Configuration
+! Intent: {{ intent_id }}
+!
+ip domain-name {{ domain | default("") }}
+{% for fwd in forwarders | default([]) %}
+ip name-server {{ fwd }}
+{% endfor %}
+!
