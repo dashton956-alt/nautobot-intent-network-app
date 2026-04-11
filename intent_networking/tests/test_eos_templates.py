@@ -6,7 +6,7 @@ key EOS CLI strings are present. Uses jinja2 directly — no Django DB needed.
 from pathlib import Path
 
 from django.test import SimpleTestCase
-from jinja2 import Environment, FileSystemLoader, Undefined
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 EOS_DIR = Path(__file__).resolve().parent.parent / "jinja_templates" / "arista" / "eos"
 
@@ -14,7 +14,7 @@ EOS_DIR = Path(__file__).resolve().parent.parent / "jinja_templates" / "arista" 
 def _render(template_name: str, ctx: dict) -> str:
     env = Environment(
         loader=FileSystemLoader(str(EOS_DIR)),
-        undefined=Undefined,
+        undefined=StrictUndefined,
         trim_blocks=True,
         lstrip_blocks=True,
     )
@@ -39,7 +39,7 @@ class EOSWirelessProvisionTest(SimpleTestCase):
             "intent_id": "t-001", "channels_2g": [1, 6, 11],
             "channels_5g": [36, 40], "tx_power_min": 5, "tx_power_max": 20,
         })
-        self.assertIn("wireless", out.lower())
+        self.assertIn("1, 6, 11", out)
 
     def test_wireless_vlan_map_renders(self):
         out = _render("wireless_vlan_map.j2", {
@@ -333,25 +333,25 @@ class EOSMplsRemovalTest(SimpleTestCase):
             "intent_id": "t-001", "mode": "6pe", "vrf": "",
             "neighbor_ip": "10.0.0.1",
         })
-        self.assertIn("no", out)
+        self.assertIn("no neighbor", out)
 
     def test_evpn_mpls_removal_renders(self):
         out = _render("evpn_mpls_removal.j2", {
             "intent_id": "t-001",
         })
-        self.assertIn("no", out)
+        self.assertIn("no address-family evpn", out)
 
     def test_evpn_multisite_removal_renders(self):
         out = _render("evpn_multisite_removal.j2", {
             "intent_id": "t-001",
         })
-        self.assertIn("no", out)
+        self.assertIn("no address-family evpn", out)
 
     def test_l2vpn_vpls_removal_renders(self):
         out = _render("l2vpn_vpls_removal.j2", {
             "intent_id": "t-001", "vpls_name": "VPLS-TEST",
         })
-        self.assertIn("no", out)
+        self.assertIn("no l2vpn vpls", out)
 
     def test_pseudowire_removal_renders(self):
         out = _render("pseudowire_removal.j2", {
@@ -406,7 +406,7 @@ class EOSL2RemovalTest(SimpleTestCase):
         self.assertIn("no ip address", out)
 
     def test_lb_vip_removal_renders(self):
-        out = _render("lb_vib_removal.j2", {
+        out = _render("lb_vip_removal.j2", {
             "intent_id": "t-001", "vip_address": "10.0.0.100",
             "vip_port": 80,
         })
@@ -430,6 +430,7 @@ class EOSL2RemovalTest(SimpleTestCase):
             "intent_id": "t-001", "vlans": [1, 10, 20],
         })
         self.assertIn("no spanning-tree", out)
+        self.assertIn("1", out)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
