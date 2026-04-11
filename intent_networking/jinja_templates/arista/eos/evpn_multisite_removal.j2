@@ -1,0 +1,10 @@
+{# evpn_multisite_removal.j2 — arista-eos #}
+! Remove EVPN Multi-Site Configuration
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn | default("") }}
+   no address-family evpn
+!
+evpn
+   no multisite border-gateway interface {{ dci_interface | default("") }}
+!

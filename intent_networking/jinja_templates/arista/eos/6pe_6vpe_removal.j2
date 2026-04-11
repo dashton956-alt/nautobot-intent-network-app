@@ -1,0 +1,12 @@
+{# 6pe_6vpe_removal.j2 — arista-eos #}
+! Remove 6PE / 6VPE Configuration
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn | default("") }}
+{% if mode | default("6pe") == "6vpe" and vrf | default("") %}
+   vrf {{ vrf }}
+{% endif %}
+   no neighbor {{ neighbor_ip }} activate
+   address-family ipv6
+      no neighbor {{ neighbor_ip }} activate
+!

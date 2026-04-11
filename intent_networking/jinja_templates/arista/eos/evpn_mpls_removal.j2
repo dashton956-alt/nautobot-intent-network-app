@@ -1,0 +1,7 @@
+{# evpn_mpls_removal.j2 — arista-eos #}
+! Remove EVPN over MPLS Configuration
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn | default("") }}
+   no address-family evpn
+!

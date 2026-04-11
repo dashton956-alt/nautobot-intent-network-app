@@ -1,0 +1,6 @@
+{# l2vpn_vpls_removal.j2 — arista-eos #}
+! Remove L2VPN VPLS Configuration
+! Intent: {{ intent_id }}
+!
+no l2vpn vpls {{ vpls_name | default("") }}
+!

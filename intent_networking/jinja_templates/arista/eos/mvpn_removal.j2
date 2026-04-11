@@ -1,0 +1,7 @@
+{# mvpn_removal.j2 — arista-eos #}
+! Remove Multicast VPN (mVPN) Configuration
+! Intent: {{ intent_id }}
+!
+vrf instance {{ vrf }}
+   no mdt default {{ mdt_default_group | default("") }}
+!
