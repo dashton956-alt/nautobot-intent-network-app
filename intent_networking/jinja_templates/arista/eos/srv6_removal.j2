@@ -1,0 +1,11 @@
+{# srv6_removal.j2 — arista-eos #}
+! Remove SRv6 Configuration
+! Intent: {{ intent_id }}
+!
+segment-routing
+   no srv6
+   locator {{ locator_name | default("MAIN") }}
+      no prefix
+!
+no segment-routing srv6
+!

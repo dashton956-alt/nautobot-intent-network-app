@@ -1,0 +1,18 @@
+{# route_redistribution_removal.j2 — arista-eos #}
+! Remove Route Redistribution
+! Intent: {{ intent_id }}
+!
+{% if dest_protocol == "ospf" %}
+router ospf {{ dest_process | default(1) }}
+   no redistribute {{ source_protocol }}{% if route_map | default("") %} route-map {{ route_map }}{% endif %}
+
+{% elif dest_protocol == "bgp" %}
+router bgp {{ dest_process }}
+   no redistribute {{ source_protocol }}{% if route_map | default("") %} route-map {{ route_map }}{% endif %}
+
+{% elif dest_protocol == "isis" %}
+router isis
+   no redistribute {{ source_protocol }}{% if route_map | default("") %} route-map {{ route_map }}{% endif %}
+
+{% endif %}
+!

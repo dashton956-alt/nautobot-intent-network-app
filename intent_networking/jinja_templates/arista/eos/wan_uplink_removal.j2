@@ -1,0 +1,13 @@
+{# wan_uplink_removal.j2 — arista-eos #}
+! Remove WAN Uplink Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+   no ip address
+   no description
+   shutdown
+!
+{% if default_route | default(false) %}
+no ip route 0.0.0.0/0
+{% endif %}
+!

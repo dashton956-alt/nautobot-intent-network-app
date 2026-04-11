@@ -1,0 +1,17 @@
+{# nat_removal.j2 — arista-eos #}
+! Remove NAT Configuration
+! Intent: {{ intent_id }}
+!
+no ip nat translation max-entries
+{% for iface in inside_interfaces | default([]) %}
+interface {{ iface }}
+   no ip nat inside
+!
+{% endfor %}
+{% for iface in outside_interfaces | default([]) %}
+interface {{ iface }}
+   no ip nat outside
+!
+{% endfor %}
+no ip nat pool {{ pool_name | default("NAT-POOL") }}
+!
