@@ -1,0 +1,9 @@
+{# mgmt_interface_removal.j2 — arista-eos #}
+! Remove Management Interface Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface | default("Management1") }}
+   no ip address
+   no description
+   shutdown
+!

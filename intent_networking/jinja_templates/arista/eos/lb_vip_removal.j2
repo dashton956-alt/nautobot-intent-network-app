@@ -1,0 +1,7 @@
+{# lb_vip_removal.j2 — arista-eos #}
+! Remove Load Balancer VIP
+! Intent: {{ intent_id }}
+! VIP: {{ vip_address | default("") }}:{{ vip_port | default("") }}
+! Note: LB VIP removal requires coordination with the load balancer platform.
+no ip virtual-router address {{ vip_address | default("") }}
+!
