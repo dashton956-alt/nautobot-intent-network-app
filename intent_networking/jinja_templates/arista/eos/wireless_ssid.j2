@@ -1,0 +1,8 @@
+{# wireless_ssid.j2 — arista-eos #}
+! Wireless SSID (Mist / CloudVision managed)
+! Intent: {{ intent_id }}
+! Note: Arista EOS wireless SSIDs are managed via Mist cloud API or CloudVision.
+! SSID: {{ ssid_name }}
+! Security: {{ security_mode | default("wpa3-enterprise") }}
+! VLAN: {{ vlan_id | default("unset") }}
+! Band: {{ band | default("dual") }}

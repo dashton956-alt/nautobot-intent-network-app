@@ -1,0 +1,7 @@
+{# wireless_rf.j2 — arista-eos #}
+! RF Policy (Mist / CloudVision managed)
+! Intent: {{ intent_id }}
+! Note: RF policies on Arista are managed via Mist or CloudVision AP profiles.
+! 2.4 GHz channels: {{ channels_2g | default([1, 6, 11]) | join(", ") }}
+! 5 GHz channels: {{ channels_5g | default([]) | join(", ") }}
+! TX Power min/max: {{ tx_power_min | default("auto") }} / {{ tx_power_max | default("auto") }} dBm

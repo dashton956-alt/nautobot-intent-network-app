@@ -1,0 +1,9 @@
+{# wireless_dot1x.j2 — arista-eos #}
+! 802.1X Wireless (Mist / CloudVision managed)
+! Intent: {{ intent_id }}
+! SSID: {{ ssid_name }}
+! EAP Method: {{ eap_method | default("PEAP") }}
+{% for srv in radius_servers | default([]) %}
+! RADIUS Server: {{ srv }}
+{% endfor %}
+! Note: Wireless 802.1X is managed via Mist or CloudVision.

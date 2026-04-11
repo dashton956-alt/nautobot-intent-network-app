@@ -1,0 +1,5 @@
+{# wireless_band_steer.j2 — arista-eos #}
+! Band Steering (Mist / CloudVision managed)
+! Intent: {{ intent_id }}
+! Preferred Band: {{ preferred_band | default("5ghz") }}
+! Note: Band steering is configured via Mist or CloudVision AP profiles.

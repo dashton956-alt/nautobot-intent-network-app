@@ -1,0 +1,7 @@
+{# wireless_mesh.j2 — arista-eos #}
+! Mesh Wireless (Mist / CloudVision managed)
+! Intent: {{ intent_id }}
+! Backhaul SSID: {{ backhaul_ssid }}
+! Mesh Role: {{ mesh_role | default("map") }}
+! Bridge Group: {{ bridge_group | default(1) }}
+! Note: Mesh is configured via Mist or CloudVision.
