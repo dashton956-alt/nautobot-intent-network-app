@@ -1,0 +1,10 @@
+{# copp_removal.j2 — arista-eos #}
+! Remove CoPP Policy
+! Intent: {{ intent_id }}
+! Policy: {{ policy_name | default("COPP-POLICY") }}
+! Note: Restores default control-plane policy.
+no policy-map {{ policy_name | default("COPP-POLICY") }}
+!
+control-plane
+   no service-policy input {{ policy_name | default("COPP-POLICY") }}
+!

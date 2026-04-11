@@ -1,0 +1,14 @@
+{# aaa_removal.j2 — arista-eos #}
+! Remove AAA Configuration
+! Intent: {{ intent_id }}
+!
+no aaa authentication login default
+no aaa authorization exec default
+no aaa accounting exec default start-stop
+{% for srv in radius_servers | default([]) %}
+no radius-server host {{ srv.host | default(srv) }}
+{% endfor %}
+{% for srv in tacacs_servers | default([]) %}
+no tacacs-server host {{ srv.host | default(srv) }}
+{% endfor %}
+!

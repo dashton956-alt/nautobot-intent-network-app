@@ -1,0 +1,7 @@
+{# multicast_vrf_removal.j2 — arista-eos #}
+! Remove Multicast VRF Configuration
+! Intent: {{ intent_id }}
+!
+vrf instance {{ vrf }}
+   no ip multicast-routing
+!

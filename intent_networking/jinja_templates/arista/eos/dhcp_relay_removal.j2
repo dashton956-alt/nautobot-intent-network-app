@@ -1,0 +1,9 @@
+{# dhcp_relay_removal.j2 — arista-eos #}
+! Remove DHCP Relay
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+{% for srv in relay_servers | default([]) %}
+   no ip helper-address {{ srv }}
+{% endfor %}
+!

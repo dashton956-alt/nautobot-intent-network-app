@@ -1,0 +1,7 @@
+{# urpf_removal.j2 — arista-eos #}
+! Remove uRPF Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+   no ip verify unicast source reachable-via {{ mode | default("strict") }}
+!
