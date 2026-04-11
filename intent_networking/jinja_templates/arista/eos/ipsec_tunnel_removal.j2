@@ -1,0 +1,8 @@
+{# ipsec_tunnel_removal.j2 — arista-eos #}
+! Remove IPSec Tunnel Configuration
+! Intent: {{ intent_id }}
+!
+no interface Tunnel{{ tunnel_id }}
+no crypto map CM-{{ remote_peer | replace(".", "-") }}
+no crypto isakmp policy 10
+!

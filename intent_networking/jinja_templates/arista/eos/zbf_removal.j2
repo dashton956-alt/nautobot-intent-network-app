@@ -1,0 +1,12 @@
+{# zbf_removal.j2 — arista-eos #}
+! Remove Zone-Based Firewall Configuration
+! Intent: {{ intent_id }}
+!
+{% for pair in zone_pairs | default([]) %}
+no zone-pair security {{ pair.source }}-{{ pair.destination }}
+!
+{% endfor %}
+{% for zone in zones | default([]) %}
+no zone security {{ zone.name }}
+!
+{% endfor %}

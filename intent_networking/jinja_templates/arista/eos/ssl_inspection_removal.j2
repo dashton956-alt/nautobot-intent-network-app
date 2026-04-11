@@ -1,0 +1,7 @@
+{# ssl_inspection_removal.j2 — arista-eos #}
+! Remove SSL/TLS Inspection Policy
+! Intent: {{ intent_id }}
+! Policy: {{ policy_name }}
+! Note: SSL inspection removal requires manual policy detach before deletion.
+no ssl profile {{ policy_name }}
+!

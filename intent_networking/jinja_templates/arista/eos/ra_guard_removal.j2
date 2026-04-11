@@ -1,0 +1,16 @@
+{# ra_guard_removal.j2 — arista-eos #}
+! Remove IPv6 RA Guard Policy
+! Intent: {{ intent_id }}
+!
+{% for port in trusted_ports | default([]) %}
+interface {{ port }}
+   no ipv6 nd raguard attach-policy {{ policy_name }}
+!
+{% endfor %}
+{% for port in untrusted_ports | default([]) %}
+interface {{ port }}
+   no ipv6 nd raguard attach-policy {{ policy_name }}
+!
+{% endfor %}
+no ipv6 nd raguard policy {{ policy_name }}
+!
