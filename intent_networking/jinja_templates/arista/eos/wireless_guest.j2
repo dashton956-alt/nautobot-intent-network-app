@@ -1,0 +1,7 @@
+{# wireless_guest.j2 — arista-eos #}
+! Guest Wireless / Captive Portal (Mist / CloudVision managed)
+! Intent: {{ intent_id }}
+! SSID: {{ ssid_name }}
+! Portal URL: {{ captive_portal_url | default("") }}
+! VLAN: {{ vlan_id | default("unset") }}
+! Note: Guest wireless is managed via Mist or CloudVision.

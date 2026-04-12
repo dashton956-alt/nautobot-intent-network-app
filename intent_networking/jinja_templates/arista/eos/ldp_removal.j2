@@ -1,0 +1,14 @@
+{# ldp_removal.j2 — arista-eos #}
+! Remove LDP Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+   no mpls ip
+!
+{% endfor %}
+{% if router_id | default(none) %}
+no mpls ldp router-id
+{% endif %}
+no mpls ip
+!

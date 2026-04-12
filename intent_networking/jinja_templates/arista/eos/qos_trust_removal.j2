@@ -1,0 +1,10 @@
+{# qos_trust_removal.j2 — arista-eos #}
+! Remove QoS Trust Boundary
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+   no qos trust
+!
+{% endfor %}
+!

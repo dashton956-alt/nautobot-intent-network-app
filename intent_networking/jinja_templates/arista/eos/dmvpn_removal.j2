@@ -1,0 +1,6 @@
+{# dmvpn_removal.j2 — arista-eos #}
+! Remove DMVPN Configuration
+! Intent: {{ intent_id }}
+!
+no interface {{ tunnel_interface | default("Tunnel100") }}
+!

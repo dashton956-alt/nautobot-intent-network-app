@@ -1,0 +1,6 @@
+{# wireless_roam.j2 — arista-eos #}
+! Fast Roaming / 802.11r (Mist / CloudVision managed)
+! Intent: {{ intent_id }}
+! 802.11r FT: {{ "enabled" if ft_enabled | default(true) else "disabled" }}
+! FT over DS: {{ "enabled" if ft_over_ds | default(true) else "disabled" }}
+! Note: Fast roam configuration is managed via Mist or CloudVision.

@@ -1,0 +1,11 @@
+{# ospfv3_removal.j2 — arista-eos #}
+! Remove OSPFv3 Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+   no ipv6 ospf {{ process_id | default(1) }} area {{ area | default("0.0.0.0") }}
+!
+{% endfor %}
+no ipv6 router ospf {{ process_id | default(1) }}
+!

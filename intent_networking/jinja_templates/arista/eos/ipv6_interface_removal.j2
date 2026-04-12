@@ -1,0 +1,8 @@
+{# ipv6_interface_removal.j2 — arista-eos #}
+! Remove IPv6 Interface Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+   no ipv6 address
+   no ipv6 enable
+!

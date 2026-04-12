@@ -1,0 +1,11 @@
+{# bgp_ipv6_af_removal.j2 — arista-eos #}
+! Remove BGP IPv6 Address Family
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+   address-family ipv6
+{% for nbr in neighbors | default([]) %}
+      no neighbor {{ nbr.ip }} activate
+{% endfor %}
+   no address-family ipv6
+!

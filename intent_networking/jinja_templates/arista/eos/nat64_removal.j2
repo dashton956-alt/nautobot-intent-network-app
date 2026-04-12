@@ -1,0 +1,11 @@
+{# nat64_removal.j2 — arista-eos #}
+! Remove NAT64 Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+   no nat64 enable
+!
+{% endfor %}
+no nat64 prefix stateful {{ prefix | default("64:ff9b::/96") }}
+!

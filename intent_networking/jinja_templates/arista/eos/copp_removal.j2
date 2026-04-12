@@ -1,0 +1,13 @@
+{# copp_removal.j2 — arista-eos #}
+! Remove CoPP Policy
+! Intent: {{ intent_id }}
+! Note: Removes ACLs and access-groups applied by copp.j2.
+system control-plane
+{% for cls in classes | default([]) %}
+   no ip access-group {{ cls.acl_name }} in
+{% endfor %}
+!
+{% for cls in classes | default([]) %}
+no ip access-list {{ cls.acl_name }}
+!
+{% endfor %}

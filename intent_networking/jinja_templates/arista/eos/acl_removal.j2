@@ -1,0 +1,15 @@
+{# acl_removal.j2 — arista-eos #}
+! Remove ACL Configuration — {{ acl_name }}
+! Intent: {{ intent_id }}
+!
+{% for iface in apply_interfaces | default([]) %}
+interface {{ iface }}
+   no ip{{ "v6" if address_family | default("ipv4") == "ipv6" else "" }} access-group {{ acl_name }} {{ direction | default("in") }}
+!
+{% endfor %}
+{% if address_family | default("ipv4") == "ipv6" %}
+no ipv6 access-list {{ acl_name }}
+{% else %}
+no ip access-list {{ acl_name }}
+{% endif %}
+!

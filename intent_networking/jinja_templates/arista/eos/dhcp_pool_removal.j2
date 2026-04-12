@@ -1,0 +1,6 @@
+{# dhcp_pool_removal.j2 — arista-eos #}
+! Remove DHCP Pool
+! Intent: {{ intent_id }}
+!
+no ip dhcp pool {{ pool_name }}
+!

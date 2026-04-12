@@ -1,0 +1,12 @@
+{# stp_root_removal.j2 — arista-eos #}
+! Remove Spanning Tree Root Configuration
+! Intent: {{ intent_id }}
+!
+{% if vlans | default([]) %}
+{% for vlan in vlans %}
+no spanning-tree vlan {{ vlan }} priority
+{% endfor %}
+{% else %}
+no spanning-tree priority
+{% endif %}
+!

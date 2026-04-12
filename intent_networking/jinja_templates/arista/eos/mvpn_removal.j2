@@ -1,0 +1,12 @@
+{# mvpn_removal.j2 — arista-eos #}
+! Remove Multicast VPN (mVPN) Configuration
+! Intent: {{ intent_id }}
+!
+router bgp {{ local_asn }}
+{% if vrf %}
+   vrf {{ vrf }}
+      no address-family ipv4 multicast
+{% else %}
+   no address-family ipv4 multicast
+{% endif %}
+!

@@ -1,0 +1,8 @@
+{# msdp_removal.j2 — arista-eos #}
+! Remove MSDP Configuration
+! Intent: {{ intent_id }}
+!
+{% for peer in peers | default([]) %}
+no ip msdp peer {{ peer.peer_ip | default(peer) }}
+{% endfor %}
+!

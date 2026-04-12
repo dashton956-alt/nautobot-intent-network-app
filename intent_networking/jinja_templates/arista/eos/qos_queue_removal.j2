@@ -1,0 +1,11 @@
+{# qos_queue_removal.j2 — arista-eos #}
+! Remove Queuing Policy
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface }}
+   no service-policy output {{ policy_name | default("") }}
+!
+{% endfor %}
+no policy-map {{ policy_name | default("") }}
+!

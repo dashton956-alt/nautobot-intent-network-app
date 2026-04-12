@@ -1,0 +1,22 @@
+{# cloud_direct_connect.j2 — arista-eos #}
+! Cloud Direct Connect — BGP peering on physical handoff
+! Intent: {{ intent_id }}
+!
+{% if vlan | default("") %}
+interface {{ interface | default("Ethernet1") }}.{{ vlan }}
+   encapsulation dot1q vlan {{ vlan }}
+   ip address {{ local_ip }}
+!
+{% else %}
+interface {{ interface | default("Ethernet1") }}
+   ip address {{ local_ip }}
+!
+{% endif %}
+router bgp {{ bgp_asn }}
+   neighbor {{ peer_ip }} remote-as {{ peer_asn }}
+   neighbor {{ peer_ip }} description {{ provider | default("aws") }}-direct-connect-{{ connection_id }}
+{% if bgp_auth_key | default("") %}
+   neighbor {{ peer_ip }} password {{ bgp_auth_key }}
+{% endif %}
+   neighbor {{ peer_ip }} activate
+!

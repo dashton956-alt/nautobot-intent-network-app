@@ -1,0 +1,7 @@
+{# dns_record_removal.j2 — arista-eos #}
+! Remove DNS Record
+! Intent: {{ intent_id }}
+! Host: {{ hostname }}  Type: {{ record_type | default("A") }}  Value: {{ value }}
+! Note: EOS local DNS entries are removed via the host command.
+no ip host {{ hostname }}
+!

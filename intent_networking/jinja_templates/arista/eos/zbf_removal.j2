@@ -1,0 +1,12 @@
+{# zbf_removal.j2 — arista-eos #}
+! Remove Zone-Based Firewall Configuration
+! Intent: {{ intent_id }}
+!
+{% for policy in policies | default([]) %}
+no ip access-list {{ policy.acl_name }}
+!
+{% endfor %}
+{% for zone in zones | default([]) %}
+no security zone {{ zone.name }}
+!
+{% endfor %}

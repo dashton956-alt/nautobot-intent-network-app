@@ -1,0 +1,8 @@
+{# pseudowire_removal.j2 — arista-eos #}
+! Remove Pseudowire / EoMPLS Configuration
+! Intent: {{ intent_id }}
+!
+{% for pw in pseudowires | default([]) %}
+no interface {{ pw.interface | default("Pseudowire" ~ loop.index) }}
+!
+{% endfor %}

@@ -1,0 +1,9 @@
+{# qinq_removal.j2 — arista-eos #}
+! Remove QinQ / Double-Tag Configuration
+! Intent: {{ intent_id }}
+!
+interface {{ interface }}
+   no switchport dot1q ethertype
+   no switchport trunk allowed vlan {{ outer_vlan | default("") }}
+   no switchport mode trunk
+!

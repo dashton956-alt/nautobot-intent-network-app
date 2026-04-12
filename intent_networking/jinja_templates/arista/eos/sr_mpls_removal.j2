@@ -1,0 +1,9 @@
+{# sr_mpls_removal.j2 — arista-eos #}
+! Remove Segment Routing MPLS Configuration
+! Intent: {{ intent_id }}
+!
+router isis
+   no segment-routing mpls
+!
+no segment-routing global-block {{ srgb_start | default(16000) }} {{ srgb_end | default(23999) }}
+!

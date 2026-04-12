@@ -1,0 +1,12 @@
+{# pvlan_removal.j2 — arista-eos #}
+! Remove Private VLAN Configuration
+! Intent: {{ intent_id }}
+!
+{% for sec_vlan in secondary_vlans | default([]) %}
+vlan {{ sec_vlan }}
+   no private-vlan community
+!
+{% endfor %}
+vlan {{ primary_vlan }}
+   no private-vlan primary
+!

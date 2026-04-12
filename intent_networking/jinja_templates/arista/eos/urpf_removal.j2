@@ -1,0 +1,13 @@
+{# urpf_removal.j2 — arista-eos #}
+! Remove uRPF Configuration
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.mode == "strict" %}
+   no ip verify unicast source reachable-via rx
+{% else %}
+   no ip verify unicast source reachable-via any
+{% endif %}
+!
+{% endfor %}

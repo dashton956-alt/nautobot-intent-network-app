@@ -1,0 +1,7 @@
+{# cloud_vpc_peer.j2 — arista-eos #}
+! VPC / VNet Peering (cloud API managed)
+! Intent: {{ intent_id }}
+! Requester VPC: {{ requester_vpc }}
+! Accepter VPC: {{ accepter_vpc }}
+! Provider: {{ provider | default("aws") }}
+! Note: VPC peering is managed via cloud provider API, not device CLI.

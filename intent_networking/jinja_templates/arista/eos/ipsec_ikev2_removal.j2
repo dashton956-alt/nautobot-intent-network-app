@@ -1,0 +1,17 @@
+{# ipsec_ikev2_removal.j2 — arista-eos #}
+! Remove IKEv2 Configuration
+! Intent: {{ intent_id }}
+!
+{% if profile_name | default("") %}
+no crypto ikev2 profile {{ profile_name }}
+{% endif %}
+{% if policy_name | default("") %}
+no crypto ikev2 policy {{ policy_name }}
+{% endif %}
+{% if proposal_name | default("") %}
+no crypto ikev2 proposal {{ proposal_name }}
+{% endif %}
+{% if keyring_name | default("") %}
+no crypto ikev2 keyring {{ keyring_name }}
+{% endif %}
+!
