@@ -43,7 +43,6 @@ Usage (inside nautobot shell / nbshell):
 
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
-
 from nautobot.extras.models import Status
 from nautobot.tenancy.models import Tenant
 
@@ -105,12 +104,8 @@ INTENTS = [
             "scope": {"sites": ["LAB-DC1"]},
             "zones": [{"name": "INSIDE"}, {"name": "OUTSIDE"}],
             "zone_pairs": [{"source": "INSIDE", "destination": "OUTSIDE", "policy": "ZBF-INSIDE-OUT"}],
-            "class_maps": [
-                {"name": "MATCH-ANY", "type": "match-any", "match": [{"protocol": "ip"}]}
-            ],
-            "policy_maps": [
-                {"name": "ZBF-INSIDE-OUT", "classes": [{"name": "MATCH-ANY", "action": "inspect"}]}
-            ],
+            "class_maps": [{"name": "MATCH-ANY", "type": "match-any", "match": [{"protocol": "ip"}]}],
+            "policy_maps": [{"name": "ZBF-INSIDE-OUT", "classes": [{"name": "MATCH-ANY", "action": "inspect"}]}],
         },
     },
     {
@@ -128,9 +123,7 @@ INTENTS = [
                 {"name": "default", "type": "login", "methods": ["group TACACS-LAB", "local"]},
                 {"name": "default", "type": "enable", "methods": ["group TACACS-LAB", "enable"]},
             ],
-            "accounting": [
-                {"name": "default", "type": "exec", "action": "start-stop", "group": "TACACS-LAB"}
-            ],
+            "accounting": [{"name": "default", "type": "exec", "action": "start-stop", "group": "TACACS-LAB"}],
         },
     },
     {
@@ -143,8 +136,18 @@ INTENTS = [
             "scope": {"sites": ["LAB-DC1"]},
             "policy_name": "COPP-LAB-POLICY",
             "classes": [
-                {"name": "CPP-CRITICAL", "protocols": ["bgp", "ospf", "isis"], "police_rate": "64000", "police_burst": "8000"},
-                {"name": "CPP-IMPORTANT", "protocols": ["snmp", "ssh", "netconf"], "police_rate": "32000", "police_burst": "4000"},
+                {
+                    "name": "CPP-CRITICAL",
+                    "protocols": ["bgp", "ospf", "isis"],
+                    "police_rate": "64000",
+                    "police_burst": "8000",
+                },
+                {
+                    "name": "CPP-IMPORTANT",
+                    "protocols": ["snmp", "ssh", "netconf"],
+                    "police_rate": "32000",
+                    "police_burst": "4000",
+                },
                 {"name": "CPP-DEFAULT", "protocols": ["ip"], "police_rate": "8000", "police_burst": "1000"},
             ],
         },
@@ -189,10 +192,10 @@ INTENTS = [
         "intent_data": {
             "scope": {"sites": ["LAB-DC1"]},
             "process_id": 1,
-            "area": "0.0.0.0",
+            "area": "0.0.0.0",  # noqa: S104
             "address_family": "ipv6",
             "router_id": "10.0.0.1",
-            "interfaces": [{"name": "Ethernet1", "area": "0.0.0.0"}],
+            "interfaces": [{"name": "Ethernet1", "area": "0.0.0.0"}],  # noqa: S104
         },
     },
     {
@@ -370,8 +373,8 @@ for data in INTENTS:
 print(f"\n{'=' * 60}")
 print(f"  Done: {created_count} created, {updated_count} updated")
 print(f"  Total lab intents in DB: {Intent.objects.filter(tenant=tenant).count()}")
-print(f"  All in status: Draft — ready for pipeline")
-print(f"  Intent types cover Feature/improved-EOS new EOS templates:")
-print(f"    security x5 | routing x4 | l2 x2 | qos x4 | multicast x1 = 16 total")
+print("  All in status: Draft — ready for pipeline")
+print("  Intent types cover Feature/improved-EOS new EOS templates:")
+print("    security x5 | routing x4 | l2 x2 | qos x4 | multicast x1 = 16 total")
 print(f"{'=' * 60}")
 print("\nNext: exec(open('development/run_pipeline_retire.py').read())")

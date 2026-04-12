@@ -20,7 +20,6 @@ import json
 import time
 
 from django.contrib.auth import get_user_model
-
 from nautobot.extras.models import Job, JobResult
 
 from intent_networking.models import Intent, IntentApproval
@@ -41,15 +40,17 @@ if not user:
 # ─── Job handles ──────────────────────────────────────────────────────────────
 MODULE = "intent_networking.jobs"
 
+
 def _get_job(class_name):
     return Job.objects.get(module_name=MODULE, job_class_name=class_name)
 
+
 JOBS = {
-    "resolve":  _get_job("IntentResolutionJob"),
-    "preview":  _get_job("IntentConfigPreviewJob"),
-    "deploy":   _get_job("IntentDeploymentJob"),
-    "verify":   _get_job("IntentVerificationJob"),
-    "retire":   _get_job("IntentRetireJob"),
+    "resolve": _get_job("IntentResolutionJob"),
+    "preview": _get_job("IntentConfigPreviewJob"),
+    "deploy": _get_job("IntentDeploymentJob"),
+    "verify": _get_job("IntentVerificationJob"),
+    "retire": _get_job("IntentRetireJob"),
 }
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -75,7 +76,9 @@ LAB_INTENT_IDS = [
 intents = list(Intent.objects.filter(intent_id__in=LAB_INTENT_IDS).order_by("intent_id"))
 print(f"\nFound {len(intents)} lab intents to process\n")
 
-RESULTS = {step: {"ok": [], "fail": []} for step in ["resolve", "preview", "dryrun", "approve", "deploy", "verify", "retire"]}
+RESULTS = {
+    step: {"ok": [], "fail": []} for step in ["resolve", "preview", "dryrun", "approve", "deploy", "verify", "retire"]
+}
 ERRORS = []
 
 
@@ -93,14 +96,12 @@ def run_job(job, data, timeout=180):
         return False, f"Timeout after {timeout}s (status={jr.status})"
     if jr.status == "SUCCESS":
         return True, jr
-    msgs = list(
-        jr.job_log_entries.filter(log_level__in=["error", "critical"])
-        .values_list("message", flat=True)[:5]
-    )
+    msgs = list(jr.job_log_entries.filter(log_level__in=["error", "critical"]).values_list("message", flat=True)[:5])
     return False, "; ".join(msgs) if msgs else f"Job status: {jr.status}"
 
 
 def note_error(iid, step, msg):
+    """Record a step failure in ERRORS and print it."""
     ERRORS.append({"intent_id": iid, "step": step, "message": str(msg)[:400]})
     print(f"    ✗ [{step}] {str(msg)[:200]}")
 
@@ -172,7 +173,9 @@ for idx, intent in enumerate(intents, 1):
 
     # ── 5. Deploy (commit=True) ───────────────────────────────────────────────
     print("  5. Deploy (commit=True)...")
-    ok, result = run_job(JOBS["deploy"], {"intent_id": iid, "commit_sha": "lab-improved-eos", "commit": True}, timeout=240)
+    ok, result = run_job(
+        JOBS["deploy"], {"intent_id": iid, "commit_sha": "lab-improved-eos", "commit": True}, timeout=240
+    )
     intent.refresh_from_db()
     if ok:
         RESULTS["deploy"]["ok"].append(iid)
@@ -214,7 +217,7 @@ print(f"{'=' * 60}")
 print(f"  {'Step':<10}  {'OK':>4}  {'FAIL':>4}")
 print(f"  {'-'*10}  {'-'*4}  {'-'*4}")
 for step in ["resolve", "preview", "dryrun", "approve", "deploy", "verify", "retire"]:
-    ok_n  = len(RESULTS[step]["ok"])
+    ok_n = len(RESULTS[step]["ok"])
     fail_n = len(RESULTS[step]["fail"])
     flag = "  " if fail_n == 0 else "⚠ "
     print(f"  {flag}{step:<10}  {ok_n:>4}  {fail_n:>4}")
