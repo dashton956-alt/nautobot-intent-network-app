@@ -28,6 +28,29 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.1 (Arista EOS template fixes)
+
+v2.0.1 is a **patch release** — no database migrations are included.
+
+```shell
+pip install --upgrade nautobot-app-intent-networking==2.0.1
+nautobot-server post_upgrade
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+**Check your intent YAML** if you use any of the following Arista EOS removal templates or `cloud_direct_connect`. Several fields that previously defaulted to `""` are now required:
+
+| Template | Now-required fields |
+|----------|---------------------|
+| `evpn_mpls_removal` | `local_asn` |
+| `evpn_multisite_removal` | `local_asn` |
+| `6pe_6vpe_removal` | `local_asn` |
+| `cloud_direct_connect` | `local_ip`, `peer_ip`, `bgp_asn`, `peer_asn` |
+| `urpf_removal` | `interfaces` list of `{name, mode}` |
+| `pseudowire_removal` | `pseudowires` list of `{interface}` |
+
+See the [v2.0.1 release notes](../admin/release_notes/version_2.0.1.md) for the full list of template changes.
+
 ### Upgrading to v2.0 (NUTS Verification Engine, Bulk Actions, 847 Templates)
 
 v2.0 is a **major release**. The pyATS/Genie verification engine is removed and replaced by NUTS.
