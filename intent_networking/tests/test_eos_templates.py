@@ -11,15 +11,16 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 EOS_DIR = Path(__file__).resolve().parent.parent / "jinja_templates" / "arista" / "eos"
 
+_ENV = Environment(
+    loader=FileSystemLoader(str(EOS_DIR)),
+    undefined=StrictUndefined,
+    trim_blocks=True,
+    lstrip_blocks=True,
+)
+
 
 def _render(template_name: str, ctx: dict) -> str:
-    env = Environment(
-        loader=FileSystemLoader(str(EOS_DIR)),
-        undefined=StrictUndefined,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
-    return env.get_template(template_name).render(**ctx)
+    return _ENV.get_template(template_name).render(**ctx)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -192,7 +193,10 @@ class EOSCloudProvisionTest(SimpleTestCase):
                 "intent_id": "t-001",
                 "connection_id": "dxcon-abc",
                 "vlan": 100,
+                "local_ip": "10.0.0.1/30",
                 "bgp_asn": 65000,
+                "peer_ip": "10.0.0.2",
+                "peer_asn": 64512,
                 "provider": "aws",
             },
         )
@@ -342,7 +346,7 @@ class EOSSecurityRemovalTest(SimpleTestCase):
                 "zone_pairs": [{"source": "INSIDE", "destination": "OUTSIDE", "policy": "ZBF-POL"}],
             },
         )
-        self.assertIn("no zone", out)
+        self.assertIn("no security zone", out)
 
     def test_gre_tunnel_removal_renders(self):
         out = _render(
@@ -359,8 +363,9 @@ class EOSSecurityRemovalTest(SimpleTestCase):
             "ipsec_tunnel_removal.j2",
             {
                 "intent_id": "t-001",
-                "tunnel_id": 10,
-                "remote_peer": "203.0.113.1",
+                "tunnel_interface": "Tunnel10",
+                "crypto_map_name": "CRYPTO-MAP",
+                "crypto_map_seq": 10,
             },
         )
         self.assertIn("no interface Tunnel10", out)
@@ -484,7 +489,7 @@ class EOSRoutingRemovalTest(SimpleTestCase):
                 "interfaces": ["Ethernet1"],
             },
         )
-        self.assertIn("no mpls ldp", out)
+        self.assertIn("no mpls ip", out)
 
     def test_sr_mpls_removal_renders(self):
         out = _render(
@@ -521,8 +526,8 @@ class EOSMplsRemovalTest(SimpleTestCase):
             "6pe_6vpe_removal.j2",
             {
                 "intent_id": "t-001",
+                "local_asn": 65001,
                 "mode": "6pe",
-                "vrf": "",
                 "neighbor_ip": "10.0.0.1",
             },
         )
@@ -533,18 +538,22 @@ class EOSMplsRemovalTest(SimpleTestCase):
             "evpn_mpls_removal.j2",
             {
                 "intent_id": "t-001",
+                "local_asn": 65001,
             },
         )
         self.assertIn("no address-family evpn", out)
+        self.assertIn("router bgp 65001", out)
 
     def test_evpn_multisite_removal_renders(self):
         out = _render(
             "evpn_multisite_removal.j2",
             {
                 "intent_id": "t-001",
+                "local_asn": 65001,
             },
         )
         self.assertIn("no address-family evpn", out)
+        self.assertIn("router bgp 65001", out)
 
     def test_l2vpn_vpls_removal_renders(self):
         out = _render(
@@ -561,11 +570,10 @@ class EOSMplsRemovalTest(SimpleTestCase):
             "pseudowire_removal.j2",
             {
                 "intent_id": "t-001",
-                "pw_id": 100,
-                "remote_pe": "10.0.0.1",
+                "pseudowires": [{"interface": "Pseudowire100"}],
             },
         )
-        self.assertIn("no interface", out)
+        self.assertIn("no interface Pseudowire100", out)
 
     def test_rsvp_te_tunnel_removal_renders(self):
         out = _render(
@@ -582,10 +590,11 @@ class EOSMplsRemovalTest(SimpleTestCase):
             "mvpn_removal.j2",
             {
                 "intent_id": "t-001",
+                "local_asn": 65001,
                 "vrf": "CUST-A",
             },
         )
-        self.assertIn("no mdt", out)
+        self.assertIn("no address-family ipv4 multicast", out)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -781,21 +790,21 @@ class EOSMiscRemovalTest(SimpleTestCase):
             "copp_removal.j2",
             {
                 "intent_id": "t-001",
-                "policy_name": "COPP-POLICY",
+                "classes": [{"acl_name": "COPP-ACL-MGMT"}, {"acl_name": "COPP-ACL-ROUTING"}],
             },
         )
-        self.assertIn("COPP-POLICY", out)
+        self.assertIn("COPP-ACL-MGMT", out)
 
     def test_urpf_removal_renders(self):
         out = _render(
             "urpf_removal.j2",
             {
                 "intent_id": "t-001",
-                "interface": "Ethernet1",
-                "mode": "strict",
+                "interfaces": [{"name": "Ethernet1", "mode": "strict"}],
             },
         )
         self.assertIn("no ip verify unicast", out)
+        self.assertIn("reachable-via rx", out)
 
     def test_eigrp_removal_renders(self):
         out = _render(

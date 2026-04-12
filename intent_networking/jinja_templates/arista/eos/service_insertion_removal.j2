@@ -1,7 +1,7 @@
 {# service_insertion_removal.j2 — arista-eos #}
-! Remove Service Insertion / Chaining
+! Service Insertion Removal (stub — appliance-specific)
 ! Intent: {{ intent_id }}
-! Service: {{ service_name | default("") }}
-! Note: Service insertion removal requires policy map detach before deletion.
-no policy-map type service-insertion {{ service_name | default("") }}
+!
+! Service Node: {{ service_name | default("N/A") }}
+! Manual steps required: detach service policy before deletion.
 !

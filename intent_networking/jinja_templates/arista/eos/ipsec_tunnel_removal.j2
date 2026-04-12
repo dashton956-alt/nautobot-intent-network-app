@@ -2,7 +2,13 @@
 ! Remove IPSec Tunnel Configuration
 ! Intent: {{ intent_id }}
 !
-no interface Tunnel{{ tunnel_id }}
-no crypto map CM-{{ remote_peer | replace(".", "-") }}
-no crypto isakmp policy 10
+{% if tunnel_interface | default(none) %}
+no interface {{ tunnel_interface }}
 !
+{% endif %}
+no crypto map {{ crypto_map_name | default("CRYPTO-MAP") }} {{ crypto_map_seq | default(10) }}
+!
+{% if isakmp_policy | default(none) %}
+no crypto isakmp policy {{ isakmp_policy.priority | default(10) }}
+!
+{% endif %}

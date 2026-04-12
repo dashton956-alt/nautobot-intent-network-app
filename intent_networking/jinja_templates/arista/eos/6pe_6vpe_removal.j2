@@ -2,11 +2,13 @@
 ! Remove 6PE / 6VPE Configuration
 ! Intent: {{ intent_id }}
 !
-router bgp {{ local_asn | default("") }}
+router bgp {{ local_asn }}
 {% if mode | default("6pe") == "6vpe" and vrf | default("") %}
    vrf {{ vrf }}
-{% endif %}
-   no neighbor {{ neighbor_ip }} activate
+      address-family ipv6
+         no neighbor {{ neighbor_ip }} activate
+{% else %}
    address-family ipv6
       no neighbor {{ neighbor_ip }} activate
+{% endif %}
 !

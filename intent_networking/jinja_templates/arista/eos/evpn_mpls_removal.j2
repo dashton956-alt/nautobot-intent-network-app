@@ -2,6 +2,6 @@
 ! Remove EVPN over MPLS Configuration
 ! Intent: {{ intent_id }}
 !
-router bgp {{ local_asn | default("") }}
+router bgp {{ local_asn }}
    no address-family evpn
 !

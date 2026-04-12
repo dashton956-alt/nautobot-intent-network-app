@@ -2,6 +2,12 @@
 ! Remove uRPF Configuration
 ! Intent: {{ intent_id }}
 !
-interface {{ interface }}
-   no ip verify unicast source reachable-via {{ mode | default("strict") }}
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.mode == "strict" %}
+   no ip verify unicast source reachable-via rx
+{% else %}
+   no ip verify unicast source reachable-via any
+{% endif %}
 !
+{% endfor %}

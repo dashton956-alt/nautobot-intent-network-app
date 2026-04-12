@@ -4,9 +4,11 @@
 !
 {% for iface in interfaces | default([]) %}
 interface {{ iface }}
-   no mpls ldp interface
+   no mpls ip
 !
 {% endfor %}
+{% if router_id | default(none) %}
 no mpls ldp router-id
-no mpls ldp
+{% endif %}
+no mpls ip
 !

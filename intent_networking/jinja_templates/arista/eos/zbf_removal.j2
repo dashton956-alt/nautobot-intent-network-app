@@ -2,11 +2,11 @@
 ! Remove Zone-Based Firewall Configuration
 ! Intent: {{ intent_id }}
 !
-{% for pair in zone_pairs | default([]) %}
-no zone-pair security {{ pair.source }}-{{ pair.destination }}
+{% for policy in policies | default([]) %}
+no ip access-list {{ policy.acl_name }}
 !
 {% endfor %}
 {% for zone in zones | default([]) %}
-no zone security {{ zone.name }}
+no security zone {{ zone.name }}
 !
 {% endfor %}

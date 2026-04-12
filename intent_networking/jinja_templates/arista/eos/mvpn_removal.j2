@@ -2,6 +2,11 @@
 ! Remove Multicast VPN (mVPN) Configuration
 ! Intent: {{ intent_id }}
 !
-vrf instance {{ vrf }}
-   no mdt default {{ mdt_default_group | default("") }}
+router bgp {{ local_asn }}
+{% if vrf %}
+   vrf {{ vrf }}
+      no address-family ipv4 multicast
+{% else %}
+   no address-family ipv4 multicast
+{% endif %}
 !

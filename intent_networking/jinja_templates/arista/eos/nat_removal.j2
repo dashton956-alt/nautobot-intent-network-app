@@ -13,5 +13,7 @@ interface {{ iface }}
    no ip nat outside
 !
 {% endfor %}
-no ip nat pool {{ pool_name | default("NAT-POOL") }}
+{% if pool_name | default("") %}
+no ip nat pool {{ pool_name }}
+{% endif %}
 !
