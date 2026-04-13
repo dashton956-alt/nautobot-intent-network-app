@@ -28,6 +28,19 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.2 (NUTS expected shorthand)
+
+v2.0.2 is a **patch release** — no database migrations are included.
+
+```shell
+pip install --upgrade nautobot-app-intent-networking==2.0.2
+nautobot-server post_upgrade
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+No breaking changes. Intent YAML files using the existing `test_data` format continue to work unchanged.
+See the [v2.0.2 release notes](../admin/release_notes/version_2.0.2.md) for details on the new `expected` shorthand.
+
 ### Upgrading to v2.0.1 (Arista EOS template fixes)
 
 v2.0.1 is a **patch release** — no database migrations are included.
