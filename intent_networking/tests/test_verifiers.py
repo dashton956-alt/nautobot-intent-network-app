@@ -328,7 +328,7 @@ class TestNutsVerifier(TestCase):
         with self.assertLogs("intent_networking.verifiers.extended", level=logging.WARNING) as log:
             NutsVerifier._write_test_bundle(bundle_path, bundles, devices=[])  # pylint: disable=protected-access
 
-        self.assertTrue(any("test_data takes precedence" in msg for msg in log.output))
+        self.assertTrue(any("'test_data' takes precedence" in msg for msg in log.output))
 
         import yaml
 
