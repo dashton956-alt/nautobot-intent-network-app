@@ -263,7 +263,7 @@ class TestNutsVerifier(TestCase):
 
         NutsVerifier._write_test_bundle(bundle_path, bundles, devices)  # pylint: disable=protected-access
 
-        with open(bundle_path) as f:
+        with open(bundle_path, encoding="utf-8") as f:
             result = yaml.safe_load(f)
 
         self.assertEqual(len(result), 1)
@@ -300,7 +300,7 @@ class TestNutsVerifier(TestCase):
 
         NutsVerifier._write_test_bundle(bundle_path, bundles, devices=[])  # pylint: disable=protected-access
 
-        with open(bundle_path) as f:
+        with open(bundle_path, encoding="utf-8") as f:
             result = yaml.safe_load(f)
 
         self.assertEqual(result[0]["test_data"], explicit_test_data)
@@ -332,7 +332,7 @@ class TestNutsVerifier(TestCase):
 
         import yaml
 
-        with open(bundle_path) as f:
+        with open(bundle_path, encoding="utf-8") as f:
             result = yaml.safe_load(f)
 
         self.assertEqual(result[0]["test_data"], explicit_test_data)
