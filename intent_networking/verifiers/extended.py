@@ -371,7 +371,17 @@ class NutsVerifier:
             if bundle.get("test_execution"):
                 entry["test_execution"] = bundle["test_execution"]
 
-            if "expected" in bundle and "test_data" not in bundle:
+            if "expected" in bundle and "test_data" in bundle:
+                # Both keys present — test_data takes precedence; warn so the author
+                # knows their expected shorthand is being ignored.
+                logger.warning(
+                    "Test bundle '%s' defines both 'expected' and 'test_data' — "
+                    "'test_data' takes precedence and 'expected' is ignored. "
+                    "Remove one to avoid ambiguity.",
+                    bundle.get("label", bundle["test_class"]),
+                )
+                entry["test_data"] = bundle["test_data"]
+            elif "expected" in bundle:
                 # Shorthand: expand the same expected checks to all scoped devices
                 entry["test_data"] = [{"host": name, "expected": bundle["expected"]} for name in device_names]
             else:
