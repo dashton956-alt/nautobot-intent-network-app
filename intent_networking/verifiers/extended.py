@@ -246,7 +246,7 @@ class NutsVerifier:
 
             # Write test bundle YAML
             bundle_path = os.path.join(tmpdir, "test_bundle.yaml")
-            self._write_test_bundle(bundle_path, test_bundles)
+            self._write_test_bundle(bundle_path, test_bundles, devices)
 
             # Write conftest.py pointing to our nornir config
             conftest_path = os.path.join(tmpdir, "conftest.py")
@@ -354,8 +354,15 @@ class NutsVerifier:
             yaml.dump(config, f, default_flow_style=False)
 
     @staticmethod
-    def _write_test_bundle(bundle_path, test_bundles):
-        """Write the NUTS test bundle YAML file."""
+    def _write_test_bundle(bundle_path, test_bundles, devices=None):
+        """Write the NUTS test bundle YAML file.
+
+        If a bundle defines top-level ``expected`` instead of per-host
+        ``test_data``, the expected checks are automatically expanded to
+        every device in scope — so intent authors don't have to repeat
+        identical checks for each host.
+        """
+        device_names = sorted(d.name for d in devices) if devices else []
         bundles = []
         for bundle in test_bundles:
             entry = {"test_class": bundle["test_class"]}
@@ -363,7 +370,23 @@ class NutsVerifier:
                 entry["label"] = bundle["label"]
             if bundle.get("test_execution"):
                 entry["test_execution"] = bundle["test_execution"]
-            entry["test_data"] = bundle.get("test_data", [])
+
+            if "expected" in bundle and "test_data" in bundle:
+                # Both keys present — test_data takes precedence; warn so the author
+                # knows their expected shorthand is being ignored.
+                logger.warning(
+                    "Test bundle '%s' defines both 'expected' and 'test_data' — "
+                    "'test_data' takes precedence and 'expected' is ignored. "
+                    "Remove one to avoid ambiguity.",
+                    bundle.get("label", bundle["test_class"]),
+                )
+                entry["test_data"] = bundle["test_data"]
+            elif "expected" in bundle:
+                # Shorthand: expand the same expected checks to all scoped devices
+                entry["test_data"] = [{"host": name, "expected": bundle["expected"]} for name in device_names]
+            else:
+                entry["test_data"] = bundle.get("test_data", [])
+
             bundles.append(entry)
 
         with open(bundle_path, "w", encoding="utf-8") as f:

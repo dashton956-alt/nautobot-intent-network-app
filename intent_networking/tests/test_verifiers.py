@@ -234,6 +234,109 @@ class TestNutsVerifier(TestCase):
         self.assertIn("finally", source)
         self.assertIn("shutil.rmtree", source)
 
+    def test_write_test_bundle_expands_expected_to_all_devices(self):
+        """expected shorthand produces one test_data entry per device with correct host and payload."""
+        import tempfile
+
+        import yaml
+
+        from intent_networking.verifiers.extended import NutsVerifier
+
+        devices = [MagicMock(name="sw01"), MagicMock(name="sw02"), MagicMock(name="sw03")]
+        for d in devices:
+            d.name = d.name  # MagicMock sets .name on __init__ — explicitly set it
+
+        devices[0].name = "sw01"
+        devices[1].name = "sw02"
+        devices[2].name = "sw03"
+
+        bundles = [
+            {
+                "test_class": "TestNapalmConfig",
+                "label": "Verify NTP",
+                "expected": [{"config_snippet": "ntp server 10.0.0.1"}],
+            }
+        ]
+
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as f:
+            bundle_path = f.name
+
+        NutsVerifier._write_test_bundle(bundle_path, bundles, devices)  # pylint: disable=protected-access
+
+        with open(bundle_path, encoding="utf-8") as f:
+            result = yaml.safe_load(f)
+
+        self.assertEqual(len(result), 1)
+        test_data = result[0]["test_data"]
+        self.assertEqual(len(test_data), 3)
+        hosts = [entry["host"] for entry in test_data]
+        self.assertIn("sw01", hosts)
+        self.assertIn("sw02", hosts)
+        self.assertIn("sw03", hosts)
+        for entry in test_data:
+            self.assertEqual(entry["expected"], [{"config_snippet": "ntp server 10.0.0.1"}])
+
+    def test_write_test_bundle_uses_explicit_test_data_unchanged(self):
+        """When test_data is provided (no expected), it is written as-is."""
+        import tempfile
+
+        import yaml
+
+        from intent_networking.verifiers.extended import NutsVerifier
+
+        explicit_test_data = [
+            {"host": "sw01", "expected": [{"local_port": "Ethernet1", "neighbor": "spine-01"}]},
+            {"host": "sw02", "expected": [{"local_port": "Ethernet1", "neighbor": "spine-02"}]},
+        ]
+        bundles = [
+            {
+                "test_class": "TestNapalmLldpNeighbors",
+                "test_data": explicit_test_data,
+            }
+        ]
+
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as f:
+            bundle_path = f.name
+
+        NutsVerifier._write_test_bundle(bundle_path, bundles, devices=[])  # pylint: disable=protected-access
+
+        with open(bundle_path, encoding="utf-8") as f:
+            result = yaml.safe_load(f)
+
+        self.assertEqual(result[0]["test_data"], explicit_test_data)
+
+    def test_write_test_bundle_warns_when_both_expected_and_test_data_present(self):
+        """When both expected and test_data are defined, test_data wins and a warning is logged."""
+        import logging
+        import tempfile
+
+        from intent_networking.verifiers.extended import NutsVerifier
+
+        explicit_test_data = [{"host": "sw01", "expected": [{"config_snippet": "ntp server 1.1.1.1"}]}]
+        bundles = [
+            {
+                "test_class": "TestNapalmConfig",
+                "label": "Ambiguous bundle",
+                "expected": [{"config_snippet": "ntp server 10.0.0.1"}],
+                "test_data": explicit_test_data,
+            }
+        ]
+
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as f:
+            bundle_path = f.name
+
+        with self.assertLogs("intent_networking.verifiers.extended", level=logging.WARNING) as log:
+            NutsVerifier._write_test_bundle(bundle_path, bundles, devices=[])  # pylint: disable=protected-access
+
+        self.assertTrue(any("'test_data' takes precedence" in msg for msg in log.output))
+
+        import yaml
+
+        with open(bundle_path, encoding="utf-8") as f:
+            result = yaml.safe_load(f)
+
+        self.assertEqual(result[0]["test_data"], explicit_test_data)
+
 
 class TestAutoEscalation(TestCase):
     """Tests for auto-escalation from basic to NUTS."""
