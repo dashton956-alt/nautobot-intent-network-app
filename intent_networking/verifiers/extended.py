@@ -362,7 +362,7 @@ class NutsVerifier:
         every device in scope — so intent authors don't have to repeat
         identical checks for each host.
         """
-        device_names = [d.name for d in devices] if devices else []
+        device_names = sorted(d.name for d in devices) if devices else []
         bundles = []
         for bundle in test_bundles:
             entry = {"test_class": bundle["test_class"]}
