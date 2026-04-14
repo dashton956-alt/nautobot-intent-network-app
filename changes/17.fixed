@@ -1,0 +1,1 @@
+Added data migration `0015_seed_intent_lifecycle_statuses` to ensure all Intent lifecycle statuses (`Draft`, `Validated`, `Deploying`, `Deployed`, `Failed`, `Rolled Back`, `Deprecated`, `Retired`) are created on any Nautobot instance during `post_upgrade`. Previously these were only seeded by the development script, causing `Status.DoesNotExist` errors on fresh installs.
