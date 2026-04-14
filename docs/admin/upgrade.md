@@ -28,6 +28,19 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.4 (VNI Pool UI)
+
+v2.0.4 is a **patch release** — no database migrations are included.
+
+```shell
+pip install --upgrade nautobot-app-intent-networking==2.0.4
+nautobot-server post_upgrade
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+No breaking changes. The new VNI Pools page appears automatically in the Intent Engine nav menu after restart.
+See the [v2.0.4 release notes](../admin/release_notes/version_2.0.4.md) for details.
+
 ### Upgrading to v2.0.3 (lifecycle status migration)
 
 v2.0.3 is a **patch release** — includes one data migration (`0015_seed_intent_lifecycle_statuses`).
