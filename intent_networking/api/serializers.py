@@ -14,6 +14,7 @@ from intent_networking.models import (
     IntentAuditEntry,
     ResolutionPlan,
     VerificationResult,
+    VxlanVniPool,
 )
 
 # ---------------------------------------------------------------------------
@@ -192,6 +193,16 @@ def validate_intent_data_for_type(intent_type: str, intent_data: dict) -> list[s
         if field not in intent_data:
             errors.append(f"Intent type '{intent_type}' requires field '{field}' in intent_data.")
     return errors
+
+
+class VxlanVniPoolSerializer(NautobotModelSerializer):
+    """Serializer for the VxlanVniPool model."""
+
+    class Meta:
+        """Meta options for VxlanVniPoolSerializer."""
+
+        model = VxlanVniPool
+        fields = ["id", "url", "name", "range_start", "range_end", "tenant", "utilisation_pct"]
 
 
 class IntentSerializer(NautobotModelSerializer):

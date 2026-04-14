@@ -9,6 +9,7 @@ from intent_networking.models import (
     IntentAuditEntry,
     ResolutionPlan,
     VerificationResult,
+    VxlanVniPool,
 )
 
 
@@ -154,6 +155,30 @@ class IntentAuditEntryTable(BaseTable):
 # ─────────────────────────────────────────────────────────────────────────────
 # Approvals (#2)
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# VXLAN VNI Pools
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class VxlanVniPoolTable(BaseTable):
+    """Table for the VXLAN VNI Pool list view."""
+
+    pk = ToggleColumn()
+    name = tables.Column(linkify=True)
+    range_start = tables.Column(verbose_name="Range Start")
+    range_end = tables.Column(verbose_name="Range End")
+    tenant = tables.Column(linkify=True)
+    utilisation_pct = tables.Column(verbose_name="Utilisation %", orderable=False)
+    actions = ButtonsColumn(VxlanVniPool, buttons=("edit", "delete"))
+
+    class Meta(BaseTable.Meta):
+        """Meta options for VxlanVniPoolTable."""
+
+        model = VxlanVniPool
+        fields = ["pk", "name", "range_start", "range_end", "tenant", "utilisation_pct", "actions"]
+        default_columns = ["name", "range_start", "range_end", "tenant", "utilisation_pct", "actions"]
 
 
 class IntentApprovalTable(BaseTable):

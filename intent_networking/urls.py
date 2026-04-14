@@ -8,6 +8,7 @@ from intent_networking.topology_view import TopologyViewerView
 
 router = NautobotUIViewSetRouter()
 router.register("intents", views.IntentUIViewSet)
+router.register("vni-pools", views.VxlanVniPoolUIViewSet)
 
 urlpatterns = (
     [

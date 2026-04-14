@@ -17,7 +17,7 @@ from nautobot.core.views.generic import ObjectView as ObjectDetailView
 from nautobot.ipam.models import VRF, Namespace
 from nautobot.ipam.models import RouteTarget as NautobotRouteTarget
 
-from intent_networking.api.serializers import IntentSerializer
+from intent_networking.api.serializers import IntentSerializer, VxlanVniPoolSerializer
 from intent_networking.filters import (
     IntentAuditEntryFilterSet,
     IntentFilterSet,
@@ -26,6 +26,7 @@ from intent_networking.forms import (
     IntentBulkEditForm,
     IntentFilterForm,
     IntentForm,
+    VxlanVniPoolForm,
 )
 from intent_networking.models import (
     Intent,
@@ -43,6 +44,7 @@ from intent_networking.tables import (
     IntentTable,
     ResolutionPlanTable,
     VerificationResultTable,
+    VxlanVniPoolTable,
 )
 
 logger = logging.getLogger(__name__)
@@ -548,6 +550,20 @@ class IntentBulkDeployView(_BulkIntentJobView):
         return {
             "commit_sha": intent.git_commit_sha or "manual-deploy",
         }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# VXLAN VNI Pools
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class VxlanVniPoolUIViewSet(NautobotUIViewSet):
+    """CRUD UI views for VxlanVniPool."""
+
+    queryset = VxlanVniPool.objects.prefetch_related("tenant")
+    serializer_class = VxlanVniPoolSerializer
+    form_class = VxlanVniPoolForm
+    table_class = VxlanVniPoolTable
 
 
 class IntentBulkValidateView(_BulkIntentJobView):
