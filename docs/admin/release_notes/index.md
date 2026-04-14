@@ -4,6 +4,7 @@ All published release notes are listed below. Patch releases are included within
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [v2.0.3](version_2.0.3.md) | 2026-04-14 | Fix Status.DoesNotExist on fresh installs — lifecycle statuses now seeded by data migration |
 | [v2.0.2](version_2.0.2.md) | 2026-04-13 | Expected shorthand in NUTS verification — define checks once, run on all scoped devices |
 | [v2.0.1](version_2.0.1.md) | 2026-04-12 | Fix 14 Arista EOS removal templates (wrong negation commands, required-field enforcement, stub alignment) |
 | [v2.0](version_2.0.md) | 2026-04-06 | NUTS verification engine (replaces pyATS), bulk intent actions, 847 Jinja2 templates, multi-vendor live topology (7 platforms), 141 intent types, new verification detail UI |
