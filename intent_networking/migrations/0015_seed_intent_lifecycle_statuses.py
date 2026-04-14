@@ -1,11 +1,13 @@
 """Ensure all Intent lifecycle statuses exist and are associated with the Intent content type.
 
-Previously these statuses were only created by the development seed script, meaning
-fresh installs on non-development Nautobot instances would fail with
-'Status.DoesNotExist' when the first job ran.
+This migration backfills the Intent lifecycle statuses that were otherwise only
+created by the development seed script, while also ensuring the full set of
+statuses is associated with the Intent content type. Note that 'Retired' was
+previously handled by migration 0008_add_retired_status — it is included here
+to guarantee the content type association is present regardless of install path.
 
 Idempotent — uses get_or_create so re-running migrations on instances that already
-have these statuses from seed_data.py is safe.
+have some or all of these statuses from seed_data.py or earlier migrations is safe.
 """
 
 from django.db import migrations
