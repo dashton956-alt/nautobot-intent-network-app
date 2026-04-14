@@ -28,6 +28,19 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.3 (lifecycle status migration)
+
+v2.0.3 is a **patch release** — includes one data migration (`0015_seed_intent_lifecycle_statuses`).
+
+```shell
+pip install --upgrade nautobot-app-intent-networking==2.0.3
+nautobot-server post_upgrade
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+The migration creates the eight Intent lifecycle statuses on any instance that is missing them. Instances already seeded via `seed_data.py` are unaffected.
+See the [v2.0.3 release notes](../admin/release_notes/version_2.0.3.md) for details.
+
 ### Upgrading to v2.0.2 (NUTS expected shorthand)
 
 v2.0.2 is a **patch release** — no database migrations are included.
