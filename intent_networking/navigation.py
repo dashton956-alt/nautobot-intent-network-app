@@ -39,6 +39,17 @@ items = (
         name="🔍 Audit Trail",
         permissions=["intent_networking.view_intentauditentry"],
     ),
+    NavMenuItem(
+        link="plugins:intent_networking:vxlanvnipool_list",
+        name="VNI Pools",
+        permissions=["intent_networking.view_vxlanvnipool"],
+        buttons=(
+            NavMenuAddButton(
+                link="plugins:intent_networking:vxlanvnipool_add",
+                permissions=["intent_networking.add_vxlanvnipool"],
+            ),
+        ),
+    ),
 )
 
 ipam_items = (

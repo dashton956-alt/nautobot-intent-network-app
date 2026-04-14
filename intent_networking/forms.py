@@ -11,6 +11,7 @@ from intent_networking.models import (
     VerificationFailAction,
     VerificationLevel,
     VerificationTrigger,
+    VxlanVniPool,
 )
 
 
@@ -75,6 +76,21 @@ class IntentBulkEditForm(StatusModelBulkEditFormMixin, NautobotBulkEditForm):  #
         """Meta options for IntentBulkEditForm."""
 
         nullable_fields = ["scheduled_deploy_at"]
+
+
+class VxlanVniPoolForm(NautobotModelForm):  # pylint: disable=too-many-ancestors
+    """Model form for creating and editing VxlanVniPool records."""
+
+    class Meta:
+        """Meta options for VxlanVniPoolForm."""
+
+        model = VxlanVniPool
+        fields = ["name", "range_start", "range_end", "tenant"]
+        help_texts = {
+            "range_start": "First VNI value in pool (e.g. 10000)",
+            "range_end": "Last VNI value in pool (e.g. 19999)",
+            "tenant": "Leave blank for a shared pool available to all tenants.",
+        }
 
 
 class IntentFilterForm(NautobotFilterForm):
