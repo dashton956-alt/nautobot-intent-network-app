@@ -32,8 +32,8 @@ def _bgp_summary_task(task, command_string):
     reports that BGP is not configured (e.g. ``% BGP inactive``), preventing
     noisy ERROR-level log entries from Nornir's task runner.
     """
-    from nornir.core.task import Result  # noqa: PLC0415
     from netmiko.utilities import get_structured_data_textfsm  # noqa: PLC0415
+    from nornir.core.task import Result  # noqa: PLC0415
     from textfsm.parser import TextFSMError  # noqa: PLC0415
 
     net_connect = task.host.get_connection("netmiko", task.nornir.config)
@@ -44,9 +44,7 @@ def _bgp_summary_task(task, command_string):
         return Result(host=task.host, result=[])
 
     try:
-        parsed = get_structured_data_textfsm(
-            raw_output, platform=net_connect.device_type, command=command_string
-        )
+        parsed = get_structured_data_textfsm(raw_output, platform=net_connect.device_type, command=command_string)
     except TextFSMError:
         parsed = []
 
