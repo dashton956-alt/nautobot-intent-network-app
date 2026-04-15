@@ -288,7 +288,12 @@ class NutsVerifier:
         hosts = {}
 
         for device in devices:
-            platform_slug = device.platform.name if device.platform else ""
+            # Use platform slug for driver lookup — platform.name is the human-readable
+            # label (e.g. "Arista EOS"), platform.slug is the normalised key (e.g. "arista-eos")
+            # that matches the PLATFORM_TO_NAPALM/NETMIKO dicts.
+            platform_slug = ""
+            if device.platform:
+                platform_slug = getattr(device.platform, "slug", None) or device.platform.name
             primary_ip = ""
             if device.primary_ip:
                 primary_ip = str(device.primary_ip.host)

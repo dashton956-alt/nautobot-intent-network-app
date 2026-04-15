@@ -26,6 +26,28 @@ def _cfg(key: str, default=None):
     return settings.PLUGINS_CONFIG.get("intent_networking", {}).get(key, default)
 
 
+def _get_secret_value(secrets_group, secret_type: str) -> str:
+    """Retrieve a secret value trying SSH access type first, then Generic.
+
+    Nautobot SecretsGroups can be configured with different access types.
+    ``nautobot_plugin_nornir`` uses SSH; many users configure Generic.
+    Trying both avoids ``SecretsGroupAssociation matching query does not exist``
+    errors caused by an access_type mismatch.
+    """
+    for access_type in ("SSH", "Generic"):
+        try:
+            return secrets_group.get_secret_value(
+                access_type=access_type,
+                secret_type=secret_type,  # noqa: S106
+            )
+        except Exception:  # noqa: BLE001
+            continue
+    raise ValueError(
+        f"SecretsGroup '{secrets_group.name}' has no association for "
+        f"secret_type='{secret_type}' with access_type SSH or Generic."
+    )
+
+
 def get_device_credentials():
     """Return (username, password) for device access.
 
@@ -46,14 +68,8 @@ def get_device_credentials():
             from nautobot.extras.models import SecretsGroup  # noqa: PLC0415
 
             sg = SecretsGroup.objects.get(name=group_name)
-            username = sg.get_secret_value(
-                access_type="SSH",
-                secret_type="username",  # noqa: S106
-            )
-            password = sg.get_secret_value(
-                access_type="SSH",
-                secret_type="password",  # noqa: S106
-            )
+            username = _get_secret_value(sg, "username")
+            password = _get_secret_value(sg, "password")
             logger.debug("Device credentials loaded from SecretsGroup '%s'", group_name)
             return (username, password)
         except Exception as exc:
@@ -99,14 +115,8 @@ def get_credentials_for_device(device) -> tuple[str, str]:
     secrets_group = getattr(device, "secrets_group", None)
     if secrets_group:
         try:
-            username = secrets_group.get_secret_value(
-                access_type="SSH",
-                secret_type="username",  # noqa: S106
-            )
-            password = secrets_group.get_secret_value(
-                access_type="SSH",
-                secret_type="password",  # noqa: S106
-            )
+            username = _get_secret_value(secrets_group, "username")
+            password = _get_secret_value(secrets_group, "password")
             logger.debug(
                 "Device credentials for '%s' loaded from device SecretsGroup '%s'",
                 device.name,
