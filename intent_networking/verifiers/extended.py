@@ -17,7 +17,7 @@ import tempfile
 
 import yaml
 
-from intent_networking.secrets import get_credentials_for_device, get_device_credentials
+from intent_networking.secrets import get_credentials_for_device
 
 logger = logging.getLogger(__name__)
 
