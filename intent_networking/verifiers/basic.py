@@ -25,6 +25,34 @@ def _nautobot_url():
     return os.environ.get("NAUTOBOT_URL", "http://localhost:8080")
 
 
+def _bgp_summary_task(task, command_string):
+    """Nornir task: run a BGP summary command with TextFSM parsing.
+
+    Returns an empty list rather than raising ``TextFSMError`` when the device
+    reports that BGP is not configured (e.g. ``% BGP inactive``), preventing
+    noisy ERROR-level log entries from Nornir's task runner.
+    """
+    from nornir.core.task import Result  # noqa: PLC0415
+    from netmiko.utilities import get_structured_data_textfsm  # noqa: PLC0415
+    from textfsm.parser import TextFSMError  # noqa: PLC0415
+
+    net_connect = task.host.get_connection("netmiko", task.nornir.config)
+    raw_output = net_connect.send_command(command_string)
+
+    # Arista (and others) respond with "% BGP inactive" when BGP is not running.
+    if not raw_output or raw_output.strip().startswith("%"):
+        return Result(host=task.host, result=[])
+
+    try:
+        parsed = get_structured_data_textfsm(
+            raw_output, platform=net_connect.device_type, command=command_string
+        )
+    except TextFSMError:
+        parsed = []
+
+    return Result(host=task.host, result=parsed if isinstance(parsed, list) else [])
+
+
 class BasicVerifier:
     """Outcome-focused verification using Nornir + Netmiko.
 
@@ -303,15 +331,25 @@ class BasicVerifier:
         def _host_result(agg_result, host_name):
             """Safely retrieve a host's MultiResult from an AggregatedResult."""
             if host_name not in agg_result:
-                logger.warning("Host '%s' not in task result (0 hosts selected — check credentials).", host_name)
+                logger.warning(
+                    "Host '%s' not in task result — task was skipped (host may have been "
+                    "marked failed by a previous task, e.g. a TextFSM parse error). "
+                    "Check task logs above for the actual error.",
+                    host_name,
+                )
                 return None
-            return agg_result[host_name]
+            host_result = agg_result[host_name]
+            if host_result.failed:
+                exc = host_result[0].exception if host_result else None
+                logger.debug("Task failed for host '%s': %s", host_name, exc or "unknown error")
+            return host_result
 
         # Collect VRF list
         vrf_result = nr.run(
             task=netmiko_send_command,
             command_string="show vrf" if is_arista else "show vrf brief",
             use_textfsm=True,
+            on_failed=True,
         )
         hr = _host_result(vrf_result, device.name)
         if hr and not hr.failed and isinstance(hr.result, list):
@@ -321,13 +359,13 @@ class BasicVerifier:
         # Collect BGP state
         if self.plan.vrf_name:
             bgp_result = nr.run(
-                task=netmiko_send_command,
+                task=_bgp_summary_task,
                 command_string=(
                     f"show ip bgp vrf {self.plan.vrf_name} summary"
                     if is_arista
                     else f"show bgp vpnv4 unicast vrf {self.plan.vrf_name} summary"
                 ),
-                use_textfsm=True,
+                on_failed=True,
             )
             hr = _host_result(bgp_result, device.name)
             if hr and not hr.failed and isinstance(hr.result, list):
@@ -338,9 +376,9 @@ class BasicVerifier:
                     }
         else:
             bgp_result = nr.run(
-                task=netmiko_send_command,
+                task=_bgp_summary_task,
                 command_string="show ip bgp summary" if is_arista else "show bgp summary",
-                use_textfsm=True,
+                on_failed=True,
             )
             hr = _host_result(bgp_result, device.name)
             if hr and not hr.failed and isinstance(hr.result, list):
@@ -355,6 +393,7 @@ class BasicVerifier:
             task=netmiko_send_command,
             command_string="show ip access-lists" if is_arista else "show access-lists",
             use_textfsm=True,
+            on_failed=True,
         )
         hr = _host_result(acl_result, device.name)
         if hr and not hr.failed and isinstance(hr.result, list):
@@ -362,7 +401,7 @@ class BasicVerifier:
                 state["acls"].append(acl.get("name", ""))
 
         # Collect VLANs
-        vlan_result = nr.run(task=netmiko_send_command, command_string="show vlan", use_textfsm=False)
+        vlan_result = nr.run(task=netmiko_send_command, command_string="show vlan", use_textfsm=False, on_failed=True)
         hr = _host_result(vlan_result, device.name)
         if hr and not hr.failed:
             output = str(hr.result)
@@ -373,6 +412,7 @@ class BasicVerifier:
             task=netmiko_send_command,
             command_string="show ip ospf neighbor" if is_arista else "show ip ospf neighbor brief",
             use_textfsm=True,
+            on_failed=True,
         )
         hr = _host_result(ospf_result, device.name)
         if hr and not hr.failed and isinstance(hr.result, list):
