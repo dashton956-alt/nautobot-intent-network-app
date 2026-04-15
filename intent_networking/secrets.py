@@ -81,6 +81,51 @@ def get_device_credentials():
     return (username, password)
 
 
+def get_credentials_for_device(device) -> tuple[str, str]:
+    """Return (username, password) for a specific device.
+
+    Lookup order:
+      1. SecretsGroup assigned directly to the device in Nautobot
+         (via device.secrets_group — the same mechanism nautobot_plugin_nornir uses)
+      2. Global fallback via get_device_credentials()
+
+    Args:
+        device: A Nautobot Device ORM instance.
+
+    Returns:
+        tuple[str, str]: (username, password)
+    """
+    # 1. Try the SecretsGroup assigned to this specific device
+    secrets_group = getattr(device, "secrets_group", None)
+    if secrets_group:
+        try:
+            username = secrets_group.get_secret_value(
+                access_type="Generic",
+                secret_type="username",  # noqa: S106
+            )
+            password = secrets_group.get_secret_value(
+                access_type="Generic",
+                secret_type="password",  # noqa: S106
+            )
+            logger.debug(
+                "Device credentials for '%s' loaded from device SecretsGroup '%s'",
+                device.name,
+                secrets_group.name,
+            )
+            return (username, password)
+        except Exception as exc:
+            logger.warning(
+                "Failed to load per-device credentials for '%s' from SecretsGroup '%s': %s. "
+                "Falling back to global credentials.",
+                device.name,
+                secrets_group.name,
+                exc,
+            )
+
+    # 2. Fall back to global credentials
+    return get_device_credentials()
+
+
 def get_secrets_group_value(group_name: str, access_type: str, secret_type: str) -> str:
     """Retrieve a single secret value from a named Nautobot SecretsGroup.
 
