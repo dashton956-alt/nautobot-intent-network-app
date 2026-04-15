@@ -144,21 +144,34 @@ PLUGINS = [
 PLUGINS_CONFIG = {
     "intent_networking": {
         # --- Required ---
-        "vrf_namespace": "Global",
-        "default_bgp_asn": 65000,
+        "vrf_namespace": "Global",       # must match an existing Nautobot Namespace
+        "default_bgp_asn": 65000,        # used when BGP ASN is not specified in an intent
+        "vni_pool_name": "my-vni-pool",  # name of a VxlanVniPool you create in the UI
+
+        # --- Secrets Groups (recommended — avoids plaintext credentials) ---
+        # Create each group in Nautobot: Secrets → Secrets Groups
+        # Device credentials are resolved per device first (see Credential Lookup Order below),
+        # then this group is used as the global fallback.
+        "device_secrets_group": "Network Device Credentials",
+        "nautobot_api_secrets_group": "Nautobot API Token",
+        # "servicenow_secrets_group": "ServiceNow Credentials",
+        # "github_secrets_group": "GitHub Token",
+        # "slack_secrets_group": "Slack Webhook",
+
         # --- Optional (shown with defaults) ---
         "max_vrfs_per_tenant": 50,
         "max_prefixes_per_vrf": 5000,
         "reconciliation_interval_hours": 1,
         "auto_remediation_enabled": True,
-        # OPA (leave unset to use defaults)
+
+        # --- OPA (leave unset to use defaults) ---
         "opa_verify_ssl": True,
-        "opa_ca_bundle": None,
-        "opa_custom_packages": [],
-        # Notifications (leave None to disable)
+        "opa_ca_bundle": None,       # e.g. "/etc/ssl/opa-ca.pem" for self-signed certs
+        "opa_custom_packages": [],   # e.g. ["network.internal.change_freeze"]
+
+        # --- Notifications (leave empty/None to disable) ---
         "slack_webhook_url": None,
-        "github_api_url": None,   # defaults to https://api.github.com
-        "github_repo": None,      # e.g. "your-org/network-as-code"
+        "github_repo": None,         # e.g. "your-org/network-as-code"
     },
 }
 ```
@@ -187,6 +200,8 @@ nautobot-server migrate intent_networking
 | Retired | Grey | Non-actionable — remains in Git, reconciliation skips |
 
 **Namespace** — verify in *IPAM → Namespaces* that the configured namespace exists (default: `"Global"`). VRFs and Route Targets are allocated using Nautobot's native IPAM models within this namespace.
+
+**VNI Pool** — create at least one pool if you deploy any VXLAN/EVPN intents: navigate to *Plugins → Intent Engine → VNI Pools → + Add*, enter a name (must match `vni_pool_name` in `PLUGINS_CONFIG`) and one or more VNI ranges (e.g. `10000-19999`). The engine allocates VNIs automatically from this pool.
 
 ### 5. Configure Git integration (recommended)
 
@@ -508,8 +523,8 @@ NAUTOBOT_TOKEN          # Nautobot API token for internal job calls
 NAUTOBOT_URL            # Nautobot base URL (default: http://localhost:8080)
 OPA_URL                 # OPA service URL (default: http://opa:8181)
 TEMPLATES_DIR           # Path to Jinja2 templates directory
-DEVICE_USERNAME         # SSH username for device connections
-DEVICE_PASSWORD         # SSH password for device connections
+DEVICE_USERNAME         # SSH username — last-resort fallback (see Credential Lookup Order)
+DEVICE_PASSWORD         # SSH password — last-resort fallback (see Credential Lookup Order)
 ```
 
 Optional:
@@ -518,6 +533,16 @@ Optional:
 SLACK_WEBHOOK_URL       # Slack notifications on deploy/fail/rollback
 GITHUB_TOKEN            # GitHub issue creation for non-auto-remediable drift
 ```
+
+### Credential Lookup Order
+
+Device SSH credentials are resolved in this order for every deployment and verification job:
+
+1. **Per-device SecretsGroup** — if the device record in Nautobot has a SecretsGroup assigned directly (Device detail → *Secrets Group* field), those credentials are used first.
+2. **Global `device_secrets_group`** — the SecretsGroup named by `PLUGINS_CONFIG["intent_networking"]["device_secrets_group"]` is used as a fallback for devices without their own group.
+3. **Environment variables** — `DEVICE_USERNAME` / `DEVICE_PASSWORD` are used as a last resort if neither a per-device nor a global SecretsGroup is configured.
+
+Using per-device or global SecretsGroups is strongly recommended over plaintext environment variables, especially in production.
 
 ---
 
@@ -559,6 +584,7 @@ For full development environment setup including Docker Compose, see the [develo
 | `Intent` | Central record for a network intent — one row per YAML file. Stores intent data, lifecycle status, Git provenance, rendered configs (dry-run output), and links to its GitRepository |
 | `ResolutionPlan` | Resolved vendor-neutral primitives for a specific intent version, with affected device list |
 | `VerificationResult` | Result of each verification/reconciliation check, including per-device checks, SLA measurements, drift details, and GitHub issue URL |
+| `VxlanVniPool` | Named pool of VXLAN Network Identifier ranges. The engine allocates VNIs atomically from these ranges when deploying VXLAN/EVPN intents. Managed via *Plugins → Intent Engine → VNI Pools* |
 | *Nautobot `ipam.VRF`* | VRF with auto-generated RD — replaces custom RD pools (native model) |
 | *Nautobot `ipam.RouteTarget`* | Route Target with description-based tracking (native model) |
 | *Nautobot `ipam.Namespace`* | Organisational boundary for VRFs (native model) |

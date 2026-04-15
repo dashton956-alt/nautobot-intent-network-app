@@ -17,7 +17,7 @@ import tempfile
 
 import yaml
 
-from intent_networking.secrets import get_device_credentials
+from intent_networking.secrets import get_credentials_for_device
 
 logger = logging.getLogger(__name__)
 
@@ -279,8 +279,12 @@ class NutsVerifier:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
     def _write_nornir_inventory(self, inventory_dir, devices):
-        """Write hosts.yaml and defaults.yaml for the Nornir inventory."""
-        username, password = get_device_credentials()
+        """Write hosts.yaml and defaults.yaml for the Nornir inventory.
+
+        Credentials are resolved per device from the SecretsGroup assigned
+        directly to each device in Nautobot. If a device has no SecretsGroup
+        assigned, the global fallback credentials are used.
+        """
         hosts = {}
 
         for device in devices:
@@ -292,9 +296,13 @@ class NutsVerifier:
             napalm_driver = PLATFORM_TO_NAPALM.get(platform_slug, "eos")
             netmiko_type = PLATFORM_TO_NETMIKO.get(platform_slug, "linux")
 
+            username, password = get_credentials_for_device(device)
+
             hosts[device.name] = {
                 "hostname": primary_ip,
                 "platform": napalm_driver,
+                "username": username,
+                "password": password,
                 "data": {
                     "netmiko_device_type": netmiko_type,
                 },
@@ -305,8 +313,6 @@ class NutsVerifier:
             yaml.dump(hosts, f, default_flow_style=False)
 
         defaults = {
-            "username": username,
-            "password": password,
             "connection_options": {
                 "napalm": {
                     "extras": {

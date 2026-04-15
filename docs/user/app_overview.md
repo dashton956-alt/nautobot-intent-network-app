@@ -53,6 +53,7 @@ The app leverages the following Nautobot platform capabilities:
 - **`tenancy.Tenant`** — Multi-tenant intent ownership
 - **`dcim.Device`** — Target devices for deployment
 - **`extras.Status`** — Intent lifecycle status tracking (Draft → Deployed)
+- **`intent_networking.VxlanVniPool`** — Named pool of VXLAN Network Identifier ranges for atomic VNI allocation. Managed via **Plugins → Intent Engine → VNI Pools**.
 
 ### Jobs
 
