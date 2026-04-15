@@ -47,11 +47,11 @@ def get_device_credentials():
 
             sg = SecretsGroup.objects.get(name=group_name)
             username = sg.get_secret_value(
-                access_type="Generic",
+                access_type="SSH",
                 secret_type="username",  # noqa: S106
             )
             password = sg.get_secret_value(
-                access_type="Generic",
+                access_type="SSH",
                 secret_type="password",  # noqa: S106
             )
             logger.debug("Device credentials loaded from SecretsGroup '%s'", group_name)
@@ -100,11 +100,11 @@ def get_credentials_for_device(device) -> tuple[str, str]:
     if secrets_group:
         try:
             username = secrets_group.get_secret_value(
-                access_type="Generic",
+                access_type="SSH",
                 secret_type="username",  # noqa: S106
             )
             password = secrets_group.get_secret_value(
-                access_type="Generic",
+                access_type="SSH",
                 secret_type="password",  # noqa: S106
             )
             logger.debug(

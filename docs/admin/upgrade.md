@@ -28,6 +28,19 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.5 (credential resolution fix)
+
+v2.0.5 is a **patch release** — no database migrations are included.
+
+```shell
+pip install --upgrade nautobot-app-intent-networking==2.0.5
+nautobot-server post_upgrade
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+No breaking changes. If you use `device_secrets_group`, verify your SecretsGroup assignments in Nautobot use **Access Type: SSH** (not Generic) for username and password secrets.
+See the [v2.0.5 release notes](../admin/release_notes/version_2.0.5.md) for details.
+
 ### Upgrading to v2.0.4 (VNI Pool UI)
 
 v2.0.4 is a **patch release** — no database migrations are included.

@@ -52,8 +52,19 @@ PLUGINS = ["intent_networking"]
 PLUGINS_CONFIG = {
     "intent_networking": {
         # --- Required ---
-        "vrf_namespace": "Global",       # Nautobot IPAM Namespace for VRF allocation
+        "vrf_namespace": "Global",       # must match an existing Nautobot Namespace
         "default_bgp_asn": 65000,        # ASN used in RD/RT values (e.g. 65000:1)
+        "vni_pool_name": "my-vni-pool",  # name of a VxlanVniPool created in the UI
+
+        # --- Secrets Groups (recommended — avoids plaintext credentials) ---
+        # Create each group in Nautobot: Secrets → Secrets Groups
+        # Device credentials are resolved per device first (see Credential Lookup Order),
+        # then this group is used as the global fallback.
+        "device_secrets_group": "Network Device Credentials",
+        "nautobot_api_secrets_group": "Nautobot API Token",
+        # "servicenow_secrets_group": "ServiceNow Credentials",
+        # "github_secrets_group": "GitHub Token",
+        # "slack_secrets_group": "Slack Webhook",
 
         # --- Optional (shown with defaults) ---
         "max_vrfs_per_tenant": 50,
@@ -61,12 +72,14 @@ PLUGINS_CONFIG = {
         "reconciliation_interval_hours": 1,
         "auto_remediation_enabled": True,
 
-        # Notifications — Slack (leave None to disable)
-        "slack_webhook_url": None,
+        # --- OPA (leave unset to use built-in defaults) ---
+        "opa_verify_ssl": True,
+        "opa_ca_bundle": None,       # path to CA bundle PEM for self-signed OPA TLS
+        "opa_custom_packages": [],   # additional Rego packages to query for every intent
 
-        # GitHub issue creation for non-remediable drift
-        "github_api_url": None,          # defaults to https://api.github.com
-        "github_repo": None,             # e.g. "your-org/network-as-code"
+        # --- Notifications (leave empty/None to disable) ---
+        "slack_webhook_url": None,
+        "github_repo": None,         # e.g. "your-org/network-as-code"
     },
 }
 ```
@@ -95,6 +108,19 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 |---------|------|-------------|
 | `vrf_namespace` | `str` | Name of the Nautobot IPAM Namespace used for VRF allocation. Must match an existing `ipam.Namespace` object. Default: `"Global"` |
 | `default_bgp_asn` | `int` | BGP Autonomous System Number used as the prefix for auto-generated RD and RT values (e.g. `65000:1`). |
+| `vni_pool_name` | `str` | Name of a `VxlanVniPool` object (created via **Intent Engine → VNI Pools**). Required for any intent that allocates VNIs (EVPN/VXLAN fabrics, L2VNI, L3VNI). |
+
+### Secrets Group Settings (Recommended)
+
+Storing credentials as Nautobot Secrets Groups is strongly preferred over plaintext environment variables. Create each group in **Secrets → Secrets Groups** then reference the group name here.
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| `device_secrets_group` | `str` | Global fallback SecretsGroup name for device SSH credentials. See [Credential Lookup Order](#credential-lookup-order). |
+| `nautobot_api_secrets_group` | `str` | SecretsGroup name for the Nautobot API token used by internal job calls. |
+| `servicenow_secrets_group` | `str` | SecretsGroup name for ServiceNow API credentials. |
+| `github_secrets_group` | `str` | SecretsGroup name for the GitHub API token. |
+| `slack_secrets_group` | `str` | SecretsGroup name for the Slack webhook URL. |
 
 ### Optional Settings
 
@@ -104,17 +130,14 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 | `max_prefixes_per_vrf` | `int` | `5000` | Maximum prefix count per VRF |
 | `reconciliation_interval_hours` | `int` | `1` | How often the reconciliation job runs (hours) |
 | `auto_remediation_enabled` | `bool` | `True` | Whether drift auto-remediation is enabled (requires OPA approval) |
-| `slack_webhook_url` | `str` | `None` | Slack incoming webhook URL for deployment/rollback notifications |
-| `github_api_url` | `str` | `None` | GitHub API base URL (defaults to `https://api.github.com`) |
+| `opa_verify_ssl` | `bool` | `True` | Verify TLS certificate of the OPA server |
+| `opa_ca_bundle` | `str` | `None` | Path to a CA bundle PEM file for OPA TLS (useful for self-signed certs) |
+| `opa_custom_packages` | `list` | `[]` | Additional Rego package paths queried for every intent |
+| `slack_webhook_url` | `str` | `None` | Slack incoming webhook URL (legacy — prefer `slack_secrets_group`) |
 | `github_repo` | `str` | `None` | GitHub repository for drift issue creation (e.g. `"your-org/network-as-code"`) |
-| `github_token_env_var` | `str` | `"GITHUB_TOKEN"` | Environment variable name containing the GitHub token |
 | `pagerduty_routing_key` | `str` | `None` | PagerDuty Events API routing key for critical alerts |
-| `servicenow_instance` | `str` | `None` | ServiceNow instance URL |
-| `servicenow_user` | `str` | `None` | ServiceNow API username |
-| `servicenow_password` | `str` | `None` | ServiceNow API password |
+| `servicenow_instance` | `str` | `None` | ServiceNow instance URL (legacy — prefer `servicenow_secrets_group`) |
 | `webhook_urls` | `list` | `[]` | Additional webhook URLs for event notifications |
-| `device_secrets_group` | `str` | `None` | Nautobot Secrets Group name for device SSH credentials |
-| `nautobot_api_secrets_group` | `str` | `None` | Nautobot Secrets Group name for API tokens |
 
 ## Post-Install Setup
 
@@ -131,6 +154,10 @@ Navigate to **Extras → Statuses** and create the following, assigning each to 
 | Failed | Red | Deployment or verification failed |
 | Rolled Back | Orange | Reverted to previous version |
 | Deprecated | Grey | Removed from Git repo or superseded |
+| Retired | Grey | Non-actionable — remains in Git, reconciliation skips it |
+
+!!! note
+    From v2.0.3 onwards these statuses are automatically seeded by the `0015_seed_intent_lifecycle_statuses` data migration. Manual creation is only required if you are upgrading from v2.0.2 or earlier.
 
 ### Ensure a Namespace Exists
 
@@ -144,9 +171,17 @@ To verify:
 !!! note
     Route Distinguishers and Route Targets are allocated using Nautobot's native IPAM models (`ipam.VRF` and `ipam.RouteTarget`) and no longer require custom pool configuration. The app auto-generates RD/RT values in `<ASN>:<counter>` format within the configured Namespace.
 
-### Create Resource Pools (Optional)
+### Create a VNI Pool (Required for VXLAN/EVPN intents)
 
-If your intents require VXLAN VNI, Tunnel ID, Loopback IP, or Wireless VLAN allocation, create the relevant pools via the Nautobot UI under **Intent Networking → Resource Pools**.
+If you deploy any EVPN fabric, L2VNI, or L3VNI intents you must create at least one VNI Pool:
+
+1. Navigate to **Plugins → Intent Engine → VNI Pools → + Add**
+2. Enter a **Name** — this must match the `vni_pool_name` value in `PLUGINS_CONFIG`
+3. Add one or more **VNI ranges** (e.g. `10000-19999`)
+4. Optionally assign a **Tenant** to scope the pool
+5. Click **Create**
+
+VNIs are allocated atomically from these ranges at resolution time. If you do not use VXLAN/EVPN you can skip this step and leave `vni_pool_name` unset.
 
 ### Configure Git Integration (Recommended)
 
@@ -164,3 +199,35 @@ Nautobot will clone the repo and scan these directories for intent YAML files:
 - `intents/`
 - `intent_definitions/`
 - `intent-definitions/`
+
+## Environment Variables
+
+The following environment variables must be set on the Nautobot worker container:
+
+```bash
+NAUTOBOT_TOKEN          # Nautobot API token for internal job calls
+NAUTOBOT_URL            # Nautobot base URL (default: http://localhost:8080)
+OPA_URL                 # OPA service URL (default: http://opa:8181)
+TEMPLATES_DIR           # Path to Jinja2 templates directory
+DEVICE_USERNAME         # SSH username — last-resort fallback (see below)
+DEVICE_PASSWORD         # SSH password — last-resort fallback (see below)
+```
+
+Optional:
+
+```bash
+SLACK_WEBHOOK_URL       # Slack notifications on deploy/fail/rollback
+GITHUB_TOKEN            # GitHub token for drift issue creation
+```
+
+### Credential Lookup Order
+
+Device SSH credentials are resolved in this order for every deployment and verification job:
+
+1. **Per-device SecretsGroup** — if the device record in Nautobot has a SecretsGroup assigned directly (Device detail → *Secrets Group* field), those credentials are used first.
+2. **Global `device_secrets_group`** — the SecretsGroup named by `PLUGINS_CONFIG["intent_networking"]["device_secrets_group"]` is used as a fallback for devices without their own group.
+3. **Environment variables** — `DEVICE_USERNAME` / `DEVICE_PASSWORD` are the last resort if neither a per-device nor a global SecretsGroup is configured.
+
+!!! tip
+    Using per-device or global SecretsGroups is strongly recommended over plaintext environment variables, especially in production.
+    SecretsGroups must have their secrets assigned with **Access Type: SSH** and **Secret Type: username / password** — this matches the convention used by `nautobot_plugin_nornir`.

@@ -22,7 +22,18 @@ Navigate to **Intent Networking → Dashboard**. You should see the main dashboa
 
 Navigate to **IPAM → Namespaces** and verify the namespace configured in `vrf_namespace` (default: `"Global"`) exists. This is required for VRF/RD/RT allocation.
 
-### 3. Create a Git Repository (Recommended)
+### 3. Create a VNI Pool (Required for VXLAN/EVPN intents)
+
+If your intents include any EVPN fabric, L2VNI, or L3VNI types, create a VNI Pool before syncing:
+
+1. Navigate to **Plugins → Intent Engine → VNI Pools → + Add**
+2. Enter the pool name that matches `vni_pool_name` in your `PLUGINS_CONFIG`
+3. Add at least one VNI range (e.g. `10000-19999`)
+4. Click **Create**
+
+If you are not using VXLAN/EVPN you can skip this step.
+
+### 4. Create a Git Repository (Recommended)
 
 1. Go to **Extensibility → Git Repositories → Add**
 2. Enter your repository URL (e.g. `https://github.com/your-org/network-as-code.git`)
@@ -121,7 +132,7 @@ Return to the dashboard to see your intent reflected in the status tiles and cha
 
 ## What Are the Next Steps?
 
-- **Add more intents** — explore the [129 supported intent types](app_use_cases.md)
+- **Add more intents** — explore the [141 supported intent types](app_use_cases.md)
 - **Configure OPA** — add policy-as-code guardrails before deployment (see [External Interactions](external_interactions.md))
 - **Set up notifications** — configure Slack webhooks or PagerDuty alerts (see [Installation Guide](../admin/install.md#optional-settings))
 - **Explore the API** — use the REST API for CI/CD integration (see [External Interactions](external_interactions.md#nautobot-rest-api-endpoints))
