@@ -582,7 +582,8 @@ class IntentDeploymentJob(Job):
             loc_key = loc.pk if loc else "no-location"
             location_groups.setdefault(loc_key, []).append(device)
 
-        # Build stages
+        # Build stages — clear any stale stages from previous runs first
+        DeploymentStage.objects.filter(intent=intent).delete()
         stages = []
         for idx, (loc_key, devs) in enumerate(location_groups.items()):
             loc = devs[0].location if devs[0].location else None

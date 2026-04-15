@@ -116,14 +116,11 @@ INTENTS = [
         "version": 1,
         "intent_data": {
             "scope": {"sites": ["LAB-DC1"]},
-            "protocol": "tacacs",
-            "servers": [{"host": "172.20.20.200", "key": "tacacs-lab-key", "port": 49}],
-            "server_group": "TACACS-LAB",
-            "method_lists": [
-                {"name": "default", "type": "login", "methods": ["group TACACS-LAB", "local"]},
-                {"name": "default", "type": "enable", "methods": ["group TACACS-LAB", "enable"]},
-            ],
-            "accounting": [{"name": "default", "type": "exec", "action": "start-stop", "group": "TACACS-LAB"}],
+            "auth_methods": "group TACACS-LAB local",
+            "enable_auth": "group TACACS-LAB enable",
+            "authorization": "group TACACS-LAB local",
+            "accounting": "group TACACS-LAB",
+            "tacacs_servers": [{"ip": "172.20.20.200", "key": "tacacs-lab-key"}],
         },
     },
     {
@@ -137,18 +134,31 @@ INTENTS = [
             "policy_name": "COPP-LAB-POLICY",
             "classes": [
                 {
-                    "name": "CPP-CRITICAL",
-                    "protocols": ["bgp", "ospf", "isis"],
+                    "acl_name": "ACL-CPP-CRITICAL",
+                    "rules": [
+                        {"action": "permit", "protocol": "tcp", "source": "any", "destination": "any", "port": 179},
+                        {"action": "permit", "protocol": "ospf", "source": "any", "destination": "any"},
+                    ],
                     "police_rate": "64000",
                     "police_burst": "8000",
                 },
                 {
-                    "name": "CPP-IMPORTANT",
-                    "protocols": ["snmp", "ssh", "netconf"],
+                    "acl_name": "ACL-CPP-IMPORTANT",
+                    "rules": [
+                        {"action": "permit", "protocol": "udp", "source": "any", "destination": "any", "port": 161},
+                        {"action": "permit", "protocol": "tcp", "source": "any", "destination": "any", "port": 22},
+                    ],
                     "police_rate": "32000",
                     "police_burst": "4000",
                 },
-                {"name": "CPP-DEFAULT", "protocols": ["ip"], "police_rate": "8000", "police_burst": "1000"},
+                {
+                    "acl_name": "ACL-CPP-DEFAULT",
+                    "rules": [
+                        {"action": "permit", "protocol": "ip", "source": "any", "destination": "any"},
+                    ],
+                    "police_rate": "8000",
+                    "police_burst": "1000",
+                },
             ],
         },
     },
@@ -176,11 +186,11 @@ INTENTS = [
         "version": 1,
         "intent_data": {
             "scope": {"sites": ["LAB-DC1"]},
-            "source_protocol": "connected",
-            "dest_protocol": "ospf",
-            "dest_process": 1,
-            "subnets": True,
-            "route_map": "RM-CONNECTED-TO-OSPF",
+            "protocol": "ospf",
+            "process_id": 1,
+            "sources": [
+                {"protocol": "connected", "subnets": True, "route_map": "RM-CONNECTED-TO-OSPF"},
+            ],
         },
     },
     {
@@ -206,7 +216,7 @@ INTENTS = [
         "version": 1,
         "intent_data": {
             "scope": {"sites": ["LAB-DC1"]},
-            "as_number": 100,
+            "asn": 100,
             "networks": ["10.0.0.0/8", "172.20.20.0/24"],
             "router_id": "10.0.0.1",
             "passive_interfaces": ["Management0"],
@@ -220,9 +230,11 @@ INTENTS = [
         "version": 1,
         "intent_data": {
             "scope": {"sites": ["LAB-DC1"]},
+            "process_tag": "SR-LAB",
             "srgb_start": 16000,
             "srgb_end": 23999,
             "ti_lfa": True,
+            "ti_lfa_mode": "node-protection",
         },
     },
     # ════════════════════════════════════════════════════════════════════
@@ -286,9 +298,9 @@ INTENTS = [
             "scope": {"sites": ["LAB-DC1"]},
             "policy_map": "LAB-WAN-QOS",
             "queues": [
-                {"name": "VOICE", "priority": True, "bandwidth_percent": 20},
-                {"name": "VIDEO", "bandwidth_percent": 30},
-                {"name": "DATA", "bandwidth_percent": 50},
+                {"class_name": "VOICE", "priority": True, "bandwidth_percent": 20},
+                {"class_name": "VIDEO", "bandwidth_percent": 30},
+                {"class_name": "DATA", "bandwidth_percent": 50},
             ],
             "apply_interfaces": ["Ethernet1"],
             "direction": "output",
@@ -331,7 +343,7 @@ INTENTS = [
         "version": 1,
         "intent_data": {
             "scope": {"sites": ["LAB-DC1"]},
-            "peers": [{"address": "10.0.0.2", "remote_as": 65001}],
+            "peers": [{"ip": "10.0.0.2", "remote_as": 65001, "connect_source": "Loopback0"}],
             "originator_id": "10.0.0.1",
         },
     },

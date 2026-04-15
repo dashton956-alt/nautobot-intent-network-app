@@ -810,9 +810,24 @@ INTENTS = [
             "description": "Classify storage and production traffic into QoS queues",
             "scope": {"devices": ["lab-arista-sw01"]},
             "class_maps": [
-                {"name": "PROD-CRITICAL", "match_type": "ip_destination", "match_value": "10.20.0.0/24"},
-                {"name": "STORAGE", "match_type": "ip_destination", "match_value": "10.20.2.0/24"},
-                {"name": "DEV-BEST-EFFORT", "match_type": "ip_destination", "match_value": "10.20.1.0/24"},
+                {
+                    "name": "PROD-CRITICAL",
+                    "acl": "ACL-PROD-CRITICAL",
+                    "rules": [{"action": "permit", "protocol": "ip", "source": "any", "destination": "10.20.0.0/24"}],
+                    "set_dscp": "ef",
+                },
+                {
+                    "name": "STORAGE",
+                    "acl": "ACL-STORAGE",
+                    "rules": [{"action": "permit", "protocol": "ip", "source": "any", "destination": "10.20.2.0/24"}],
+                    "set_dscp": "af41",
+                },
+                {
+                    "name": "DEV-BEST-EFFORT",
+                    "acl": "ACL-DEV-BE",
+                    "rules": [{"action": "permit", "protocol": "ip", "source": "any", "destination": "10.20.1.0/24"}],
+                    "set_dscp": "default",
+                },
             ],
             "policy_map": "QOS-POLICY",
             "apply_interfaces": ["Ethernet49", "Ethernet50"],

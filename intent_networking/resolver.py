@@ -2460,11 +2460,12 @@ def resolve_aaa(intent) -> dict:
             {
                 "primitive_type": "aaa",
                 "device": device.name,
-                "protocol": intent_data.get("protocol", "radius"),
-                "servers": intent_data.get("servers", []),
-                "server_group": intent_data.get("server_group", ""),
-                "method_lists": intent_data.get("method_lists", []),
-                "accounting": intent_data.get("accounting", []),
+                "auth_methods": intent_data.get("auth_methods", "local"),
+                "enable_auth": intent_data.get("enable_auth", ""),
+                "authorization": intent_data.get("authorization", ""),
+                "accounting": intent_data.get("accounting", ""),
+                "radius_servers": intent_data.get("radius_servers", []),
+                "tacacs_servers": intent_data.get("tacacs_servers", []),
                 "intent_id": intent.intent_id,
             }
         )
