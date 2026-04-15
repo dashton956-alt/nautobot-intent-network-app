@@ -40,8 +40,14 @@ def _get_secret_value(secrets_group, secret_type: str) -> str:
                 access_type=access_type,
                 secret_type=secret_type,  # noqa: S106
             )
-        except Exception:  # noqa: BLE001
-            continue
+        except Exception as exc:  # noqa: BLE001
+            logger.debug(
+                "SecretsGroup '%s' has no '%s' association for access_type '%s': %s",
+                secrets_group.name,
+                secret_type,
+                access_type,
+                exc,
+            )
     raise ValueError(
         f"SecretsGroup '{secrets_group.name}' has no association for "
         f"secret_type='{secret_type}' with access_type SSH or Generic."
