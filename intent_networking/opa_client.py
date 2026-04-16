@@ -68,11 +68,16 @@ def check_intent_policy(intent, topology_context: dict) -> dict:
             "violations": ["violation message", ...]
         }
     """
-    tenant_slug = intent.tenant.slug
+    tenant_slug = intent.tenant.name.lower().replace(" ", "_").replace("-", "_")
+
+    # Inject intent_type into the intent dict so OPA policies can use
+    # input.intent.type (intent_data itself does not carry a "type" key).
+    intent_dict = dict(intent.intent_data)
+    intent_dict["type"] = intent.intent_type
 
     input_data = {
         "input": {
-            "intent": intent.intent_data,
+            "intent": intent_dict,
             "topology": topology_context,
             "tenant": tenant_slug,
             "metadata": {
@@ -163,6 +168,20 @@ def check_approval_gate(intent) -> dict:
     """
     if not _plugin_cfg("require_opa_for_approval", False):
         return {"allowed": True, "violations": [], "opa_checked": False}
+
+    # Fail-closed: verify OPA is reachable before evaluating policy.
+    # If the health check fails the approval is blocked so misconfiguration
+    # or an OPA outage cannot be used to bypass policy enforcement.
+    try:
+        health_url = f"{OPA_URL}/health"
+        requests.get(health_url, timeout=5)
+    except requests.exceptions.RequestException as exc:
+        logger.error("OPA health check failed — blocking approval (fail-closed): %s", exc)
+        return {
+            "allowed": False,
+            "violations": ["OPA is unreachable — approval blocked (fail-closed). Check OPA_URL and ensure OPA is running."],
+            "opa_checked": True,
+        }
 
     result = check_intent_policy(intent, topology_context={})
 

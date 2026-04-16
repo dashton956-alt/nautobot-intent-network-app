@@ -1,0 +1,39 @@
+---
+# Standalone OPA service for local development and integration testing.
+#
+# Usage:
+#   docker compose -f docker-compose.opa.yml up -d
+#   docker compose -f docker-compose.opa.yml down
+#
+# OPA REST API will be available at http://localhost:8181
+# Policy bundles are loaded from ./opa/policies/ (hot-reloaded with --watch)
+
+services:
+  opa:
+    image: "openpolicyagent/opa:latest"
+    container_name: "intent-opa"
+    ports:
+      - "8181:8181"
+    volumes:
+      - "./opa/policies:/policies:ro"
+    command:
+      - "run"
+      - "--server"
+      - "--addr"
+      - "0.0.0.0:8181"
+      - "--watch"
+      - "--v0-compatible"
+      - "--log-level"
+      - "info"
+      - "/policies"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8181/health"]
+      interval: "5s"
+      timeout: "3s"
+      start_period: "10s"
+      retries: 5
+
+networks:
+  default:
+    name: intent-networking_default
+    external: true
