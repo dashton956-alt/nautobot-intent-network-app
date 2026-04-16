@@ -1,19 +1,39 @@
-{# zbf.j2 — arista-eos #}
+{# zbf.j2 — arista-eos
+   Arista EOS represents ZBF via security zones + traffic-policies.
+   class_maps -> traffic-policy match rules
+   policy_maps -> traffic-policy actions
+   zone_pairs  -> zone-pair applied via traffic-policy
+#}
 ! Zone-Based Firewall Configuration
 ! Intent: {{ intent_id }}
 !
 {% for zone in zones | default([]) %}
 security zone {{ zone.name }}
+{% if zone.description | default("") %}
+   description {{ zone.description }}
+{% endif %}
 {% for iface in zone.interfaces | default([]) %}
 interface {{ iface }}
    security zone {{ zone.name }}
+!
 {% endfor %}
 !
 {% endfor %}
-{% for policy in policies | default([]) %}
-ip access-list {{ policy.acl_name }}
-{% for rule in policy.rules | default([]) %}
-   {{ rule.seq | default(loop.index * 10) }} {{ rule.action }} {{ rule.protocol | default("ip") }} {{ rule.source | default("any") }} {{ rule.destination | default("any") }}
+{% for cm in class_maps | default([]) %}
+traffic-policies
+   traffic-policy INTENT-{{ cm.name }}
+{% for cls in cm.match | default([]) %}
+      match {{ cm.name }}-MATCH
+{% if cls.protocol | default("") %}
+         protocols {{ cls.protocol }}
+{% endif %}
+         actions
+            count
 {% endfor %}
+!
+{% endfor %}
+{% for zp in zone_pairs | default([]) %}
+security zone-pair {{ zp.source }}-to-{{ zp.destination }}
+   service-policy traffic-policy {{ zp.policy | default("default-policy") }}
 !
 {% endfor %}
