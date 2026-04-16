@@ -163,6 +163,11 @@ PLUGINS_CONFIG = {
         # "opa_ca_bundle": "/path/to/ca-bundle.crt",
         # Custom OPA policy packages evaluated for every intent:
         # "opa_custom_packages": ["org.security.baseline", "org.compliance.pci"],
+        # Require OPA compliance checks to pass before an intent can be approved.
+        # When True, the approve endpoint (API + UI) will run check_intent_policy()
+        # and block approval if OPA returns any violations. If OPA is unreachable
+        # the approval is also blocked (fail-closed). Default: False.
+        # "require_opa_for_approval": True,
         # Git integration — the preferred approach is to create a GitRepository
         # in the Nautobot UI (Extensibility → Git Repositories) with the
         # "intent definitions" content type. Nautobot will auto-discover and

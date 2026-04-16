@@ -159,6 +159,19 @@ class IntentViewSet(NautobotModelViewSet):  # pylint: disable=too-many-ancestors
         intent = self.get_object()
         comment = request.data.get("comment", "")
 
+        from intent_networking.opa_client import check_approval_gate  # pylint: disable=import-outside-toplevel
+
+        gate = check_approval_gate(intent)
+        if not gate["allowed"]:
+            return Response(
+                {
+                    "error": "OPA compliance check failed — approval blocked.",
+                    "violations": gate["violations"],
+                    "hint": "Resolve the policy violations or set require_opa_for_approval=False in plugin config.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         approval = IntentApproval.objects.create(
             intent=intent,
             approver=request.user,

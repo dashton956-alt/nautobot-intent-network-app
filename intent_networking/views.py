@@ -394,6 +394,17 @@ class IntentApproveView(View):
             messages.error(request, "You do not have the 'approve_intent' permission.")
             return redirect(intent.get_absolute_url())
 
+        from intent_networking.opa_client import check_approval_gate  # pylint: disable=import-outside-toplevel
+
+        gate = check_approval_gate(intent)
+        if not gate["allowed"]:
+            violation_text = "; ".join(gate["violations"])
+            messages.error(
+                request,
+                f"Approval blocked by OPA policy: {violation_text}",
+            )
+            return redirect(intent.get_absolute_url())
+
         comment = request.POST.get("comment", "")
 
         approval = IntentApproval.objects.create(

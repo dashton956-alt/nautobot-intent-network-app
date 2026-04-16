@@ -139,6 +139,45 @@ def check_auto_remediation(intent, verify_result: dict) -> bool:
     return result.get("auto_remediate", False)
 
 
+def check_approval_gate(intent) -> dict:
+    """Gate intent approval against OPA when ``require_opa_for_approval`` is enabled.
+
+    Called by both the REST API approve endpoint and the UI approve view before
+    creating an IntentApproval record.
+
+    If ``PLUGINS_CONFIG["intent_networking"]["require_opa_for_approval"]`` is
+    ``False`` (the default) this function always returns allowed=True so
+    existing behaviour is unchanged.
+
+    If the flag is ``True`` and OPA is unreachable the approval is **blocked**
+    (fail-closed) to prevent unapproved config reaching production when the
+    policy enforcement plane is down.
+
+    Returns::
+
+        {
+            "allowed": True | False,
+            "violations": ["reason", ...],   # empty when allowed
+            "opa_checked": True | False,     # False when flag is disabled
+        }
+    """
+    if not _plugin_cfg("require_opa_for_approval", False):
+        return {"allowed": True, "violations": [], "opa_checked": False}
+
+    result = check_intent_policy(intent, topology_context={})
+
+    if not result.get("allowed", False):
+        violations = result.get("violations", ["OPA policy check failed"])
+        logger.warning(
+            "Approval blocked for intent %s by OPA: %s",
+            intent.intent_id,
+            violations,
+        )
+        return {"allowed": False, "violations": violations, "opa_checked": True}
+
+    return {"allowed": True, "violations": [], "opa_checked": True}
+
+
 def _query_opa(package: str, input_data: dict) -> dict:
     """Query an OPA policy package.
 
