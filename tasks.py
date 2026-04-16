@@ -799,7 +799,7 @@ def ruff(context, action=None, target=None, fix=False, output_format="concise"):
     exit_code = 0
 
     if "format" in action:
-        command = "ruff format "
+        command = "ruff format --no-cache "
         if not fix:
             command += "--check "
         command += " ".join(target)
@@ -807,7 +807,7 @@ def ruff(context, action=None, target=None, fix=False, output_format="concise"):
             exit_code = 1
 
     if "lint" in action:
-        command = "ruff check "
+        command = "ruff check --no-cache "
         if fix:
             command += "--fix "
         command += f"--output-format {output_format} "
