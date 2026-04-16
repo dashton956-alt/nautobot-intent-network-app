@@ -41,9 +41,9 @@ def _get_job(class_name):
 JOBS = {
     "resolve": _get_job("IntentResolutionJob"),
     "preview": _get_job("IntentConfigPreviewJob"),
-    "deploy":  _get_job("IntentDeploymentJob"),
-    "verify":  _get_job("IntentVerificationJob"),
-    "retire":  _get_job("IntentRetireJob"),
+    "deploy": _get_job("IntentDeploymentJob"),
+    "verify": _get_job("IntentVerificationJob"),
+    "retire": _get_job("IntentRetireJob"),
 }
 
 # ─── Dependency-aware intent order ───────────────────────────────────────────
@@ -113,8 +113,7 @@ ORDERED_INTENT_IDS = [
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 RESULTS = {
-    step: {"ok": [], "fail": []}
-    for step in ["retire", "resolve", "preview", "dryrun", "approve", "deploy", "verify"]
+    step: {"ok": [], "fail": []} for step in ["retire", "resolve", "preview", "dryrun", "approve", "deploy", "verify"]
 }
 ERRORS = []
 
@@ -133,21 +132,18 @@ def run_job(job, data, timeout=240):
         return False, f"Timeout after {timeout}s (status={jr.status})"
     if jr.status == "SUCCESS":
         return True, jr
-    msgs = list(
-        jr.job_log_entries.filter(log_level__in=["error", "critical"]).values_list("message", flat=True)[:5]
-    )
+    msgs = list(jr.job_log_entries.filter(log_level__in=["error", "critical"]).values_list("message", flat=True)[:5])
     return False, "; ".join(msgs) if msgs else f"Job status: {jr.status}"
 
 
 def note_error(iid, step, msg):
+    """Record a pipeline step failure and print a summary line."""
     ERRORS.append({"intent_id": iid, "step": step, "message": str(msg)[:400]})
     print(f"    ✗ [{step}] {str(msg)[:250]}")
 
 
 # ─── Phase 0: Retire all currently Deployed or Rolled Back intents ────────────
-deployed_intents = list(
-    Intent.objects.filter(status__name__in=["Deployed", "Rolled Back"]).order_by("intent_id")
-)
+deployed_intents = list(Intent.objects.filter(status__name__in=["Deployed", "Rolled Back"]).order_by("intent_id"))
 print(f"\n{'=' * 60}")
 print(f"  PHASE 0: Retiring {len(deployed_intents)} deployed/rolled-back intents")
 print(f"{'=' * 60}")
@@ -246,9 +242,7 @@ for idx, iid in enumerate(ordered, 1):
 
     # ── 5. Deploy (commit=True) ───────────────────────────────────────────────
     print("  5. Deploy (commit=True)...")
-    ok, result = run_job(
-        JOBS["deploy"], {"intent_id": iid, "commit_sha": "full-reset", "commit": True}, timeout=300
-    )
+    ok, result = run_job(JOBS["deploy"], {"intent_id": iid, "commit_sha": "full-reset", "commit": True}, timeout=300)
     intent.refresh_from_db()
     if ok:
         RESULTS["deploy"]["ok"].append(iid)
