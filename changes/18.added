@@ -1,1 +1,0 @@
-Added VXLAN VNI Pool management UI — list, create, edit, and delete views accessible via the Intent Engine nav menu under "VNI Pools". Also adds a `VxlanVniPoolSerializer` for the REST API.

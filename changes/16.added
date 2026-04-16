@@ -1,1 +1,0 @@
-Replace pyATS/Genie verification engine with NUTS (Network Unit Testing System). NUTS uses NAPALM and Netmiko for multi-vendor device-state validation, supporting 20+ built-in test classes across 70+ network platforms including Arista EOS, Cisco IOS-XE/XR/NX-OS, Juniper JunOS, and Nokia SR-OS.

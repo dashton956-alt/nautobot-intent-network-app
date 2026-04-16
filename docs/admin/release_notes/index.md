@@ -4,7 +4,7 @@ All published release notes are listed below. Patch releases are included within
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| [v2.0.5](version_2.0.5.md) | 2026-04-15 | Fix device credential resolution — use SSH access type for SecretsGroups; per-device credential lookup |
+| [v2.0.5](version_2.0.5.md) | 2026-04-16 | Major feature release: NUTS verification, fw_rule intent type, Catalyst Center adapter, intent dependency graph, Approve/Reject UI, .intentignore, management intent types, VNI Pool UI, and 4 bug fixes |
 | [v2.0.4](version_2.0.4.md) | 2026-04-14 | VXLAN VNI Pool management UI — create, edit and delete pools directly in Nautobot |
 | [v2.0.3](version_2.0.3.md) | 2026-04-14 | Fix Status.DoesNotExist on fresh installs — lifecycle statuses now seeded by data migration |
 | [v2.0.2](version_2.0.2.md) | 2026-04-13 | Expected shorthand in NUTS verification — define checks once, run on all scoped devices |

@@ -1,1 +1,0 @@
-Added "fw_rule" (Firewall Rule) intent type with stateful/stateless firewall policy support. Includes resolver, Jinja templates for all 6 vendor platforms (Cisco IOS-XE/IOS-XR/NX-OS, Juniper Junos, Aruba AOS-CX, Arista EOS), and FirewallControllerAdapter for centralized firewall appliances (Palo Alto Panorama, Fortinet FortiManager).

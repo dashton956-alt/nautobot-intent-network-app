@@ -1,1 +1,0 @@
-Added "Retired" intent status. Retired intents remain in Git but are non-actionable — reconciliation skips them and only a transition back to Draft is allowed.

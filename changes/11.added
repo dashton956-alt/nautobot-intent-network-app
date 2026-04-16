@@ -1,1 +1,0 @@
-Added Approve/Reject buttons to the intent detail page UI. Added support for Nautobot native Approval Workflow (on_workflow_approved/denied/canceled callbacks). Updated is_approved to accept approval from either custom IntentApproval records or native ApprovalWorkflow.

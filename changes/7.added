@@ -1,1 +1,0 @@
-Added mgmt_motd, mgmt_netconf, mgmt_dhcp_server, and mgmt_global_config intent types for Management & Operations domain.

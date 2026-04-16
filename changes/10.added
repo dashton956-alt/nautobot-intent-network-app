@@ -1,1 +1,0 @@
-Added `.intentignore` file support — users can place a `.intentignore` in the repo root or intent directory to exclude files from Git sync using fnmatch glob patterns.

@@ -1,1 +1,0 @@
-Added Catalyst Center adapter with controller_type, controller_site, and controller_org fields on the Intent model.
