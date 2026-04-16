@@ -102,6 +102,38 @@ Git Repository (YAML intents)
 
 ---
 
+## Quick Start (Development)
+
+Clone the repo, spin up the full stack, and you're ready to load intents:
+
+```bash
+git clone https://github.com/dashton956-alt/nautobot-intent-network-app.git
+cd nautobot-intent-network-app
+
+# 1. Create creds file (edit before using in any non-local environment)
+cp development/creds.example.env development/creds.env
+
+# 2. Build the dev container
+invoke build
+
+# 3. Start all services (Nautobot, Celery worker, PostgreSQL, Redis)
+invoke start
+
+# 4. Run DB migrations and register Nautobot core data
+invoke post_upgrade
+
+# 5. (Optional) Start OPA for policy enforcement — runs on http://localhost:8181
+cd development && docker compose -f docker-compose.opa.yml up -d && cd ..
+```
+
+Nautobot is now available at **http://localhost:8080** (admin / admin).
+
+To load intents, either:
+- Point a Nautobot **GitRepository** at your network-as-code repo with the *"intent definitions"* content type selected, then click **Sync** — intents are discovered and created automatically.
+- Or use the REST API: `POST /api/plugins/intent-networking/intents/sync-from-git/`.
+
+---
+
 ## Installation
 
 ### 1. Install the package
@@ -565,12 +597,22 @@ invoke ruff --fix
 invoke pylint
 ```
 
-**OPA integration tests** (separate from the Nautobot test suite — requires Docker):
+**OPA Rego unit tests** (no running container needed):
+
+```bash
+docker run --rm \
+  -v "$(pwd)/development/opa/policies:/policies:ro" \
+  -v "$(pwd)/development/opa/tests:/tests:ro" \
+  openpolicyagent/opa:latest test /policies /tests --v0-compatible -v
+```
+
+Or use the helper script (starts OPA, runs tests, stops OPA):
 
 ```bash
 cd development
-bash run_opa_tests.sh          # start OPA, run 61 tests, stop OPA
-KEEP_OPA=1 bash run_opa_tests.sh  # leave OPA running after tests
+bash run_opa_tests.sh           # run Rego unit tests, then stop OPA
+KEEP_OPA=1 bash run_opa_tests.sh        # leave OPA running after tests
+ATTACH_NETWORK=1 bash run_opa_tests.sh  # also connect OPA to the nautobot stack network
 ```
 
 For full development environment setup including Docker Compose, see the [developer documentation](dev/dev_environment.md).

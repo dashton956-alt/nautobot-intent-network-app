@@ -1,12 +1,18 @@
 ---
 # Standalone OPA service for local development and integration testing.
 #
-# Usage:
+# Usage (standalone — OPA on http://localhost:8181, nautobot uses OPA_URL=http://localhost:8181):
 #   docker compose -f docker-compose.opa.yml up -d
 #   docker compose -f docker-compose.opa.yml down
 #
-# OPA REST API will be available at http://localhost:8181
-# Policy bundles are loaded from ./opa/policies/ (hot-reloaded with --watch)
+# Usage (alongside the main stack so nautobot can reach OPA via http://opa:8181):
+#   docker compose -f docker-compose.base.yml -f docker-compose.opa.yml up -d
+#
+# OPA unit tests (Rego):
+#   docker run --rm \
+#     -v "$(pwd)/opa/policies:/policies:ro" \
+#     -v "$(pwd)/opa/tests:/tests:ro" \
+#     openpolicyagent/opa:latest test /policies /tests --v0-compatible -v
 
 services:
   opa:
@@ -27,13 +33,8 @@ services:
       - "info"
       - "/policies"
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8181/health"]
+      test: ["CMD", "/opa", "eval", "--format", "raw", "1==1"]
       interval: "5s"
       timeout: "3s"
       start_period: "10s"
       retries: 5
-
-networks:
-  default:
-    name: intent-networking_default
-    external: true

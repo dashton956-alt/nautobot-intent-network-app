@@ -145,7 +145,6 @@ dmypy.json
 # Note: policies/ and tests/ are intentionally tracked — see development/opa/
 development/opa/data/
 development/test_opa_integration.py
-development/run_opa_tests.sh
 
 ### macOS ###
 # General
