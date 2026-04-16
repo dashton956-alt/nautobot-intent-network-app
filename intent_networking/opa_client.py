@@ -179,7 +179,9 @@ def check_approval_gate(intent) -> dict:
         logger.error("OPA health check failed — blocking approval (fail-closed): %s", exc)
         return {
             "allowed": False,
-            "violations": ["OPA is unreachable — approval blocked (fail-closed). Check OPA_URL and ensure OPA is running."],
+            "violations": [
+                "OPA is unreachable — approval blocked (fail-closed). Check OPA_URL and ensure OPA is running."
+            ],
             "opa_checked": True,
         }
 
