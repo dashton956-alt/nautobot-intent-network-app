@@ -569,7 +569,7 @@ class IntentDeploymentJob(Job):
             "errors": [],
         }
 
-    def _staged_deploy(self, intent, plan, rendered_configs, commit, save_config=False):
+    def _staged_deploy(self, intent, plan, rendered_configs, commit, save_config=False):  # pylint: disable=too-many-arguments
         """Deploy in stages: canary first, then remaining sites sequentially.
 
         Creates DeploymentStage records for tracking. Each stage is

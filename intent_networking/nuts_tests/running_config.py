@@ -32,17 +32,23 @@ class RunningConfigExtractor(AbstractHostResultExtractor):
     """Extract the running-config text from a NAPALM get_config result."""
 
     def single_transform(self, single_result: MultiResult) -> str:
+        """Return the running-config string from the NAPALM get_config result."""
         return self._simple_extract(single_result)["config"]["running"]
 
 
 class RunningConfigContext(NornirNutsContext):
+    """Nornir NUTS context that fetches device running configuration via NAPALM."""
+
     def nuts_task(self) -> Callable[..., Result]:
+        """Return the Nornir task used to collect data."""
         return napalm_get
 
     def nuts_arguments(self) -> Dict[str, Any]:
+        """Return arguments passed to the Nornir task."""
         return {"getters": ["config"]}
 
     def nuts_extractor(self) -> RunningConfigExtractor:
+        """Return the extractor that transforms raw Nornir results."""
         return RunningConfigExtractor(self)
 
 
@@ -54,5 +60,8 @@ class TestNapalmRunningConfigContains:
 
     @pytest.mark.nuts("config_snippet")
     def test_running_config_contains(self, single_result: NutsResult, config_snippet: str) -> None:
-        assert single_result.result is not None, "No running-config result returned"
-        assert config_snippet in single_result.result, f"Snippet not found in running config: {config_snippet!r}"
+        """Fail if config_snippet is not present in the device's running configuration."""
+        if single_result.result is None:
+            pytest.fail("No running-config result returned")
+        if config_snippet not in single_result.result:
+            pytest.fail(f"Snippet not found in running config: {config_snippet!r}")
