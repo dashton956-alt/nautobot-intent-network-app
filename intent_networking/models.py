@@ -963,6 +963,8 @@ class VerificationResult(BaseModel):
         blank=True, help_text="GitHub issue raised for manual review (if non-auto-remediable drift)"
     )
 
+    natural_key_field_names = ["pk"]
+
     class Meta:
         """Meta options for the VerificationResult model."""
 
