@@ -248,10 +248,6 @@ class NutsVerifier:
             bundle_path = os.path.join(tmpdir, "test_bundle.yaml")
             self._write_test_bundle(bundle_path, test_bundles, devices)
 
-            # Write conftest.py pointing to our nornir config
-            conftest_path = os.path.join(tmpdir, "conftest.py")
-            self._write_conftest(conftest_path, nr_config_path)
-
             # Run pytest programmatically with JSON report
             json_report_path = os.path.join(tmpdir, "results.json")
             original_cwd = os.getcwd()
@@ -260,6 +256,7 @@ class NutsVerifier:
                 exit_code = pytest.main(
                     [
                         bundle_path,
+                        f"--nornir-config={nr_config_path}",
                         f"--json-report-file={json_report_path}",
                         "--json-report",
                         "--no-header",
@@ -308,8 +305,11 @@ class NutsVerifier:
                 "platform": napalm_driver,
                 "username": username,
                 "password": password,
-                "data": {
-                    "netmiko_device_type": netmiko_type,
+                "connection_options": {
+                    "netmiko": {
+                        "platform": netmiko_type,
+                        "extras": {},
+                    },
                 },
             }
 
@@ -404,19 +404,7 @@ class NutsVerifier:
             yaml.dump(bundles, f, default_flow_style=False)
 
     @staticmethod
-    def _write_conftest(conftest_path, nr_config_path):
-        """Write a conftest.py that configures NUTS with the nornir config."""
-        content = (
-            "import pytest\n"
-            "\n"
-            "\n"
-            "def pytest_configure(config):\n"
-            f'    config.option.nuts_config = "{nr_config_path}"\n'
-        )
-        with open(conftest_path, "w", encoding="utf-8") as f:
-            f.write(content)
 
-    @staticmethod
     def _parse_results(json_report_path, exit_code):
         """Parse pytest-json-report output into our standard result dict."""
         checks = []
