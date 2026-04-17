@@ -871,6 +871,3 @@ def _shared_intents(dev_a: str, dev_b: str, intent_index: dict) -> list:
     ids_a = {i["intent_id"] for i in intent_index.get(dev_a, [])}
     ids_b = {i["intent_id"] for i in intent_index.get(dev_b, [])}
     return list(ids_a & ids_b)
-
-
-

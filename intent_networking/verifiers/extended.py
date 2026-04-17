@@ -37,6 +37,7 @@ ALLOWED_TEST_CLASSES = frozenset(
         "TestNapalmLldpNeighborsCount",
         "TestNapalmPing",
         "TestNapalmConfig",
+        "TestNapalmRunningConfigContains",
         "TestNapalmUsers",
         "TestNapalmOnlyDefinedUsersExist",
         "TestNapalmVlans",
@@ -244,6 +245,15 @@ class NutsVerifier:
             nr_config_path = os.path.join(tmpdir, "nr-config.yaml")
             self._write_nornir_config(nr_config_path, inventory_dir)
 
+            # Write conftest.py to register first-party custom NUTS test classes
+            conftest_path = os.path.join(tmpdir, "conftest.py")
+            with open(conftest_path, "w", encoding="utf-8") as f:
+                f.write(
+                    "import nuts.index\n"
+                    'nuts.index.default_index["TestNapalmRunningConfigContains"] = '
+                    '"intent_networking.nuts_tests.running_config"\n'
+                )
+
             # Write test bundle YAML
             bundle_path = os.path.join(tmpdir, "test_bundle.yaml")
             self._write_test_bundle(bundle_path, test_bundles, devices)
@@ -393,8 +403,18 @@ class NutsVerifier:
                 )
                 entry["test_data"] = bundle["test_data"]
             elif "expected" in bundle:
-                # Shorthand: expand the same expected checks to all scoped devices
-                entry["test_data"] = [{"host": name, "expected": bundle["expected"]} for name in device_names]
+                # Shorthand: expand expected checks to all scoped devices.
+                # For TestNapalmRunningConfigContains, each expected item is a
+                # {config_snippet: ...} dict that must become a flat test_data row
+                # per (device, snippet) — the NUTS parametrisation key is
+                # config_snippet, not a nested expected list.
+                if bundle["test_class"] == "TestNapalmRunningConfigContains":
+                    snippets = [e["config_snippet"] for e in bundle["expected"] if "config_snippet" in e]
+                    entry["test_data"] = [
+                        {"host": name, "config_snippet": snip} for name in device_names for snip in snippets
+                    ]
+                else:
+                    entry["test_data"] = [{"host": name, "expected": bundle["expected"]} for name in device_names]
             else:
                 entry["test_data"] = bundle.get("test_data", [])
 
@@ -404,7 +424,6 @@ class NutsVerifier:
             yaml.dump(bundles, f, default_flow_style=False)
 
     @staticmethod
-
     def _parse_results(json_report_path, exit_code):
         """Parse pytest-json-report output into our standard result dict."""
         checks = []

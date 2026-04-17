@@ -428,6 +428,7 @@ class IntentDeploymentJob(Job):
 
         # ── Controller adapter routing ────────────────────────────────────
         # If a non-Nornir controller is specified, delegate to the adapter.
+        save_config = bool((intent.intent_data or {}).get("deployment", {}).get("save_config", False))
         if intent.controller_type and intent.controller_type != "nornir":
             adapter = self._get_adapter(intent)
             try:
@@ -443,9 +444,9 @@ class IntentDeploymentJob(Job):
                 push_results = {"success": False, "errors": [str(exc)]}
         # ── Staged rollout (#10) ──────────────────────────────────────────
         elif intent.deployment_strategy != "all_at_once" and plan.affected_devices.count() > 1:
-            push_results = self._staged_deploy(intent, plan, rendered_configs, commit)
+            push_results = self._staged_deploy(intent, plan, rendered_configs, commit, save_config)
         else:
-            push_results = self._push_configs(plan, rendered_configs, commit)
+            push_results = self._push_configs(plan, rendered_configs, commit, save_config)
 
         if push_results["success"]:
             intent.status = Status.objects.get(name__iexact="Deployed")
@@ -568,7 +569,7 @@ class IntentDeploymentJob(Job):
             "errors": [],
         }
 
-    def _staged_deploy(self, intent, plan, rendered_configs, commit):
+    def _staged_deploy(self, intent, plan, rendered_configs, commit, save_config=False):
         """Deploy in stages: canary first, then remaining sites sequentially.
 
         Creates DeploymentStage records for tracking. Each stage is
@@ -604,7 +605,7 @@ class IntentDeploymentJob(Job):
 
             stage_configs = {d.name: rendered_configs.get(d.name, "") for d in stage.devices.all()}
             stage.rendered_configs = stage_configs
-            result = self._push_configs(plan, stage_configs, commit)
+            result = self._push_configs(plan, stage_configs, commit, save_config)
 
             if result["success"]:
                 stage.status = "deployed"
@@ -635,16 +636,23 @@ class IntentDeploymentJob(Job):
 
         return {"success": len(all_errors) == 0, "errors": all_errors}
 
-    def _push_configs(self, _plan: ResolutionPlan, rendered_configs: dict, commit: bool) -> dict:
+    def _push_configs(
+        self, _plan: ResolutionPlan, rendered_configs: dict, commit: bool, save_config: bool = False
+    ) -> dict:
         """Push rendered configs to devices via Nornir + Netmiko.
 
         Routes wireless / SD-WAN / cloud primitives to the appropriate
         controller adapter instead of Nornir.
 
         Uses Nautobot Secrets for device credentials (#5).
+
+        When ``save_config`` is True, runs ``write memory`` (or platform
+        equivalent) on each device after a successful config push, persisting
+        the running config to startup config. Set this to True for production
+        devices; leave False for cEOS / containerlab environments.
         """
         from nornir import InitNornir  # noqa: PLC0415
-        from nornir_netmiko.tasks import netmiko_send_config  # noqa: PLC0415
+        from nornir_netmiko.tasks import netmiko_save_config, netmiko_send_config  # noqa: PLC0415
 
         errors = []
 
@@ -720,6 +728,14 @@ class IntentDeploymentJob(Job):
                 self.logger.failure("Push failed on %s: %s", device_name, err)
             else:
                 self.logger.info("Config pushed to %s", device_name)
+                if save_config:
+                    save_result = device_nr.run(task=netmiko_save_config)
+                    if device_name not in save_result or save_result[device_name].failed:
+                        save_err = str(save_result[device_name].exception)
+                        errors.append(f"{device_name} (save): {save_err}")
+                        self.logger.failure("write memory failed on %s: %s", device_name, save_err)
+                    else:
+                        self.logger.info("Config saved (write memory) on %s", device_name)
 
         nr.close_connections()
         return {"success": len(errors) == 0, "errors": errors}
