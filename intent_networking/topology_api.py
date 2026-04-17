@@ -30,6 +30,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Intent, ResolutionPlan
+from .secrets import get_credentials_for_device
 
 logger = logging.getLogger(__name__)
 
@@ -636,8 +637,7 @@ def _collect_live_data(device) -> dict:
         from nornir import InitNornir
         from nornir_netmiko.tasks import netmiko_send_command
 
-        username = _get_device_credential("username")
-        password = _get_device_credential("password")
+        username, password = get_credentials_for_device(device)
 
         tmpdir = tempfile.mkdtemp(prefix="topo-live-")
         try:
@@ -873,6 +873,4 @@ def _shared_intents(dev_a: str, dev_b: str, intent_index: dict) -> list:
     return list(ids_a & ids_b)
 
 
-def _get_device_credential(key: str) -> str:
-    """Return device credential from environment variable."""
-    return os.environ.get(f"DEVICE_{key.upper()}", "")
+
