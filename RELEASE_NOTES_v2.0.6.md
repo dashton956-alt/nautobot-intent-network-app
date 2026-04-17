@@ -1,4 +1,4 @@
-v2.0.5 is a major feature and fix release — the largest since v2.0.0. It ships nine new platform capabilities and four bug fixes.
+v2.0.6 is a major feature and fix release — the largest since v2.0.0. It ships nine new platform capabilities and four bug fixes.
 
 ## Added
 
@@ -22,11 +22,11 @@ v2.0.5 is a major feature and fix release — the largest since v2.0.0. It ships
 ## Upgrade
 
 ```
-pip install --upgrade nautobot-app-intent-networking==2.0.5
+pip install --upgrade nautobot-app-intent-networking==2.0.6
 nautobot-server post_upgrade
 sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 ```
 
 > **Action required if you use `device_secrets_group`:** verify your SecretsGroup assignments in Nautobot use **Access Type: SSH** (not Generic) for username and password secrets.
 
-**Full changelog:** [`v2.0.4...v2.0.5`](https://github.com/dashton956-alt/nautobot-intent-network-app/compare/v2.0.4...v2.0.5)
+**Full changelog:** [`v2.0.5...v2.0.6`](https://github.com/dashton956-alt/nautobot-intent-network-app/compare/v2.0.5...v2.0.6)
