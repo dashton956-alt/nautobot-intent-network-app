@@ -5,10 +5,11 @@ edit, and delete views automatically using the table and form classes.
 """
 
 import logging
+from collections import defaultdict
 
 from django.contrib import messages
 from django.db.models import Count
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import TemplateView
 from nautobot.apps.views import NautobotUIViewSet
@@ -586,3 +587,240 @@ class IntentBulkValidateView(_BulkIntentJobView):
     def get_extra_kwargs(self, intent):
         """Pass triggered_by for manual verification."""
         return {"triggered_by": "manual"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Grouped Intent View
+# ─────────────────────────────────────────────────────────────────────────────
+
+_INTENT_DOMAIN_MAP = {
+    # Layer 2
+    "vlan_provision": "Layer 2",
+    "l2_access_port": "Layer 2",
+    "l2_trunk_port": "Layer 2",
+    "lag": "Layer 2",
+    "mlag": "Layer 2",
+    "stp_policy": "Layer 2",
+    "qinq": "Layer 2",
+    "pvlan": "Layer 2",
+    "storm_control": "Layer 2",
+    "port_security": "Layer 2",
+    "dhcp_snooping": "Layer 2",
+    "dai": "Layer 2",
+    "ip_source_guard": "Layer 2",
+    "macsec": "Layer 2",
+    # Layer 3
+    "static_route": "Layer 3",
+    "ospf": "Layer 3",
+    "bgp_ebgp": "Layer 3",
+    "bgp_ibgp": "Layer 3",
+    "isis": "Layer 3",
+    "eigrp": "Layer 3",
+    "route_redistribution": "Layer 3",
+    "route_policy": "Layer 3",
+    "prefix_list": "Layer 3",
+    "vrf_basic": "Layer 3",
+    "bfd": "Layer 3",
+    "pbr": "Layer 3",
+    "ipv6_dual_stack": "Layer 3",
+    "ospfv3": "Layer 3",
+    "bgp_ipv6_af": "Layer 3",
+    "fhrp": "Layer 3",
+    # MPLS / SP
+    "mpls_l3vpn": "MPLS / SP",
+    "mpls_l2vpn": "MPLS / SP",
+    "pseudowire": "MPLS / SP",
+    "evpn_mpls": "MPLS / SP",
+    "ldp": "MPLS / SP",
+    "rsvp_te": "MPLS / SP",
+    "sr_mpls": "MPLS / SP",
+    "srv6": "MPLS / SP",
+    "6pe_6vpe": "MPLS / SP",
+    "mvpn": "MPLS / SP",
+    # Data Centre
+    "evpn_vxlan_fabric": "Data Centre",
+    "l2vni": "Data Centre",
+    "l3vni": "Data Centre",
+    "bgp_evpn_af": "Data Centre",
+    "anycast_gateway": "Data Centre",
+    "vtep": "Data Centre",
+    "evpn_multisite": "Data Centre",
+    "dc_underlay": "Data Centre",
+    "dc_mlag": "Data Centre",
+    # Security
+    "acl": "Security",
+    "zbf": "Security",
+    "ipsec_s2s": "Security",
+    "ipsec_ikev2": "Security",
+    "gre_tunnel": "Security",
+    "gre_over_ipsec": "Security",
+    "dmvpn": "Security",
+    "macsec_policy": "Security",
+    "copp": "Security",
+    "urpf": "Security",
+    "dot1x_nac": "Security",
+    "aaa": "Security",
+    "ra_guard": "Security",
+    "ssl_inspection": "Security",
+    "fw_rule": "Security",
+    # WAN / SD-WAN
+    "wan_uplink": "WAN / SD-WAN",
+    "bgp_isp": "WAN / SD-WAN",
+    "sdwan_overlay": "WAN / SD-WAN",
+    "sdwan_app_policy": "WAN / SD-WAN",
+    "sdwan_qos": "WAN / SD-WAN",
+    "sdwan_dia": "WAN / SD-WAN",
+    "nat_pat": "WAN / SD-WAN",
+    "nat64": "WAN / SD-WAN",
+    "wan_failover": "WAN / SD-WAN",
+    # Wireless
+    "wireless_ssid": "Wireless",
+    "wireless_vlan_map": "Wireless",
+    "wireless_dot1x": "Wireless",
+    "wireless_guest": "Wireless",
+    "wireless_rf": "Wireless",
+    "wireless_qos": "Wireless",
+    "wireless_band_steer": "Wireless",
+    "wireless_roam": "Wireless",
+    "wireless_segment": "Wireless",
+    "wireless_mesh": "Wireless",
+    "wireless_flexconnect": "Wireless",
+    # Cloud
+    "cloud_vpc_peer": "Cloud",
+    "cloud_transit_gw": "Cloud",
+    "cloud_direct_connect": "Cloud",
+    "cloud_vpn_gw": "Cloud",
+    "cloud_bgp": "Cloud",
+    "cloud_security_group": "Cloud",
+    "cloud_nat": "Cloud",
+    "cloud_route_table": "Cloud",
+    "hybrid_dns": "Cloud",
+    "cloud_sdwan": "Cloud",
+    # QoS
+    "qos_classify": "QoS",
+    "qos_dscp_mark": "QoS",
+    "qos_cos_remark": "QoS",
+    "qos_queue": "QoS",
+    "qos_police": "QoS",
+    "qos_shape": "QoS",
+    "qos_trust": "QoS",
+    # Multicast
+    "multicast_pim_sm": "Multicast",
+    "multicast_pim_ssm": "Multicast",
+    "igmp_snooping": "Multicast",
+    "multicast_vrf": "Multicast",
+    "msdp": "Multicast",
+    # Management
+    "mgmt_ntp": "Management",
+    "mgmt_dns_dhcp": "Management",
+    "mgmt_snmp": "Management",
+    "mgmt_syslog": "Management",
+    "mgmt_netflow": "Management",
+    "mgmt_telemetry": "Management",
+    "mgmt_ssh": "Management",
+    "mgmt_aaa_device": "Management",
+    "mgmt_interface": "Management",
+    "mgmt_lldp_cdp": "Management",
+    "mgmt_stp_root": "Management",
+    "mgmt_motd": "Management",
+    "mgmt_netconf": "Management",
+    "mgmt_dhcp_server": "Management",
+    "mgmt_global_config": "Management",
+    # Reachability
+    "reachability_static": "Reachability",
+    "reachability_bgp_network": "Reachability",
+    "reachability_floating": "Reachability",
+    "reachability_ip_sla": "Reachability",
+    # Service
+    "service_lb_vip": "Service",
+    "service_dns": "Service",
+    "service_dhcp": "Service",
+    "service_nat": "Service",
+    "service_proxy": "Service",
+    # Legacy originals
+    "connectivity": "Legacy",
+    "security": "Legacy",
+    "reachability": "Legacy",
+    "service": "Legacy",
+}
+
+_DOMAIN_ORDER = [
+    "Layer 2",
+    "Layer 3",
+    "MPLS / SP",
+    "Data Centre",
+    "Security",
+    "WAN / SD-WAN",
+    "Wireless",
+    "Cloud",
+    "QoS",
+    "Multicast",
+    "Management",
+    "Reachability",
+    "Service",
+    "Legacy",
+]
+
+_DOMAIN_META = {
+    "Layer 2": {"icon": "mdi-sitemap", "color": "#3498db"},
+    "Layer 3": {"icon": "mdi-routes", "color": "#27ae60"},
+    "MPLS / SP": {"icon": "mdi-transit-connection-variant", "color": "#8e44ad"},
+    "Data Centre": {"icon": "mdi-server-network", "color": "#e67e22"},
+    "Security": {"icon": "mdi-shield-lock", "color": "#e74c3c"},
+    "WAN / SD-WAN": {"icon": "mdi-wan", "color": "#16a085"},
+    "Wireless": {"icon": "mdi-wifi", "color": "#2980b9"},
+    "Cloud": {"icon": "mdi-cloud", "color": "#1abc9c"},
+    "QoS": {"icon": "mdi-tune", "color": "#d35400"},
+    "Multicast": {"icon": "mdi-broadcast", "color": "#7f8c8d"},
+    "Management": {"icon": "mdi-cog", "color": "#95a5a6"},
+    "Reachability": {"icon": "mdi-check-network", "color": "#2ecc71"},
+    "Service": {"icon": "mdi-puzzle", "color": "#9b59b6"},
+    "Legacy": {"icon": "mdi-archive", "color": "#bdc3c7"},
+}
+
+
+class IntentGroupedView(View):
+    """Intent list grouped into collapsible domain panels."""
+
+    def get(self, request):
+        """Render intents grouped by domain, with optional filter passthrough."""
+        qs = Intent.objects.all().select_related("status", "tenant").order_by("intent_id")
+        filterset = IntentFilterSet(request.GET or None, queryset=qs)
+        intents = filterset.qs
+
+        groups = defaultdict(list)
+        for intent in intents:
+            domain = _INTENT_DOMAIN_MAP.get(intent.intent_type, "Other")
+            groups[domain].append(intent)
+
+        grouped = [
+            {
+                "domain": d,
+                "icon": _DOMAIN_META.get(d, {}).get("icon", "mdi-folder"),
+                "color": _DOMAIN_META.get(d, {}).get("color", "#777"),
+                "intents": groups[d],
+                "count": len(groups[d]),
+            }
+            for d in _DOMAIN_ORDER
+            if d in groups
+        ]
+        if "Other" in groups:
+            grouped.append(
+                {
+                    "domain": "Other",
+                    "icon": "mdi-folder",
+                    "color": "#777",
+                    "intents": groups["Other"],
+                    "count": len(groups["Other"]),
+                }
+            )
+
+        return render(
+            request,
+            "intent_networking/intent_grouped.html",
+            {
+                "grouped_intents": grouped,
+                "total": intents.count(),
+                "active_filters": request.GET.urlencode(),
+            },
+        )

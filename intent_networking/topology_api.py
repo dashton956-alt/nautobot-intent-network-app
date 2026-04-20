@@ -677,12 +677,14 @@ def _collect_live_data(device) -> dict:
                     task=netmiko_send_command,
                     command_string=command,
                     use_textfsm=True,
+                    on_failed=True,
                 )
                 if result[device.name].failed:
                     collected[key] = []
                 else:
                     raw = result[device.name].result
-                    collected[key] = raw if isinstance(raw, list) else []
+                    # If TextFSM has no template for this command it returns raw text
+                    collected[key] = raw if isinstance(raw, list) else (raw if isinstance(raw, str) else [])
 
             return {
                 "arp_table": _normalise_arp(collected.get("arp", []), platform),
@@ -758,6 +760,26 @@ def _nornir_platform(nautobot_platform: str) -> str:
 
 
 def _normalise_arp(rows, _platform) -> list:
+    # If TextFSM had no template (e.g. arista_eos_show_arp.textfsm is absent),
+    # Netmiko returns the raw command output as a string — parse it with a regex.
+    if isinstance(rows, str):
+        import re as _re
+
+        out = []
+        for line in rows.splitlines():
+            m = _re.match(r"^\s*(\d+\.\d+\.\d+\.\d+)\s+(\S+)\s+([0-9a-fA-F:.]+)\s+(\S+)", line)
+            if m:
+                out.append(
+                    {
+                        "ip": m.group(1),
+                        "age": m.group(2),
+                        "mac": m.group(3),
+                        "interface": m.group(4),
+                        "type": "",
+                    }
+                )
+        return out[:200]
+
     out = []
     for row in rows[:200]:  # cap at 200 rows for panel display
         if isinstance(row, dict):
@@ -777,13 +799,19 @@ def _normalise_routes(rows, _platform) -> list:
     out = []
     for row in rows[:300]:
         if isinstance(row, dict):
+            # next_hop and interface are List values in the EOS TextFSM template
+            raw_nh = row.get("nexthop") or row.get("next_hop") or row.get("nexthop_ip", "")
+            nexthop = ", ".join(raw_nh) if isinstance(raw_nh, list) else str(raw_nh or "")
+            raw_if = row.get("interface") or row.get("outgoing_interface", "")
+            interface = ", ".join(raw_if) if isinstance(raw_if, list) else str(raw_if or "")
             out.append(
                 {
                     "network": row.get("network") or row.get("prefix", ""),
-                    "mask": row.get("mask", ""),
-                    "nexthop": row.get("nexthop") or row.get("next_hop", ""),
+                    # Arista TextFSM template uses prefix_length; other platforms use mask
+                    "mask": row.get("mask") or row.get("prefix_length", ""),
+                    "nexthop": nexthop,
                     "protocol": row.get("protocol") or row.get("type", ""),
-                    "interface": row.get("interface") or row.get("outgoing_interface", ""),
+                    "interface": interface,
                     "metric": row.get("metric", ""),
                     "distance": row.get("distance", ""),
                     "vrf": row.get("vrf", "default"),
@@ -798,7 +826,8 @@ def _normalise_vrfs(rows, _platform) -> list:
         if isinstance(row, dict):
             out.append(
                 {
-                    "name": row.get("name") or row.get("vrf_name", ""),
+                    # Arista TextFSM template uses 'vrf'; others use 'name' / 'vrf_name'
+                    "name": row.get("name") or row.get("vrf") or row.get("vrf_name", ""),
                     "rd": row.get("default_rd") or row.get("rd", ""),
                     "interfaces": row.get("interfaces", ""),
                 }
@@ -812,8 +841,10 @@ def _normalise_bgp(rows, _platform) -> list:
         if isinstance(row, dict):
             out.append(
                 {
-                    "neighbor": row.get("bgp_neighbor") or row.get("neighbor", ""),
-                    "as": row.get("neighbor_as") or row.get("remote_as", ""),
+                    # Arista template: bgp_neigh; others: bgp_neighbor / neighbor
+                    "neighbor": row.get("bgp_neighbor") or row.get("bgp_neigh") or row.get("neighbor", ""),
+                    # Arista template: neigh_as; others: neighbor_as / remote_as
+                    "as": row.get("neighbor_as") or row.get("neigh_as") or row.get("remote_as", ""),
                     "state": row.get("state_pfxrcd") or row.get("state", ""),
                     "uptime": row.get("up_down") or row.get("uptime", ""),
                     "prefixes_rx": row.get("state_pfxrcd", ""),

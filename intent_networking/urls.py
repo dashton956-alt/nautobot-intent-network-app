@@ -13,6 +13,7 @@ router.register("vni-pools", views.VxlanVniPoolUIViewSet)
 urlpatterns = (
     [
         # ── Bulk Intent Actions (must precede router to avoid <pk> capture) ──
+        path("intents/grouped/", views.IntentGroupedView.as_view(), name="intent_grouped"),
         path("intents/bulk-dry-run/", views.IntentBulkDryRunView.as_view(), name="intent_bulk_dry_run"),
         path("intents/bulk-preview/", views.IntentBulkPreviewView.as_view(), name="intent_bulk_preview"),
         path("intents/bulk-deploy/", views.IntentBulkDeployView.as_view(), name="intent_bulk_deploy"),

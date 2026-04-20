@@ -22,4 +22,9 @@
             class="btn btn-sm btn-primary">
         <span class="mdi mdi-check-decagram" aria-hidden="true"></span> Validate
     </button>
+    <a href="{% url 'plugins:intent_networking:intent_grouped' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+       class="btn btn-sm btn-default" style="margin-left: 8px;"
+       title="View intents grouped by domain">
+        <span class="mdi mdi-folder-multiple-outline" aria-hidden="true"></span> Group by Domain
+    </a>
 {% endblock bulk_buttons %}
