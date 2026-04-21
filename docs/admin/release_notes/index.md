@@ -4,6 +4,7 @@ All published release notes are listed below. Patch releases are included within
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [v2.0.8](version_2.0.8.md) | 2026-04-21 | Bug-fix release: Arista live collection (ARP raw-string fallback, VRF/BGP/route field keys, next_hop list join); adds grouped-by-domain intent list view |
 | [v2.0.7](version_2.0.7.md) | 2026-04-17 | Bug-fix release: NUTS nornir-config flag, Netmiko platform key, VerificationResult detail view 500, cEOS credential bypass; adds save_config deployment flag and TestNapalmRunningConfigContains |
 | [v2.0.6](version_2.0.6.md) | 2026-04-16 | Major feature release: NUTS verification, fw_rule intent type, Catalyst Center adapter, intent dependency graph, Approve/Reject UI, .intentignore, management intent types, VNI Pool UI, and 4 bug fixes |
 | [v2.0.5](version_2.0.5.md) | 2026-04-15 | Fix device credential resolution — use SSH access type for SecretsGroups; per-device credential lookup |
