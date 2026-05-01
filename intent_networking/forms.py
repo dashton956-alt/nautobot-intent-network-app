@@ -93,6 +93,14 @@ class VxlanVniPoolForm(NautobotModelForm):  # pylint: disable=too-many-ancestors
         }
 
 
+class VxlanVniPoolFilterForm(NautobotFilterForm):
+    """Filter form for the VxlanVniPool list view."""
+
+    model = VxlanVniPool
+    q = forms.CharField(required=False, label="Search")
+    tenant = forms.ModelMultipleChoiceField(queryset=Tenant.objects.all(), required=False)
+
+
 class IntentFilterForm(NautobotFilterForm):
     """Filter form for the Intent list view."""
 

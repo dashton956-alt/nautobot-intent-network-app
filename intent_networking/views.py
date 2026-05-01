@@ -22,11 +22,13 @@ from intent_networking.api.serializers import IntentSerializer, VxlanVniPoolSeri
 from intent_networking.filters import (
     IntentAuditEntryFilterSet,
     IntentFilterSet,
+    VxlanVniPoolFilterSet,
 )
 from intent_networking.forms import (
     IntentBulkEditForm,
     IntentFilterForm,
     IntentForm,
+    VxlanVniPoolFilterForm,
     VxlanVniPoolForm,
 )
 from intent_networking.models import (
@@ -575,6 +577,8 @@ class VxlanVniPoolUIViewSet(NautobotUIViewSet):
     queryset = VxlanVniPool.objects.prefetch_related("tenant")
     serializer_class = VxlanVniPoolSerializer
     form_class = VxlanVniPoolForm
+    filterset_class = VxlanVniPoolFilterSet
+    filterset_form_class = VxlanVniPoolFilterForm
     table_class = VxlanVniPoolTable
 
 
