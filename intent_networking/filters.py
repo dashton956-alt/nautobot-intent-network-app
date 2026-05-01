@@ -9,6 +9,7 @@ from intent_networking.models import (
     Intent,
     IntentAuditEntry,
     IntentTypeChoices,
+    VxlanVniPool,
 )
 
 
@@ -62,3 +63,20 @@ class IntentAuditEntryFilterSet(NautobotFilterSet):  # pylint: disable=too-many-
     def search(self, queryset, _name, value):
         """Filter audit entries by intent_id or actor substring."""
         return queryset.filter(intent__intent_id__icontains=value) | queryset.filter(actor__icontains=value)
+
+
+class VxlanVniPoolFilterSet(NautobotFilterSet):  # pylint: disable=too-many-ancestors
+    """FilterSet for the VxlanVniPool model."""
+
+    q = django_filters.CharFilter(method="search", label="Search")
+    tenant = django_filters.ModelMultipleChoiceFilter(queryset=Tenant.objects.all(), label="Tenant")
+
+    class Meta:
+        """Meta options for VxlanVniPoolFilterSet."""
+
+        model = VxlanVniPool
+        fields = ["name", "tenant"]
+
+    def search(self, queryset, _name, value):
+        """Filter VNI pools by name substring."""
+        return queryset.filter(name__icontains=value)

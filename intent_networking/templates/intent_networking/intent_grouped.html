@@ -4,156 +4,156 @@
 {% block title %}Intents — Grouped by Domain{% endblock title %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
+    <div class="row">
+        <div class="col-md-12">
 
         {# ── Breadcrumb / header ──────────────────────────────────────────── #}
-        <ol class="breadcrumb">
-            <li><a href="{% url 'plugins:intent_networking:dashboard' %}">Intent Engine</a></li>
-            <li><a href="{% url 'plugins:intent_networking:intent_list' %}">Intents</a></li>
-            <li class="active">Grouped by Domain</li>
-        </ol>
+            <ol class="breadcrumb">
+                <li><a href="{% url 'plugins:intent_networking:dashboard' %}">Intent Engine</a></li>
+                <li><a href="{% url 'plugins:intent_networking:intent_list' %}">Intents</a></li>
+                <li class="active">Grouped by Domain</li>
+            </ol>
 
         {# ── Title row ────────────────────────────────────────────────────── #}
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
-            <h1 style="margin:0;">
-                <span class="mdi mdi-folder-multiple-outline" style="margin-right:8px; color:#3498db;"></span>
-                Intents — Grouped by Domain
-                <small class="text-muted" style="font-size:14px; margin-left:12px;">{{ total }} total</small>
-            </h1>
-            <div>
-                <a href="{% url 'plugins:intent_networking:intent_list' %}{% if active_filters %}?{{ active_filters }}{% endif %}"
-                   class="btn btn-sm btn-default">
-                    <span class="mdi mdi-format-list-bulleted"></span> Table View
-                </a>
-                <a href="{% url 'plugins:intent_networking:intent_add' %}" class="btn btn-sm btn-primary" style="margin-left:4px;">
-                    <span class="mdi mdi-plus"></span> New Intent
-                </a>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                <h1 style="margin:0;">
+                    <span class="mdi mdi-folder-multiple-outline" style="margin-right:8px; color:#3498db;"></span>
+                    Intents — Grouped by Domain
+                    <small class="text-muted" style="font-size:14px; margin-left:12px;">{{ total }} total</small>
+                </h1>
+                <div>
+                    <a href="{% url 'plugins:intent_networking:intent_list' %}{% if active_filters %}?{{ active_filters }}{% endif %}"
+                       class="btn btn-sm btn-default">
+                        <span class="mdi mdi-format-list-bulleted"></span> Table View
+                    </a>
+                    <a href="{% url 'plugins:intent_networking:intent_add' %}" class="btn btn-sm btn-primary" style="margin-left:4px;">
+                        <span class="mdi mdi-plus"></span> New Intent
+                    </a>
+                </div>
             </div>
-        </div>
 
         {# ── Filter notice ────────────────────────────────────────────────── #}
-        {% if active_filters %}
-        <div class="alert alert-info" style="padding:8px 14px; margin-bottom:14px; font-size:13px;">
-            <span class="mdi mdi-filter-outline"></span>
-            Filters active — showing a filtered subset.
-            <a href="{% url 'plugins:intent_networking:intent_grouped' %}" class="alert-link" style="margin-left:8px;">Clear filters</a>
-        </div>
-        {% endif %}
+            {% if active_filters %}
+                <div class="alert alert-info" style="padding:8px 14px; margin-bottom:14px; font-size:13px;">
+                    <span class="mdi mdi-filter-outline"></span>
+                    Filters active — showing a filtered subset.
+                    <a href="{% url 'plugins:intent_networking:intent_grouped' %}" class="alert-link" style="margin-left:8px;">Clear filters</a>
+                </div>
+            {% endif %}
 
         {# ── Empty state ──────────────────────────────────────────────────── #}
-        {% if not grouped_intents %}
-        <div class="panel panel-default">
-            <div class="panel-body text-center text-muted" style="padding:40px;">
-                <span class="mdi mdi-inbox-outline" style="font-size:48px; display:block; margin-bottom:12px;"></span>
-                No intents found.
-            </div>
-        </div>
-        {% endif %}
-
-        {# ── Domain accordion ─────────────────────────────────────────────── #}
-        <div class="panel-group" id="domain-accordion" role="tablist">
-            {% for group in grouped_intents %}
-            <div class="panel panel-default" style="border-left: 4px solid {{ group.color }};">
-
-                {# Panel heading / toggle ─────────────────────────────────── #}
-                <div class="panel-heading" role="tab" id="heading-{{ forloop.counter }}"
-                     style="cursor:pointer; padding:10px 15px;"
-                     data-toggle="collapse"
-                     data-parent="#domain-accordion"
-                     data-target="#collapse-{{ forloop.counter }}"
-                     aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
-                     aria-controls="collapse-{{ forloop.counter }}">
-                    <h4 class="panel-title" style="margin:0; display:flex; align-items:center; gap:10px;">
-                        <span class="mdi {{ group.icon }}" style="color:{{ group.color }}; font-size:18px;"></span>
-                        <strong style="flex:1;">{{ group.domain }}</strong>
-                        <span class="badge" style="background:{{ group.color }}; color:#fff;">{{ group.count }}</span>
-                        <span class="mdi mdi-chevron-down text-muted" style="font-size:16px; transition:transform .2s;"></span>
-                    </h4>
-                </div>
-
-                {# Collapsible body ─────────────────────────────────────────── #}
-                <div id="collapse-{{ forloop.counter }}"
-                     class="panel-collapse collapse {% if forloop.first %}in{% endif %}"
-                     role="tabpanel"
-                     aria-labelledby="heading-{{ forloop.counter }}">
-                    <div class="panel-body" style="padding:0;">
-                        <table class="table table-hover table-condensed" style="margin-bottom:0;">
-                            <thead style="background:#f8f9fa;">
-                                <tr>
-                                    <th style="width:28%;">Intent ID</th>
-                                    <th style="width:22%;">Type</th>
-                                    <th style="width:14%;">Tenant</th>
-                                    <th style="width:12%;">Status</th>
-                                    <th style="width:8%; text-align:center;">Approved</th>
-                                    <th style="width:16%;">Deployed</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for intent in group.intents %}
-                                <tr>
-                                    <td>
-                                        <a href="{{ intent.get_absolute_url }}"
-                                           style="font-family:monospace; font-size:12px; font-weight:600;">
-                                            {{ intent.intent_id }}
-                                        </a>
-                                    </td>
-                                    <td class="text-muted" style="font-size:12px;">
-                                        {{ intent.get_intent_type_display }}
-                                    </td>
-                                    <td class="text-muted" style="font-size:12px;">
-                                        {% if intent.tenant %}
-                                            <a href="{{ intent.tenant.get_absolute_url }}">{{ intent.tenant }}</a>
-                                        {% else %}
-                                            &mdash;
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="label
-                                            {% if intent.status.name == 'Deployed' %}label-success
-                                            {% elif intent.status.name == 'Failed' %}label-danger
-                                            {% elif intent.status.name == 'Deploying' %}label-info
-                                            {% elif intent.status.name == 'Validated' %}label-primary
-                                            {% elif intent.status.name == 'Rolled Back' %}label-warning
-                                            {% else %}label-default{% endif %}"
-                                              style="font-size:11px;">
-                                            {{ intent.status }}
-                                        </span>
-                                    </td>
-                                    <td style="text-align:center;">
-                                        {% if intent.is_approved %}
-                                            <span class="mdi mdi-check-circle text-success" title="Approved"></span>
-                                        {% else %}
-                                            <span class="mdi mdi-clock-outline text-muted" title="Pending"></span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-muted" style="font-size:11px;">
-                                        {% if intent.deployed_at %}
-                                            {{ intent.deployed_at|date:"d M Y H:i" }}
-                                        {% else %}
-                                            &mdash;
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+            {% if not grouped_intents %}
+                <div class="panel panel-default">
+                    <div class="panel-body text-center text-muted" style="padding:40px;">
+                        <span class="mdi mdi-inbox-outline" style="font-size:48px; display:block; margin-bottom:12px;"></span>
+                        No intents found.
                     </div>
                 </div>
+            {% endif %}
 
+        {# ── Domain accordion ─────────────────────────────────────────────── #}
+            <div class="panel-group" id="domain-accordion" role="tablist">
+                {% for group in grouped_intents %}
+                    <div class="panel panel-default" style="border-left: 4px solid {{ group.color }};">
+
+                {# Panel heading / toggle ─────────────────────────────────── #}
+                        <div class="panel-heading" role="tab" id="heading-{{ forloop.counter }}"
+                             style="cursor:pointer; padding:10px 15px;"
+                             data-toggle="collapse"
+                             data-parent="#domain-accordion"
+                             data-target="#collapse-{{ forloop.counter }}"
+                             aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                             aria-controls="collapse-{{ forloop.counter }}">
+                            <h4 class="panel-title" style="margin:0; display:flex; align-items:center; gap:10px;">
+                                <span class="mdi {{ group.icon }}" style="color:{{ group.color }}; font-size:18px;"></span>
+                                <strong style="flex:1;">{{ group.domain }}</strong>
+                                <span class="badge" style="background:{{ group.color }}; color:#fff;">{{ group.count }}</span>
+                                <span class="mdi mdi-chevron-down text-muted" style="font-size:16px; transition:transform .2s;"></span>
+                            </h4>
+                        </div>
+
+                {# Collapsible body ─────────────────────────────────────────── #}
+                        <div id="collapse-{{ forloop.counter }}"
+                             class="panel-collapse collapse {% if forloop.first %}in{% endif %}"
+                             role="tabpanel"
+                             aria-labelledby="heading-{{ forloop.counter }}">
+                            <div class="panel-body" style="padding:0;">
+                                <table class="table table-hover table-condensed" style="margin-bottom:0;">
+                                    <thead style="background:#f8f9fa;">
+                                        <tr>
+                                            <th style="width:28%;">Intent ID</th>
+                                            <th style="width:22%;">Type</th>
+                                            <th style="width:14%;">Tenant</th>
+                                            <th style="width:12%;">Status</th>
+                                            <th style="width:8%; text-align:center;">Approved</th>
+                                            <th style="width:16%;">Deployed</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for intent in group.intents %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{{ intent.get_absolute_url }}"
+                                                       style="font-family:monospace; font-size:12px; font-weight:600;">
+                                                        {{ intent.intent_id }}
+                                                    </a>
+                                                </td>
+                                                <td class="text-muted" style="font-size:12px;">
+                                                    {{ intent.get_intent_type_display }}
+                                                </td>
+                                                <td class="text-muted" style="font-size:12px;">
+                                                    {% if intent.tenant %}
+                                                        <a href="{{ intent.tenant.get_absolute_url }}">{{ intent.tenant }}</a>
+                                                    {% else %}
+                                                        &mdash;
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="label
+                                                                 {% if intent.status.name == 'Deployed' %}label-success
+                                                                 {% elif intent.status.name == 'Failed' %}label-danger
+                                                                 {% elif intent.status.name == 'Deploying' %}label-info
+                                                                 {% elif intent.status.name == 'Validated' %}label-primary
+                                                                 {% elif intent.status.name == 'Rolled Back' %}label-warning
+                                                                 {% else %}label-default{% endif %}"
+                                                          style="font-size:11px;">
+                                                        {{ intent.status }}
+                                                    </span>
+                                                </td>
+                                                <td style="text-align:center;">
+                                                    {% if intent.is_approved %}
+                                                        <span class="mdi mdi-check-circle text-success" title="Approved"></span>
+                                                    {% else %}
+                                                        <span class="mdi mdi-clock-outline text-muted" title="Pending"></span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-muted" style="font-size:11px;">
+                                                    {% if intent.deployed_at %}
+                                                        {{ intent.deployed_at|date:"d M Y H:i" }}
+                                                    {% else %}
+                                                        &mdash;
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                {% endfor %}
             </div>
-            {% endfor %}
+
         </div>
-
     </div>
-</div>
 
-<style>
-    .panel-heading[data-toggle="collapse"] .mdi-chevron-down {
-        transition: transform .2s ease;
-    }
-    .panel-heading[data-toggle="collapse"].collapsed .mdi-chevron-down {
-        transform: rotate(-90deg);
-    }
-</style>
+    <style>
+        .panel-heading[data-toggle="collapse"] .mdi-chevron-down {
+            transition: transform .2s ease;
+        }
+        .panel-heading[data-toggle="collapse"].collapsed .mdi-chevron-down {
+            transform: rotate(-90deg);
+        }
+    </style>
 {% endblock content %}
