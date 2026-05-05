@@ -28,6 +28,29 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.9 (Nautobot 3.1.1 compatibility fix)
+
+v2.0.9 is a **patch release** — no database migrations are included.
+
+```bash
+pip install --upgrade nautobot-app-intent-networking==2.0.9
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+No breaking changes. This release is required if you are running Nautobot 3.1.1 and using the VNI Pools list view.
+See the [v2.0.9 release notes](../admin/release_notes/version_2.0.9.md) for details.
+
+### Upgrading to v2.0.8 (Arista live collection fixes)
+
+v2.0.8 is a **patch release** — no database migrations are included.
+
+```bash
+pip install --upgrade nautobot-app-intent-networking==2.0.8
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+No breaking changes. See the [v2.0.8 release notes](../admin/release_notes/version_2.0.8.md) for details.
+
 ### Upgrading to v2.0.6 (major feature release)
 
 v2.0.6 is a **feature release** and includes multiple database migrations.
