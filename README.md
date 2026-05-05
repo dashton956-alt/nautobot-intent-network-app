@@ -129,6 +129,7 @@ cd development && docker compose -f docker-compose.opa.yml up -d && cd ..
 Nautobot is now available at **http://localhost:8080** (admin / admin).
 
 To load intents, either:
+
 - Point a Nautobot **GitRepository** at your network-as-code repo with the *"intent definitions"* content type selected, then click **Sync** — intents are discovered and created automatically.
 - Or use the REST API: `POST /api/plugins/intent-networking/intents/sync-from-git/`.
 

@@ -228,6 +228,7 @@ Rendered device configurations (CLI or structured config) are cached in two plac
 Device configurations for security-sensitive intent types (e.g., `ipsec_s2s`, `aaa`, `mgmt_snmp`, `fw_rule`) may contain pre-shared keys, SNMP community strings, RADIUS/TACACS shared secrets, or banner text that could be considered sensitive operational data. These are stored in plaintext JSON in the application database with no encryption at the application layer.
 
 **Recommendation:**
+
 1. Evaluate which intent types produce configurations containing credentials or secrets and redact those fields before caching (e.g., replace SNMP community strings with `***` in stored configs).
 2. Do not store full rendered configs in `IntentAuditEntry.detail` — store only a reference (e.g., a hash or S3/object-store URL) for the actual config content.
 3. Ensure the database itself uses transparent data encryption (TDE) at the infrastructure level.
@@ -281,6 +282,7 @@ Apply Django REST Framework's throttling classes (`UserRateThrottle`, `AnonRateT
 There is no data retention policy, automatic purging, or pseudonymisation mechanism. GDPR requires a documented retention period and the ability to erase or pseudonymise personal data when it is no longer necessary for the purpose for which it was collected.
 
 **Recommendation:**
+
 1. Define and document a data retention period for audit records (e.g., 7 years for financial services, 1–3 years for general operations).
 2. Implement an automated data purge or pseudonymisation job that replaces `actor` usernames with a non-identifiable token (e.g., a one-way hash) after the retention period expires.
 3. Avoid storing personal identifiers in the `detail` JSON field; use only functional identifiers (intent IDs, approval IDs, job IDs).
@@ -520,6 +522,7 @@ with open(filepath, "r", encoding="utf-8") as fd:
 If an attacker were to compromise the Git repository or the filesystem where it is cloned (a supply-chain attack), they could introduce malicious intent files that would be silently imported into Nautobot and potentially deployed to the network.
 
 **Recommendation:**
+
 1. Require that intent YAML files in production repositories are GPG-signed by authorised committers.
 2. Validate the Git commit signature as part of the `refresh_git_intent_definitions` callback.
 3. At minimum, log the `git_commit_sha` for every file loaded (already done at the intent level) and use Nautobot's GitRepository branch protection to restrict who can push to the main/production branch.
