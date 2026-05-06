@@ -59,9 +59,9 @@
                 {# Panel heading / toggle ─────────────────────────────────── #}
                         <div class="panel-heading" role="tab" id="heading-{{ forloop.counter }}"
                              style="cursor:pointer; padding:10px 15px;"
-                             data-toggle="collapse"
-                             data-parent="#domain-accordion"
-                             data-target="#collapse-{{ forloop.counter }}"
+                             data-bs-toggle="collapse"
+                             data-bs-parent="#domain-accordion"
+                             data-bs-target="#collapse-{{ forloop.counter }}"
                              aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
                              aria-controls="collapse-{{ forloop.counter }}">
                             <h4 class="panel-title" style="margin:0; display:flex; align-items:center; gap:10px;">
@@ -74,7 +74,7 @@
 
                 {# Collapsible body ─────────────────────────────────────────── #}
                         <div id="collapse-{{ forloop.counter }}"
-                             class="panel-collapse collapse {% if forloop.first %}in{% endif %}"
+                             class="panel-collapse collapse {% if forloop.first %}show{% endif %}"
                              role="tabpanel"
                              aria-labelledby="heading-{{ forloop.counter }}">
                             <div class="panel-body" style="padding:0;">
