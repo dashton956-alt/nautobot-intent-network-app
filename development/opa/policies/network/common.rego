@@ -34,14 +34,20 @@ deny[msg] {
 # ─────────────────────────────────────────────────────────────────────────────
 
 deny[msg] {
-    not input.intent.version
-    msg := "version is required on all intents"
+    not is_number(input.intent.version)
+    msg := "version is required on all intents and must be a number"
 }
 
 deny[msg] {
-    v := input.intent.version
-    v <= 0
-    msg := sprintf("version must be a positive integer, got %v", [v])
+    is_number(input.intent.version)
+    input.intent.version <= 0
+    msg := sprintf("version must be a positive integer, got %v", [input.intent.version])
+}
+
+deny[msg] {
+    is_number(input.intent.version)
+    input.intent.version > 9999
+    msg := sprintf("version must be <= 9999, got %v — check for a typo", [input.intent.version])
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -89,4 +95,40 @@ deny[msg] {
     input.intent.type in high_impact_types
     input.metadata.approved_by == ""
     msg := sprintf("approved_by is required for high-impact intent type '%v'", [input.intent.type])
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Scope — at least one targeting mechanism must be present
+# ─────────────────────────────────────────────────────────────────────────────
+
+scope_present {
+    input.intent.scope.all_tenant_devices == true
+}
+
+scope_present {
+    count(input.intent.scope.devices) > 0
+}
+
+scope_present {
+    count(input.intent.scope.sites) > 0
+}
+
+scope_present {
+    count(input.intent.scope.roles) > 0
+}
+
+deny[msg] {
+    not scope_present
+    msg := "at least one scope field must be present (scope.devices, scope.sites, scope.roles, or scope.all_tenant_devices: true)"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Plaintext credentials — type 0 passwords are never permitted
+# ─────────────────────────────────────────────────────────────────────────────
+
+deny[msg] {
+    input.intent.type in {"mgmt_aaa_device", "mgmt_global_config"}
+    cred := input.intent.management.credentials[_]
+    cred.encryption_type == 0
+    msg := sprintf("plaintext credentials (encryption_type: 0) are not permitted in intent '%v' — use type 7 or hashed credentials", [input.metadata.intent_id])
 }
