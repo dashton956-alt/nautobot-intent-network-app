@@ -90,18 +90,21 @@ def check_intent_policy(intent, topology_context: dict) -> dict:
     }
 
     violations = []
+    warnings = []
 
     # Common policies
     for package in ["network.common", "network.compliance", "network.capacity"]:
         result = _query_opa(package, input_data)
         if result:
             violations.extend(result.get("deny", []))
+            warnings.extend(result.get("warn", []))
 
     # Customer-specific policy (if it exists)
     customer_package = f"network.customers.{tenant_slug.replace('-', '_')}"
     result = _query_opa(customer_package, input_data)
     if result:
         violations.extend(result.get("deny", []))
+        warnings.extend(result.get("warn", []))
 
     # Per-intent-type policy (if it exists)
     intent_type = intent.intent_type
@@ -110,6 +113,7 @@ def check_intent_policy(intent, topology_context: dict) -> dict:
         result = _query_opa(type_package, input_data)
         if result:
             violations.extend(result.get("deny", []))
+            warnings.extend(result.get("warn", []))
 
     # User-configured custom policy packages
     custom_packages = _plugin_cfg("opa_custom_packages", [])
@@ -117,10 +121,15 @@ def check_intent_policy(intent, topology_context: dict) -> dict:
         result = _query_opa(package, input_data)
         if result:
             violations.extend(result.get("deny", []))
+            warnings.extend(result.get("warn", []))
+
+    if warnings:
+        logger.warning("OPA advisory warnings for intent %s: %s", intent.intent_id, warnings)
 
     return {
         "allowed": len(violations) == 0,
         "violations": violations,
+        "warnings": warnings,
     }
 
 
@@ -187,6 +196,10 @@ def check_approval_gate(intent) -> dict:
 
     result = check_intent_policy(intent, topology_context={})
 
+    warnings = result.get("warnings", [])
+    if warnings:
+        logger.warning("OPA advisory warnings for intent %s at approval: %s", intent.intent_id, warnings)
+
     if not result.get("allowed", False):
         violations = result.get("violations", ["OPA policy check failed"])
         logger.warning(
@@ -194,9 +207,9 @@ def check_approval_gate(intent) -> dict:
             intent.intent_id,
             violations,
         )
-        return {"allowed": False, "violations": violations, "opa_checked": True}
+        return {"allowed": False, "violations": violations, "warnings": warnings, "opa_checked": True}
 
-    return {"allowed": True, "violations": [], "opa_checked": True}
+    return {"allowed": True, "violations": [], "warnings": warnings, "opa_checked": True}
 
 
 def _query_opa(package: str, input_data: dict) -> dict:

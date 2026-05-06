@@ -39,7 +39,8 @@ deny[msg] {
 }
 
 deny[msg] {
-    input.intent.type in {"ipsec_s2s", "ipsec_ikev2", "gre_over_ipsec"}
+    # ipsec_ikev2 uses security.ipsec_ikev2.* not tunnel.* — excluded here
+    input.intent.type in {"ipsec_s2s", "gre_over_ipsec"}
     not input.intent.tunnel
     msg := "IPSec intent requires a 'tunnel' block"
 }
