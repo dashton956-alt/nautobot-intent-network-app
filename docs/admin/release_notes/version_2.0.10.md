@@ -33,6 +33,7 @@ Also included: fixes to the **grouped-by-domain** collapsible panel view (Bootst
 | Service | `service_lb_vip` |
 
 Each file includes:
+
 - Every possible field for the intent type, derived directly from resolver and template source
 - `MANDATORY` / `OPTIONAL` inline markers on every field
 - Valid values for enumerated fields (e.g. `rolling | canary | all_at_once`)
