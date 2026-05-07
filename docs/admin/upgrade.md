@@ -28,6 +28,18 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.11 (multi-port Layer 2 support)
+
+v2.0.11 is a **feature release** — no database migrations are included.
+
+```bash
+pip install --upgrade nautobot-app-intent-networking==2.0.11
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+No breaking changes. Existing `l2_access_port` and `l2_trunk_port` intents using the single `interface` / `vlan_id` form continue to work unchanged — no YAML edits required.
+See the [v2.0.11 release notes](../admin/release_notes/version_2.0.11.md) for details and examples.
+
 ### Upgrading to v2.0.10 (example library and OPA hardening)
 
 v2.0.10 is a **feature release** — no database migrations are included.
