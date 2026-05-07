@@ -52,6 +52,7 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 No breaking changes. Drop-in replacement for v2.0.9.
 See the [v2.0.10 release notes](../admin/release_notes/version_2.0.10.md) for details.
 
+
 ### Upgrading to v2.0.9 (Nautobot 3.1.1 compatibility fix)
 
 v2.0.9 is a **patch release** — no database migrations are included.

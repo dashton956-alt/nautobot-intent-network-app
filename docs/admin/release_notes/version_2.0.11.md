@@ -6,7 +6,7 @@
 
 ## Summary
 
-v2.0.11 adds multi-port support for `l2_access_port` and `l2_trunk_port` intents. Previously, one intent was required per switchport. Now a single intent can configure any number of ports in one deployment using a `ports` list — each entry specifying its own interface, VLAN(s), and optional settings.
+v2.0.11 adds multi-port support for `l2_access_port` and `l2_trunk_port` intents. Previously, one intent was required per switchport. A single intent can now configure any number of ports in one deployment using a `ports` list — each entry specifying its own interface, VLAN(s), and optional per-port settings.
 
 The change is fully backward-compatible. Existing intents using the single `interface` / `vlan_id` form continue to work without modification.
 
@@ -14,7 +14,7 @@ The change is fully backward-compatible. Existing intents using the single `inte
 
 - **Multi-port `l2_access_port`** — add a `ports` list where each entry has `interface`, `vlan_id`, and optional `voice_vlan`, `description`, `portfast`, `bpdu_guard`
 - **Multi-port `l2_trunk_port`** — add a `ports` list where each entry has `interface`, and optional `allowed_vlans`, `native_vlan`, `description`
-- **Example YAML files** — `network_as_code_example/intents/layer2/l2_access_port.yaml` and `l2_trunk_port.yaml` added with full MANDATORY/OPTIONAL field documentation and legacy form reference
+- **Example YAML files** — `network_as_code_example/intents/layer2/l2_access_port.yaml` and `l2_trunk_port.yaml` with full MANDATORY/OPTIONAL field documentation and legacy form reference
 
 ## Upgrade
 
@@ -25,7 +25,11 @@ pip install --upgrade nautobot-app-intent-networking==2.0.11
 sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 ```
 
-## Example — Multi-Port Access
+No breaking changes. Existing `l2_access_port` and `l2_trunk_port` intents using the single `interface` / `vlan_id` form continue to work unchanged — no YAML edits required.
+
+## Examples
+
+### Multi-Port Access
 
 ```yaml
 id: acme-l2-access-001
@@ -46,7 +50,7 @@ ports:
     vlan_id: 200
 ```
 
-## Example — Multi-Port Trunk
+### Multi-Port Trunk
 
 ```yaml
 id: acme-l2-trunk-001
