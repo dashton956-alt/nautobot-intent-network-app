@@ -498,9 +498,7 @@ def resolve_l2_access_port(intent) -> dict:
         port_list = intent_data["ports"]
         for i, port in enumerate(port_list):
             if not port.get("interface") or not port.get("vlan_id"):
-                raise ValueError(
-                    f"Intent {intent.intent_id}: ports[{i}] must have 'interface' and 'vlan_id'."
-                )
+                raise ValueError(f"Intent {intent.intent_id}: ports[{i}] must have 'interface' and 'vlan_id'.")
     else:
         interface_name = intent_data.get("interface")
         vlan_id = intent_data.get("vlan_id")
