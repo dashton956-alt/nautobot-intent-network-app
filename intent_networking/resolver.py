@@ -485,12 +485,35 @@ def resolve_vlan_provision(intent) -> dict:
 
 @transaction.atomic
 def resolve_l2_access_port(intent) -> dict:
-    """Resolve an access port intent. Assigns a switchport to a single VLAN."""
+    """Resolve an access port intent.
+
+    Supports two forms:
+    - Multi-port (new): ``ports`` list where each entry has ``interface`` and ``vlan_id``.
+    - Single-port (legacy): top-level ``interface`` and ``vlan_id`` fields.
+    Both forms are fully equivalent and backward-compatible.
+    """
     intent_data = intent.intent_data
-    interface_name = intent_data.get("interface")
-    vlan_id = intent_data.get("vlan_id")
-    if not interface_name or not vlan_id:
-        raise ValueError(f"Intent {intent.intent_id}: 'interface' and 'vlan_id' required for l2_access_port.")
+
+    if intent_data.get("ports"):
+        port_list = intent_data["ports"]
+        for i, port in enumerate(port_list):
+            if not port.get("interface") or not port.get("vlan_id"):
+                raise ValueError(f"Intent {intent.intent_id}: ports[{i}] must have 'interface' and 'vlan_id'.")
+    else:
+        interface_name = intent_data.get("interface")
+        vlan_id = intent_data.get("vlan_id")
+        if not interface_name or not vlan_id:
+            raise ValueError(f"Intent {intent.intent_id}: 'interface' and 'vlan_id' required for l2_access_port.")
+        port_list = [
+            {
+                "interface": interface_name,
+                "vlan_id": vlan_id,
+                "voice_vlan": intent_data.get("voice_vlan"),
+                "description": intent_data.get("description", ""),
+                "portfast": intent_data.get("portfast", True),
+                "bpdu_guard": intent_data.get("bpdu_guard", True),
+            }
+        ]
 
     devices = _get_scope_devices(intent)
     primitives = []
@@ -498,32 +521,54 @@ def resolve_l2_access_port(intent) -> dict:
 
     for device in devices:
         affected.append(device.name)
-        primitives.append(
-            {
-                "primitive_type": "l2_port",
-                "device": device.name,
-                "interface": interface_name,
-                "mode": "access",
-                "access_vlan": vlan_id,
-                "voice_vlan": intent_data.get("voice_vlan"),
-                "description": intent_data.get("description", ""),
-                "portfast": intent_data.get("portfast", True),
-                "bpdu_guard": intent_data.get("bpdu_guard", True),
-                "intent_id": intent.intent_id,
-            }
-        )
+        for port in port_list:
+            primitives.append(
+                {
+                    "primitive_type": "l2_port",
+                    "device": device.name,
+                    "interface": port["interface"],
+                    "mode": "access",
+                    "access_vlan": port["vlan_id"],
+                    "voice_vlan": port.get("voice_vlan"),
+                    "description": port.get("description", ""),
+                    "portfast": port.get("portfast", True),
+                    "bpdu_guard": port.get("bpdu_guard", True),
+                    "intent_id": intent.intent_id,
+                }
+            )
 
     return _empty_plan(affected, primitives)
 
 
 @transaction.atomic
 def resolve_l2_trunk_port(intent) -> dict:
-    """Resolve a trunk port intent. Configures allowed VLANs on an uplink."""
+    """Resolve a trunk port intent. Configures allowed VLANs on an uplink.
+
+    Supports two forms:
+    - Multi-port (new): ``ports`` list where each entry has ``interface`` and optionally
+      ``allowed_vlans`` and ``native_vlan``.
+    - Single-port (legacy): top-level ``interface``, ``allowed_vlans``, ``native_vlan`` fields.
+    Both forms are fully equivalent and backward-compatible.
+    """
     intent_data = intent.intent_data
-    interface_name = intent_data.get("interface")
-    allowed_vlans = intent_data.get("allowed_vlans", [])
-    if not interface_name:
-        raise ValueError(f"Intent {intent.intent_id}: 'interface' required for l2_trunk_port.")
+
+    if intent_data.get("ports"):
+        port_list = intent_data["ports"]
+        for i, port in enumerate(port_list):
+            if not port.get("interface"):
+                raise ValueError(f"Intent {intent.intent_id}: ports[{i}] must have 'interface'.")
+    else:
+        interface_name = intent_data.get("interface")
+        if not interface_name:
+            raise ValueError(f"Intent {intent.intent_id}: 'interface' required for l2_trunk_port.")
+        port_list = [
+            {
+                "interface": interface_name,
+                "allowed_vlans": intent_data.get("allowed_vlans", []),
+                "native_vlan": intent_data.get("native_vlan"),
+                "description": intent_data.get("description", ""),
+            }
+        ]
 
     devices = _get_scope_devices(intent)
     primitives = []
@@ -531,18 +576,19 @@ def resolve_l2_trunk_port(intent) -> dict:
 
     for device in devices:
         affected.append(device.name)
-        primitives.append(
-            {
-                "primitive_type": "l2_port",
-                "device": device.name,
-                "interface": interface_name,
-                "mode": "trunk",
-                "allowed_vlans": allowed_vlans,
-                "native_vlan": intent_data.get("native_vlan"),
-                "description": intent_data.get("description", ""),
-                "intent_id": intent.intent_id,
-            }
-        )
+        for port in port_list:
+            primitives.append(
+                {
+                    "primitive_type": "l2_port",
+                    "device": device.name,
+                    "interface": port["interface"],
+                    "mode": "trunk",
+                    "allowed_vlans": port.get("allowed_vlans", []),
+                    "native_vlan": port.get("native_vlan"),
+                    "description": port.get("description", ""),
+                    "intent_id": intent.intent_id,
+                }
+            )
 
     return _empty_plan(affected, primitives)
 

@@ -26,11 +26,13 @@ deny[msg] {
 deny[msg] {
     neighbor := input.intent.routing.neighbors[_]
     not neighbor.remote_as
-    msg := sprintf("[bgp_ebgp] neighbor '%v' is missing remote_as", [neighbor.ip])
+    ip := object.get(neighbor, "ip", "<unknown>")
+    msg := sprintf("[bgp_ebgp] neighbor '%v' is missing remote_as", [ip])
 }
 
 deny[msg] {
     neighbor := input.intent.routing.neighbors[_]
     neighbor.remote_as == input.intent.routing.as_number
-    msg := sprintf("[bgp_ebgp] neighbor '%v' has same ASN as local router (%v) — use bgp_ibgp intent type instead", [neighbor.ip, input.intent.routing.as_number])
+    ip := object.get(neighbor, "ip", "<unknown>")
+    msg := sprintf("[bgp_ebgp] neighbor '%v' has same ASN as local router (%v) — use bgp_ibgp intent type instead", [ip, input.intent.routing.as_number])
 }
