@@ -28,6 +28,18 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.10 (example library and OPA hardening)
+
+v2.0.10 is a **feature release** — no database migrations are included.
+
+```bash
+pip install --upgrade nautobot-app-intent-networking==2.0.10
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+No breaking changes. Drop-in replacement for v2.0.9.
+See the [v2.0.10 release notes](../admin/release_notes/version_2.0.10.md) for details.
+
 ### Upgrading to v2.0.9 (Nautobot 3.1.1 compatibility fix)
 
 v2.0.9 is a **patch release** — no database migrations are included.

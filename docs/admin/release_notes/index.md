@@ -4,6 +4,7 @@ All published release notes are listed below. Patch releases are included within
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [v2.0.10](version_2.0.10.md) | 2026-05-06 | Feature release: 33 documented example YAML intent files covering all 14 domains; Bootstrap 5 fix for grouped intent view; OPA warn/deny split; OPA PCI-DSS ipsec_ikev2 blind spot fix |
 | [v2.0.9](version_2.0.9.md) | 2026-05-01 | Bug-fix release: VNI Pools list view crash on Nautobot 3.1.1 — missing filterset_class/filterset_form_class on VxlanVniPoolUIViewSet |
 | [v2.0.8](version_2.0.8.md) | 2026-04-21 | Bug-fix release: Arista live collection (ARP raw-string fallback, VRF/BGP/route field keys, next_hop list join); adds grouped-by-domain intent list view |
 | [v2.0.7](version_2.0.7.md) | 2026-04-17 | Bug-fix release: NUTS nornir-config flag, Netmiko platform key, VerificationResult detail view 500, cEOS credential bypass; adds save_config deployment flag and TestNapalmRunningConfigContains |
