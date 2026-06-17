@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_syslog
+# Purpose:     Send syslog messages at informational severity and above to two
+#              central log collectors using local7 facility. Consistent syslog
+#              config ensures all devices forward logs for SIEM correlation.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-mgmt-syslog-all-devices-001   # MANDATORY
+  type: mgmt_syslog                      # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG0012402              # MANDATORY (CHG + 7 digits)
+  description: "Syslog configuration — all network devices — central log collectors"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    all_tenant_devices: true             # MANDATORY — syslog must apply to every device
+
+  management:
+    syslog:
+      # ── Syslog configuration ────────────────────────────────────────────────────
+      servers:                               # MANDATORY — at least one syslog server
+        - "10.0.1.200"                       # Primary syslog collector
+        - "10.0.1.201"                       # Secondary syslog collector
+      facility: local7                       # OPTIONAL — syslog facility code
+      severity: informational                # OPTIONAL — minimum severity to forward
+      source_interface: "Management0"        # OPTIONAL — source syslog from this interface
+
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify syslog servers in running config"
+        expected:
+          - config_snippet: "logging host 10.0.1.200"
+          - config_snippet: "logging host 10.0.1.201"
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify syslog facility and severity"
+        expected:
+          - config_snippet: "logging facility local7"
+          - config_snippet: "logging trap informational"

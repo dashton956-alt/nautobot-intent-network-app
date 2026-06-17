@@ -1,0 +1,17 @@
+{# qos_classify — Cisco NX-OS QoS class-map configuration #}
+{% for cm in class_maps | default([]) %}
+class-map type qos match-{{ cm.match_type | default('any') }} {{ cm.name }}
+{% for match in cm.match_criteria | default([]) %}
+{% if match.type == 'dscp' %}
+  match dscp {{ match.value }}
+{% elif match.type == 'acl' %}
+  match access-group name {{ match.value }}
+{% elif match.type == 'protocol' %}
+  match protocol {{ match.value }}
+{% elif match.type == 'cos' %}
+  match cos {{ match.value }}
+{% elif match.type == 'vlan' %}
+  match vlan {{ match.value }}
+{% endif %}
+{% endfor %}
+{% endfor %}

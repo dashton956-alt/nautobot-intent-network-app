@@ -1,0 +1,26 @@
+{# bgp_evpn_af — Arista EOS BGP EVPN address family for VXLAN overlay #}
+router bgp {{ local_asn }}
+{% if router_id is defined and router_id %}
+   router-id {{ router_id }}
+{% endif %}
+{% for nbr in bgp_evpn_neighbors | default([]) %}
+   neighbor {{ nbr.ip }} remote-as {{ nbr.remote_asn | default(local_asn) }}
+   neighbor {{ nbr.ip }} update-source {{ nbr.update_source | default('Loopback0') }}
+   neighbor {{ nbr.ip }} send-community extended
+   neighbor {{ nbr.ip }} maximum-routes 12000
+{% endfor %}
+   !
+   address-family evpn
+{% for nbr in bgp_evpn_neighbors | default([]) %}
+      neighbor {{ nbr.ip }} activate
+{% if nbr.route_reflector_client | default(false) %}
+      neighbor {{ nbr.ip }} route-reflector-client
+{% endif %}
+{% if nbr.next_hop_unchanged | default(false) %}
+      neighbor {{ nbr.ip }} next-hop-unchanged
+{% endif %}
+{% endfor %}
+{% if advertise_all_vni | default(true) %}
+      bgp additional-paths receive
+      bgp additional-paths send any
+{% endif %}

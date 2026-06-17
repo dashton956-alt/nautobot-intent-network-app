@@ -1,0 +1,96 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_snmp
+# Purpose:     Configure SNMP on devices. SNMPv3 recommended for production;
+#              SNMPv2c is supported but OPA raises an advisory warning for SOC2.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-snmp-all-devices-001         # MANDATORY
+type: mgmt_snmp                       # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "SNMPv3 monitoring config — all tenant devices — NMS read-only"  # MANDATORY
+change_ticket: CHG0030101             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL here
+
+scope:
+  all_tenant_devices: true            # MANDATORY
+
+management:
+  snmp:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  SNMP VERSION (MANDATORY)                                              ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    version: v3                           # MANDATORY — v3 | v2c
+                                          #   v3   — authenticated + encrypted (recommended)
+                                          #   v2c  — community string only (OPA warns for SOC2)
+                                          #   v1   — obsolete; avoid
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  SNMP LOCATION / CONTACT (OPTIONAL)                                   ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    location: "DC-East Row-3 Rack-5"      # OPTIONAL — sysLocation OID value (free text)
+    contact: "noc@acme-corp.example"      # OPTIONAL — sysContact OID value (email / team name)
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  SNMPv3 CONFIGURATION (OPTIONAL — only for version: v3)               ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    views:                                # OPTIONAL — MIB view definitions (what OIDs are accessible)
+      - name: MGMT-VIEW                   # MANDATORY per view — view name
+        oid: "1.3.6.1"                    # MANDATORY per view — OID subtree
+                                          #   "1.3.6.1"      = entire MIB tree
+                                          #   "1.3.6.1.2.1"  = mib-2 only
+                                          #   "1.3.6.1.4.1"  = enterprise MIBs
+        included: true                    # OPTIONAL (default: true) — included | excluded
+
+    groups:
+      - name: NMS-GROUP                   # MANDATORY per group — SNMPv3 group name
+        security_level: priv              # OPTIONAL (default: priv)
+                                          #   noauth  — no authentication or privacy
+                                          #   auth    — MD5/SHA authentication, no encryption
+                                          #   priv    — auth + AES/DES encryption (recommended)
+        read_view: MGMT-VIEW              # OPTIONAL — read access view
+        write_view: ""                    # OPTIONAL — write access view (omit = read-only)
+        notify_view: MGMT-VIEW            # OPTIONAL — trap notification view
+
+    users:
+      - name: NMS-USER                    # MANDATORY per user — SNMPv3 username
+        group: NMS-GROUP                  # MANDATORY per user — group membership
+        auth_protocol: sha                # OPTIONAL (default: sha) — md5 | sha (sha recommended)
+        auth_password: ""                 # OPTIONAL — auth password; use Nautobot Secrets in prod
+        priv_protocol: aes                # OPTIONAL (default: aes) — des | aes
+        priv_password: ""                 # OPTIONAL — privacy password; use Nautobot Secrets in prod
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  SNMPv2c CONFIGURATION (OPTIONAL — only for version: v2c)             ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    community: ""                         # OPTIONAL (required for v2c) — community string
+                                          #   Use Nautobot Secrets; avoid "public"/"private"
+                                          #   OPA raises advisory warning for SOC2 with v2c
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  TRAP TARGETS (OPTIONAL)                                               ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    trap_targets:                         # OPTIONAL — list of NMS IPs to send traps to
+      - 10.10.10.20                       # NMS / SNMP trap receiver IP
+      - 10.10.10.21
+
+
+# ── OPA Policy ────────────────────────────────────────────────────────────────
+policy:
+  compliance: SOC2                    # OPTIONAL — using v2c with SOC2 triggers OPA warn
+                                      #   "SNMPv2c is not recommended for SOC2 compliance"
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

@@ -1,0 +1,40 @@
+{# mgmt_interface — Arista EOS Loopback0 and Management0 (OOB) configuration #}
+{% if loopback is defined %}
+interface {{ loopback.name }}
+   description {{ loopback.description | default('Router ID / BGP Source / VTEP Source') }}
+{% if loopback.mtu is defined %}
+   mtu {{ loopback.mtu }}
+{% endif %}
+   {# IP assigned by Nautobot IPAM from pool {{ loopback.ip_range | default('') }} #}
+   no shutdown
+{% endif %}
+
+{% if oob_management is defined %}
+{% if oob_management.vrf is defined and oob_management.vrf %}
+vrf instance {{ oob_management.vrf }}
+
+{% endif %}
+interface {{ oob_management.name }}
+   description {{ oob_management.description | default('OOB Management') }}
+{% if oob_management.vrf is defined and oob_management.vrf %}
+   vrf {{ oob_management.vrf }}
+{% endif %}
+{% if oob_management.speed is defined %}
+   speed {{ oob_management.speed }}
+{% endif %}
+{% if oob_management.duplex is defined %}
+   duplex {{ oob_management.duplex }}
+{% endif %}
+{% if oob_management.shutdown | default(false) %}
+   shutdown
+{% else %}
+   no shutdown
+{% endif %}
+{% endif %}
+
+{% for lb in additional_loopbacks | default([]) %}
+interface {{ lb.name }}
+   description {{ lb.description | default(lb.name) }}
+   {# IP assigned by Nautobot IPAM from pool {{ lb.ip_range | default('') }} #}
+   no shutdown
+{% endfor %}

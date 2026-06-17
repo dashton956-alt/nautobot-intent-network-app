@@ -1,0 +1,20 @@
+{# stp_policy — Cisco IOS-XE Spanning Tree configuration #}
+spanning-tree mode {{ stp_mode | default('rapid-pvst') }}
+{% if portfast_default | default(false) %}
+spanning-tree portfast default
+{% endif %}
+{% if bpduguard_default | default(false) %}
+spanning-tree portfast bpduguard default
+{% endif %}
+{% for v in vlan_priorities | default([]) %}
+spanning-tree vlan {{ v.vlan_id }} priority {{ v.priority }}
+{% endfor %}
+{% if max_age is defined %}
+spanning-tree vlan 1-4094 max-age {{ max_age }}
+{% endif %}
+{% if forward_delay is defined %}
+spanning-tree vlan 1-4094 forward-time {{ forward_delay }}
+{% endif %}
+{% if hello_time is defined %}
+spanning-tree vlan 1-4094 hello-time {{ hello_time }}
+{% endif %}

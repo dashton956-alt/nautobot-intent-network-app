@@ -1,0 +1,23 @@
+{# vrf_basic — Cisco NX-OS VRF definition #}
+{% for vrf in vrfs | default([{'name': vrf_name, 'rd': rd, 'rt_import': rt_import, 'rt_export': rt_export}]) %}
+vrf context {{ vrf.name }}
+{% if vrf.rd is defined %}
+ rd {{ vrf.rd }}
+{% endif %}
+ address-family ipv4 unicast
+{% if vrf.rt_import is defined %}
+  route-target import {{ vrf.rt_import }}
+{% endif %}
+{% if vrf.rt_export is defined %}
+  route-target export {{ vrf.rt_export }}
+{% endif %}
+{% if 'ipv6' in (vrf.address_families | default([])) %}
+ address-family ipv6 unicast
+{% if vrf.rt_import is defined %}
+  route-target import {{ vrf.rt_import }}
+{% endif %}
+{% if vrf.rt_export is defined %}
+  route-target export {{ vrf.rt_export }}
+{% endif %}
+{% endif %}
+{% endfor %}

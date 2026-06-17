@@ -1,0 +1,18 @@
+{# storm_control — Cisco NX-OS storm control configuration #}
+{% for intf in storm_control_interfaces | default([]) %}
+interface {{ intf.name }}
+{% if intf.broadcast_level is defined %}
+ storm-control broadcast level {{ intf.broadcast_level }}
+{% endif %}
+{% if intf.multicast_level is defined %}
+ storm-control multicast level {{ intf.multicast_level }}
+{% endif %}
+{% if intf.unicast_level is defined %}
+ storm-control unicast level {{ intf.unicast_level }}
+{% endif %}
+{% if intf.action | default('') == 'shutdown' %}
+ storm-control action shutdown
+{% elif intf.action | default('') == 'trap' %}
+ storm-control action trap
+{% endif %}
+{% endfor %}

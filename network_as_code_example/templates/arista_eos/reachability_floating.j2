@@ -1,0 +1,9 @@
+{# reachability_floating — Arista EOS floating static routes with IP SLA tracking #}
+{% for route in floating_routes | default([]) %}
+{% if route.track is defined %}
+{# IP SLA track object {{ route.track }} must exist (reachability_ip_sla intent) #}
+ip route {{ route.prefix }} {{ route.next_hop }} {{ route.admin_distance | default(250) }} track {{ route.track }} name {{ route.description | default('floating-route') | replace(' ', '_') }}
+{% else %}
+ip route {{ route.prefix }} {{ route.next_hop }} {{ route.admin_distance | default(250) }} name {{ route.description | default('floating-route') | replace(' ', '_') }}
+{% endif %}
+{% endfor %}

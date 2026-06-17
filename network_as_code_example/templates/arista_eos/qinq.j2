@@ -1,0 +1,16 @@
+{# qinq — Arista EOS QinQ (802.1ad) double-tagging configuration #}
+{% for intf in qinq_interfaces | default([interface]) %}
+interface {{ intf }}
+   description QinQ outer-vlan {{ outer_vlan }} inner-vlan {{ inner_vlan }}
+   switchport
+   switchport mode dot1q-tunnel
+   switchport access vlan {{ outer_vlan }}
+   l2-protocol tunnel cdp
+   l2-protocol tunnel lldp
+   l2-protocol tunnel stp
+   no shutdown
+{% endfor %}
+
+{# Service provider VLAN carries multiple customer VLANs transparently #}
+vlan {{ outer_vlan }}
+   name SP-OUTER-{{ outer_vlan }}

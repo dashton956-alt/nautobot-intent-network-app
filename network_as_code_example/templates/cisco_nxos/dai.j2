@@ -1,0 +1,9 @@
+{# dai — Cisco NX-OS Dynamic ARP Inspection configuration #}
+feature dhcp
+{% for vlan_range in dai_vlans | default([]) %}
+ip arp inspection vlan {{ vlan_range }}
+{% endfor %}
+{% for intf in trusted_interfaces | default([]) %}
+interface {{ intf }}
+ ip arp inspection trust
+{% endfor %}

@@ -1,0 +1,15 @@
+{# wireless_ssid — Wireless SSID stub template #}
+{# Pushed via wireless controller adapter (Cisco WLC, Mist, Aruba, Meraki) #}
+{# Arista EOS has no wireless CLI — the adapter reads this intent and calls the WLC/cloud API #}
+{#
+SSID: {{ ssid_name }}
+Security: {{ security_mode | default('wpa3-enterprise') }}
+Band: {{ band | default('dual') }}
+VLAN: {{ vlan_id | default('') }}
+Hidden: {{ hidden | default(false) }}
+Client isolation: {{ client_isolation | default(false) }}
+Rate limit down: {{ rate_limit_down_mbps | default('') }} Mbps
+Rate limit up: {{ rate_limit_up_mbps | default('') }} Mbps
+RADIUS group: {{ radius_server_group | default('') }}
+AP groups: {{ ap_groups | default([]) | join(', ') }}
+#}

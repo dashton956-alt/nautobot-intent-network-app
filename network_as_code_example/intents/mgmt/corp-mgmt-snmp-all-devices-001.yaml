@@ -1,0 +1,46 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_snmp
+# Purpose:     Configure SNMPv3 on all tenant devices and send traps to the
+#              central SNMP collector. SNMPv3 provides authentication and
+#              encryption — do not use v1/v2c in production environments.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-mgmt-snmp-all-devices-001     # MANDATORY
+  type: mgmt_snmp                        # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG0012357              # MANDATORY (CHG + 7 digits)
+  description: "SNMPv3 configuration — all network devices — trap to central collector"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    all_tenant_devices: true             # MANDATORY — SNMP must apply to every device
+
+  # ── SNMP configuration ──────────────────────────────────────────────────────
+  management:
+    snmp_version: v3                     # MANDATORY — v3 required (v1/v2c are insecure)
+    snmp_trap_targets:                   # MANDATORY — SNMP trap/inform destinations
+      - "10.0.1.100"                     # Primary SNMP collector
+      - "10.0.1.101"                     # Secondary SNMP collector
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmUsers
+        label: "Verify management users are configured"
+        expected:
+          - username: admin
+            level: 15

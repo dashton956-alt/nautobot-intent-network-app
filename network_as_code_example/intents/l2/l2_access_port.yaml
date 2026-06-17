@@ -1,0 +1,102 @@
+---
+# =============================================================================
+# Intent Type: l2_access_port
+# Domain:      Layer 2 / Switching
+# =============================================================================
+# Assigns one or more switchports to an access VLAN on all devices in scope.
+#
+# MULTI-PORT FORM (recommended — one intent configures many ports):
+#   Use the `ports` list. Each entry specifies its own interface and VLAN.
+#
+# SINGLE-PORT FORM (legacy — still fully supported):
+#   Use top-level `interface` + `vlan_id` instead of a `ports` list.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Common header fields — required on every intent
+# -----------------------------------------------------------------------------
+id: "acme-l2-access-001" # MANDATORY — unique slug, alphanumeric + hyphens
+type: "l2_access_port" # MANDATORY — must be exactly "l2_access_port"
+version: 1 # MANDATORY — integer, increment on every edit
+tenant: "acme-corp" # MANDATORY — must match a Nautobot Tenant slug
+description: "Configure server access ports on distribution switches" # MANDATORY — minimum 10 characters
+change_ticket: "CHG0040001" # MANDATORY — format: CHG + 7 digits
+approved_by: "net.engineer" # OPTIONAL — required for high-impact intent types
+
+# -----------------------------------------------------------------------------
+# Scope — which devices this intent targets
+# Choose ONE of: sites | devices | roles | all_tenant_devices
+# -----------------------------------------------------------------------------
+scope:
+  sites:
+    - "dc-east" # MANDATORY (if using sites) — Nautobot Site slug
+  # devices:
+  #   - "core-sw-01"  # MANDATORY (if using devices) — Nautobot Device name
+  # roles:
+  #   - "distribution-switch"  # MANDATORY (if using roles) — Nautobot Device Role slug
+  # all_tenant_devices: true   # OPTIONAL — targets every device under the tenant
+
+# -----------------------------------------------------------------------------
+# Multi-port form (NEW in v2.0.11)
+# One intent entry per port — different interfaces can use different VLANs
+# and have independent settings.
+# -----------------------------------------------------------------------------
+ports:
+  - interface: "GigabitEthernet0/1" # MANDATORY — exact interface name as in Nautobot
+    vlan_id: 100 # MANDATORY — integer 1–4094; VLAN must exist in Nautobot
+    voice_vlan: 150 # OPTIONAL — integer 1–4094; enables voice VLAN on port
+    description: "Server rack A" # OPTIONAL — port description pushed to device
+    portfast: true # OPTIONAL — default: true; enables STP PortFast
+    bpdu_guard: true # OPTIONAL — default: true; enables BPDU Guard
+
+  - interface: "GigabitEthernet0/2" # MANDATORY
+    vlan_id: 100 # MANDATORY
+    # voice_vlan omitted — no voice VLAN on this port
+    description: "Server rack B" # OPTIONAL
+    portfast: true # OPTIONAL — default: true
+    bpdu_guard: true # OPTIONAL — default: true
+
+  - interface: "GigabitEthernet0/3" # MANDATORY
+    vlan_id: 200 # MANDATORY — different VLAN on same intent
+    description: "Storage network" # OPTIONAL
+    # portfast and bpdu_guard default to true when omitted
+
+  - interface: "GigabitEthernet0/4" # MANDATORY
+    vlan_id: 200 # MANDATORY
+    portfast: false # OPTIONAL — disable PortFast on ports that run STP themselves
+    bpdu_guard: false # OPTIONAL — only disable if device sends BPDUs
+
+# -----------------------------------------------------------------------------
+# Deployment options
+# -----------------------------------------------------------------------------
+deployment:
+  strategy: "rolling" # OPTIONAL — default: rolling | values: rolling, parallel
+  save_config: true # OPTIONAL — default: true; writes config to NVRAM
+
+# -----------------------------------------------------------------------------
+# Verification
+# -----------------------------------------------------------------------------
+verification:
+  level: "basic" # OPTIONAL — default: basic | values: basic, extended
+  trigger: "on_deploy" # OPTIONAL — default: on_deploy | values: on_deploy, scheduled, manual
+  fail_action: "alert" # OPTIONAL — default: alert | values: alert, rollback
+
+# =============================================================================
+# SINGLE-PORT LEGACY FORM — shown here for reference
+# This form is still fully supported and requires no migration.
+# =============================================================================
+# id: "acme-l2-access-legacy-001"
+# type: "l2_access_port"
+# version: 1
+# tenant: "acme-corp"
+# description: "Single port access VLAN assignment"
+# change_ticket: "CHG0040002"
+# scope:
+#   devices:
+#     - "core-sw-01"
+# interface: "GigabitEthernet0/1"  # MANDATORY (legacy form) — single interface
+# vlan_id: 100                     # MANDATORY (legacy form) — single VLAN ID
+# voice_vlan: 150                  # OPTIONAL
+# description: "Rack A port 1"     # OPTIONAL
+# portfast: true                   # OPTIONAL — default: true
+# bpdu_guard: true                 # OPTIONAL — default: true

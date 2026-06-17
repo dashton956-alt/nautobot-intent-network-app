@@ -1,0 +1,37 @@
+{# mgmt_global_config — Cisco NX-OS Day-0 global management configuration #}
+hostname {{ hostname | default(inventory_hostname) }}
+{% if ip_domain_name is defined %}
+ip domain-name {{ ip_domain_name }}
+{% endif %}
+{% if dns_servers is defined %}
+{% for dns in dns_servers %}
+ip name-server {{ dns }}{% if dns_vrf is defined %} use-vrf {{ dns_vrf }}{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if ntp_servers is defined %}
+{% for ntp in ntp_servers %}
+ntp server {{ ntp.address | default(ntp) }}{% if ntp.vrf is defined %} use-vrf {{ ntp.vrf }}{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if syslog_servers is defined %}
+{% for host in syslog_servers %}
+logging server {{ host.address | default(host) }} 6 use-vrf {{ host.vrf | default('management') }}
+{% endfor %}
+{% endif %}
+{% if snmp_community is defined %}
+snmp-server community {{ snmp_community }} ro
+{% endif %}
+feature ssh
+ssh key rsa 2048
+{% if banner_motd is defined %}
+banner motd #
+{{ banner_motd }}
+#
+{% endif %}
+{% if lldp_enable | default(true) %}
+feature lldp
+{% endif %}
+line vty
+ exec-timeout {{ vty_timeout | default(10) }}

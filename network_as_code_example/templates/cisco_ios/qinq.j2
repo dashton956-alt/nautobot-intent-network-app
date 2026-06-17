@@ -1,0 +1,14 @@
+{# qinq — Cisco IOS-XE 802.1ad Q-in-Q tunnel configuration #}
+{% for intf in qinq_interfaces | default([]) %}
+interface {{ intf.name }}
+ switchport mode dot1q-tunnel
+ switchport access vlan {{ intf.access_vlan }}
+{% if intf.l2protocol_tunnel is defined %}
+{% for proto in intf.l2protocol_tunnel %}
+ l2protocol-tunnel {{ proto }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% if customer_vlans is defined %}
+vlan dot1q tag native
+{% endif %}

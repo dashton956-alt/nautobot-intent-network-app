@@ -1,0 +1,22 @@
+{# reachability_ip_sla — Arista EOS IP SLA probe configuration #}
+{% for probe in probes | default([]) %}
+ip sla {{ probe.sla_id }}
+{% if probe.probe_type | default('icmp-echo') == 'icmp-echo' %}
+   icmp-echo {{ probe.target }}{% if probe.source_interface is defined %} source-interface {{ probe.source_interface }}{% endif %}
+
+{% elif probe.probe_type == 'tcp-connect' %}
+   tcp-connect {{ probe.target }} {{ probe.port | default(80) }}{% if probe.source_interface is defined %} source-interface {{ probe.source_interface }}{% endif %}
+
+{% endif %}
+{% if probe.threshold is defined %}
+   threshold {{ probe.threshold }}
+{% endif %}
+{% if probe.timeout is defined %}
+   timeout {{ probe.timeout }}
+{% endif %}
+{% if probe.frequency is defined %}
+   frequency {{ probe.frequency }}
+{% endif %}
+
+ip sla schedule {{ probe.sla_id }} life forever start-time now
+{% endfor %}

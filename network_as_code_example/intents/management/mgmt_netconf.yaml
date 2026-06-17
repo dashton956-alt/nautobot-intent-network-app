@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_netconf
+# Purpose:     Enable NETCONF, RESTCONF, and/or gNMI on managed devices to
+#              support model-driven programmability. Required for Nornir/NAPALM
+#              automation, Nautobot sync, and streaming telemetry pipelines.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-netconf-all-devices-001        # MANDATORY
+type: mgmt_netconf                      # MANDATORY
+version: 1                              # MANDATORY
+tenant: acme-corp                       # MANDATORY
+description: "Enable NETCONF and RESTCONF on all managed devices for automation"  # MANDATORY
+change_ticket: CHG0030103               # MANDATORY (CHG + 7 digits)
+approved_by: ""                         # OPTIONAL here
+
+scope:
+  all_tenant_devices: true              # MANDATORY — automation access needed on all devices
+
+management:
+  netconf:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  NETCONF (MANDATORY)                                                   ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    netconf_enabled: true                   # MANDATORY — enable NETCONF agent (RFC 6241)
+    netconf_port: 830                       # OPTIONAL (default: 830) — standard NETCONF TCP port
+    netconf_vrf: "MGMT"                     # OPTIONAL — VRF for NETCONF connections
+                                            #   Use dedicated MGMT VRF to isolate automation traffic
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  RESTCONF (OPTIONAL)                                                   ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    restconf_enabled: true                  # OPTIONAL (default: false) — enable RESTCONF (RFC 8040)
+    restconf_port: 443                      # OPTIONAL (default: 443) — RESTCONF over HTTPS
+                                            #   Always over TLS; do not use port 80
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  gNMI / gRPC (OPTIONAL)                                                ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    gnmi_enabled: false                     # OPTIONAL (default: false) — enable gNMI agent
+    gnmi_port: 6030                         # OPTIONAL (default: 6030) — gNMI gRPC port
+
+                                        #   Enable for streaming telemetry dial-in collectors
+                                        #   Requires TLS certificate on device
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  ACCESS CONTROL (OPTIONAL)                                             ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# acl: ACL-NETCONF-SOURCES              # OPTIONAL — restrict NETCONF access by source IP
+                                        #   Strongly recommended in production
+                                        #   Should only permit automation controller IPs
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: NONE
+  encryption: tls                       # NETCONF/RESTCONF/gNMI must use TLS
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                     # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: nuts
+  trigger: on_deploy
+  fail_action: alert
+  tests:
+    - test_class: TestNapalmRunningConfigContains
+      label: "Verify NETCONF is enabled"
+      expected:
+        - config_snippet: "management api netconf"

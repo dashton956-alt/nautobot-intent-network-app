@@ -1,0 +1,57 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: l3vni
+# Purpose:     Configure an L3 VNI for inter-VXLAN routing within the PROD VRF.
+#              L3VNI binds a VRF to a VXLAN segment, enabling routed traffic
+#              between L2VNI segments without leaving the fabric.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-l3vni-001                 # MANDATORY
+  type: l3vni                            # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "L3VNI / IP VRF over VXLAN — configure L3 VNI for inter-VXLAN routing"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east
+    roles:
+      - leaf-switch
+
+  # ── L3VNI configuration ─────────────────────────────────────────────────────
+  dc:
+    l3vni:
+      vrf_name: PROD                     # MANDATORY — VRF this L3VNI is bound to
+      vni: 50100                         # MANDATORY — unique VNI for L3 routing (outside L2 range)
+      rd: "65001:50100"                  # MANDATORY — Route Distinguisher
+      rt_import:                         # MANDATORY — import route-targets
+        - "65001:50100"
+      rt_export:                         # MANDATORY — export route-targets
+        - "65001:50100"
+      vlan_id: 3967                      # MANDATORY — internal VLAN for L3VNI SVI (not on trunk)
+      svi:
+        ip_address: "10.255.255.1/31"    # MANDATORY — IP for the L3VNI SVI (P2P with peer leaf)
+        mtu: 9214                        # OPTIONAL — jumbo MTU for intra-fabric routing
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify L3VNI VRF and VNI binding"
+        expected:
+          - config_snippet: "vni 50100"
+          - config_snippet: "vrf PROD"

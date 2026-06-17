@@ -1,0 +1,19 @@
+{# l2vni — Arista EOS L2VNI (VXLAN segment) provisioning #}
+vlan {{ vlan_id }}
+   name {{ vlan_name | default('L2VNI-' ~ vlan_id) }}
+
+interface Vxlan1
+   vxlan vlan {{ vlan_id }} vni {{ vni_id }}
+{% if replication_mode | default('ingress-replication') == 'ingress-replication' %}
+   vxlan vlan {{ vlan_id }} flood vtep learned
+{% elif replication_mode == 'multicast' and mcast_group is defined and mcast_group %}
+   vxlan vlan {{ vlan_id }} multicast group {{ mcast_group }}
+{% endif %}
+
+router bgp {{ local_asn }}
+   vlan {{ vlan_id }}
+      rd {{ rd | default('auto') }}
+      route-target both {{ rt_export | default('auto') }}
+{% if advertise_all_vni | default(true) %}
+      redistribute learned
+{% endif %}

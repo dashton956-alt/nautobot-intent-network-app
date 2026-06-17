@@ -1,0 +1,11 @@
+{# bfd — Arista EOS BFD global and per-interface configuration #}
+{% if bfd_interval is defined %}
+bfd slow-timer 2000
+{% endif %}
+
+{% for intf in bfd_interfaces | default([]) %}
+interface {{ intf }}
+{% if bfd_interval is defined %}
+   bfd interval {{ bfd_interval }} min-rx {{ bfd_min_rx | default(bfd_interval) }} multiplier {{ bfd_multiplier | default(3) }}
+{% endif %}
+{% endfor %}

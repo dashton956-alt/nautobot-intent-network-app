@@ -1,9 +1,12 @@
 """App declaration for intent_networking."""
 
 # Metadata is inherited from Nautobot. If not including Nautobot in the environment, this should be added
+import logging
 from importlib import metadata
 
 from nautobot.apps import NautobotAppConfig
+
+logger = logging.getLogger(__name__)
 
 try:
     __version__ = metadata.version("nautobot-app-intent-networking")
@@ -107,18 +110,17 @@ class IntentNetworkingConfig(NautobotAppConfig):
                 import json  # noqa: PLC0415
 
                 from django.utils import timezone  # noqa: PLC0415
+                from nautobot.extras.choices import JobExecutionType  # noqa: PLC0415
 
                 ScheduledJob.objects.create(
                     name="Intent Reconciliation (auto)",
                     task=job_model.class_path,
-                    interval="hours",
-                    every=interval_hours,
+                    interval=JobExecutionType.TYPE_HOURLY,
                     start_time=timezone.now(),
                     kwargs=json.dumps({}),
                 )
-        except Exception:  # noqa: BLE001, S110
-            # Gracefully handle missing tables during initial migration
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Skipped reconciliation schedule setup: %s", exc)
 
 
 config = IntentNetworkingConfig  # pylint:disable=invalid-name

@@ -1,0 +1,17 @@
+{# ipv6_dual_stack — Cisco IOS-XE IPv6 dual-stack configuration #}
+ipv6 unicast-routing
+{% for intf in ipv6_interfaces | default([]) %}
+interface {{ intf.name }}
+{% if intf.ipv6_address is defined %}
+ ipv6 address {{ intf.ipv6_address }}
+{% endif %}
+{% if intf.ipv6_address_eui64 is defined %}
+ ipv6 address {{ intf.ipv6_address_eui64 }} eui-64
+{% endif %}
+{% if intf.suppress_ra | default(false) %}
+ ipv6 nd ra suppress all
+{% endif %}
+{% if intf.ipv6_nd_managed | default(false) %}
+ ipv6 nd managed-config-flag
+{% endif %}
+{% endfor %}

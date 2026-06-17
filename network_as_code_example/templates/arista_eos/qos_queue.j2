@@ -1,0 +1,22 @@
+{# qos_queue — Arista EOS QoS policy-map (LLQ/CBWFQ) configuration #}
+policy-map type qos {{ policy_map }}
+{% for queue in queues | default([]) %}
+   class {{ queue.class_name }}
+{% if queue.priority | default(false) %}
+      priority
+{% if queue.bandwidth_percent is defined %}
+      police rate percent {{ queue.bandwidth_percent }}
+{% endif %}
+{% else %}
+{% if queue.bandwidth_percent is defined %}
+      bandwidth percent {{ queue.bandwidth_percent }}
+{% elif queue.shape_rate is defined %}
+      shape rate {{ queue.shape_rate }}
+{% endif %}
+{% endif %}
+{% endfor %}
+
+{% for intf in apply_interfaces | default([]) %}
+interface {{ intf }}
+   service-policy type qos {{ direction | default('output') }} {{ policy_map }}
+{% endfor %}

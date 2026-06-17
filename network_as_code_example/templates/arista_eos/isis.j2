@@ -1,0 +1,32 @@
+{# isis — Arista EOS IS-IS routing configuration #}
+router isis {{ process_id | default('DEFAULT') }}
+   net {{ net }}
+   is-type {{ level | default('level-2') }}
+   router-id ipv4 {{ router_id }}
+{% if metric_style is defined %}
+   set-overload-bit on-startup wait-period 60
+   metric-style {{ metric_style }}
+{% endif %}
+{% if bfd | default(false) %}
+   bfd all-interfaces
+{% endif %}
+
+{% for intf in isis_interfaces | default([]) %}
+interface {{ intf.name }}
+   isis enable {{ process_id | default('DEFAULT') }}
+{% if intf.level is defined %}
+   isis circuit-type {{ intf.level }}
+{% endif %}
+{% if intf.metric is defined %}
+   isis metric {{ intf.metric }}
+{% endif %}
+{% if intf.passive | default(false) %}
+   isis passive
+{% endif %}
+{% if intf.network_type is defined %}
+   isis network {{ intf.network_type }}
+{% endif %}
+{% if bfd | default(false) %}
+   isis bfd
+{% endif %}
+{% endfor %}

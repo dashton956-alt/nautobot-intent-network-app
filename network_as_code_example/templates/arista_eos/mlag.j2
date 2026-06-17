@@ -1,0 +1,33 @@
+{# mlag — Arista EOS MLAG configuration #}
+{# Requires a dedicated MLAG peer-link Port-Channel and MLAG VLAN (typically 4094) #}
+
+vlan {{ mlag_vlan | default(4094) }}
+   name MLAG-PEER-VLAN
+   trunk group MLAGPEER
+
+interface Port-Channel{{ mlag_peer_link | replace('Port-Channel','') | replace('port-channel','') }}
+   description MLAG Peer-Link
+   switchport mode trunk
+   switchport trunk group MLAGPEER
+   no shutdown
+
+{% for member in mlag_peer_link_members | default([]) %}
+interface {{ member }}
+   channel-group {{ mlag_peer_link | replace('Port-Channel','') | replace('port-channel','') }} mode active
+   no shutdown
+{% endfor %}
+
+interface Vlan{{ mlag_vlan | default(4094) }}
+   description MLAG Peer-Heartbeat
+   ip address {{ mlag_local_interface }}
+   no autostate
+   no shutdown
+
+mlag configuration
+   domain-id {{ mlag_domain_id }}
+   local-interface Vlan{{ mlag_vlan | default(4094) }}
+   peer-address {{ mlag_peer_address }}
+   peer-link {{ mlag_peer_link }}
+{% if mlag_reload_delay is defined and mlag_reload_delay %}
+   reload-delay mlag {{ mlag_reload_delay }}
+{% endif %}

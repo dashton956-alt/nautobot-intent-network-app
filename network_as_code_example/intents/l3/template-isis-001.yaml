@@ -1,0 +1,62 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: isis
+# Purpose:     Configure IS-IS Level-2 routing on SP core (P/PE) routers.
+#              IS-IS is used as the IGP underlay for MPLS label distribution
+#              and provides fast convergence with wide metrics.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-isis-001                  # MANDATORY
+  type: isis                             # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "IS-IS — configure IS-IS routing on core SP routers"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    roles:
+      - p-router
+      - pe-router
+
+  # ── IS-IS configuration ─────────────────────────────────────────────────────
+  routing:
+    protocol: isis                       # MANDATORY
+    process_id: 1                        # MANDATORY — IS-IS process/instance number
+    net_address: "49.0001.0100.2550.0001.00"  # MANDATORY — Network Entity Title (NET)
+                                         #   Format: 49.AREA.SYSID.00 — SYSID derived from loopback
+    level: 2                             # MANDATORY — 1 | 2 | level-1-2
+    metric_style: wide                   # OPTIONAL — wide enables traffic engineering metrics
+    passive_interfaces:                  # OPTIONAL — suppress IS-IS hellos on non-routing interfaces
+      - Loopback0
+    interfaces:
+      - name: Ethernet1
+        type: point-to-point             # OPTIONAL — point-to-point | broadcast
+        metric: 10                       # OPTIONAL — interface IS-IS metric
+        authentication:
+          mode: md5                      # OPTIONAL — md5 | text
+          key_ref: vault:secret/isis/auth-key
+      - name: Ethernet2
+        type: point-to-point
+        metric: 10
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: both
+    schedule: "*/30 * * * *"
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify IS-IS configuration"
+        expected:
+          - config_snippet: "router isis 1"

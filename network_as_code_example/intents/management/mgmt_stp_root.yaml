@@ -1,0 +1,95 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_stp_root
+# Purpose:     Elect distribution switches as the STP root bridge for all VLANs.
+#              Priority 4096 (primary) and 8192 (secondary/backup) ensure
+#              deterministic root bridge election and predictable traffic paths.
+#              Must be deployed to both distribution switches simultaneously.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-stp-root-dc-east-001           # MANDATORY
+type: mgmt_stp_root                     # MANDATORY
+version: 1                              # MANDATORY
+tenant: acme-corp                       # MANDATORY
+description: "STP root bridge — distribution switches — rapid-pvst — all VLANs"  # MANDATORY
+change_ticket: CHG0030112               # MANDATORY (CHG + 7 digits)
+approved_by: ""                         # OPTIONAL here
+
+scope:
+  sites:
+    - dc-east
+  roles:
+    - distribution-switch               # Apply to distribution switches (root bridge candidates)
+
+management:
+  stp_root:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  STP MODE (MANDATORY)                                                  ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    mode: rapid-pvst                        # MANDATORY — STP mode (must match network-wide policy)
+                                            #   rapid-pvst  — Rapid Per-VLAN STP (Cisco default)
+                                            #                 Recommended; fast convergence (~1-2s)
+                                            #   mstp        — Multiple STP (IEEE 802.1s)
+                                            #                 Use for large VLAN scale environments
+                                            #   rstp        — Rapid STP (IEEE 802.1w)
+                                            #                 Single instance; no per-VLAN control
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  ROOT BRIDGE PRIORITY (MANDATORY)                                      ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+    #
+    # STP priority must be a multiple of 4096 (range: 0–61440).
+    # Lower value = higher preference to become root bridge.
+    # Standard allocation:
+    #   4096  — primary root bridge (distribution switch A)
+    #   8192  — secondary root bridge (distribution switch B)
+    #   32768 — default (all other switches)
+    #
+    # Never leave production switches at the default 32768 —
+    # any rogue switch could win root bridge election.
+
+    root_vlans:                             # MANDATORY — VLANs for which this device is primary root
+      - 1-999                               # Primary root for all production VLANs
+
+    priority: 4096                          # MANDATORY — primary root bridge bridge priority
+
+    secondary:                              # OPTIONAL — secondary root bridge (the peer dist switch)
+      device_role: backup-distribution
+      priority: 8192                        # Secondary priority
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  STP TIMERS (OPTIONAL)                                                 ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+    #
+    # Default timers are calculated by the root bridge and distributed to all
+    # switches via BPDU. Only change these on the root bridge itself.
+    # Incorrect timer values cause network instability — use defaults unless
+    # you have a specific reason (e.g. large network diameter).
+
+    diameter: 7                             # OPTIONAL (default: 7) — max switches in any path
+                                            #   Used to calculate optimum timers automatically
+    hello_time: 2                           # OPTIONAL (default: 2s) — BPDU hello interval
+    forward_delay: 15                       # OPTIONAL (default: 15s) — listening + learning delay
+    max_age: 20                             # OPTIONAL (default: 20s) — BPDU max age before expiry
+
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: NONE
+  encryption: none
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: all_at_once                 # Both distribution switches must be configured together
+  save_config: true
+
+verification:
+  level: nuts
+  trigger: on_deploy
+  fail_action: alert
+  tests:
+    - test_class: TestNapalmRunningConfigContains
+      label: "Verify STP root priority configured"
+      expected:
+        - config_snippet: "spanning-tree vlan"
+        - config_snippet: "priority 4096"

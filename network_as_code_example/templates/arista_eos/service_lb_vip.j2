@@ -1,0 +1,14 @@
+{# service_lb_vip — Load balancer VIP stub template #}
+{# This intent is pushed via a load balancer controller adapter (F5/AVI/HAProxy/Nginx) #}
+{# Arista EOS does not render LB VIP config — the adapter reads this intent and calls the LB API #}
+{#
+VIP: {{ vip_address }}:{{ vip_port }} ({{ protocol | default('tcp') }})
+Pool: {{ pool_name | default('auto') }} — method: {{ load_balancing_method | default('round_robin') }}
+Members:
+{% for m in members | default([]) %}
+  - {{ m.address }}:{{ m.port | default(vip_port) }} weight={{ m.weight | default(1) }}
+{% endfor %}
+Health: {{ health_monitor.type | default('tcp') }} {{ health_monitor.path | default('') }}
+Persistence: {{ persistence.type | default('none') }}
+SSL offload: {{ ssl_offload | default(false) }}
+#}

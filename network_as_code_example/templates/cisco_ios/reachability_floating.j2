@@ -1,0 +1,10 @@
+{# reachability_floating — Cisco IOS-XE floating static route with object tracking #}
+{% for route in floating_routes | default([]) %}
+{% if route.vrf is defined %}
+ip route vrf {{ route.vrf }} {{ route.prefix | replace('/', ' /') | replace('/','') }} {{ route.next_hop }} {{ route.admin_distance | default(254) }}{% if route.track is defined %} track {{ route.track }}{% endif %}
+
+{% else %}
+ip route {{ route.prefix | replace('/', ' /') | replace('/','') }} {{ route.next_hop }} {{ route.admin_distance | default(254) }}{% if route.track is defined %} track {{ route.track }}{% endif %}
+
+{% endif %}
+{% endfor %}

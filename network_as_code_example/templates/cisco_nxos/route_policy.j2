@@ -1,0 +1,32 @@
+{# route_policy — Cisco NX-OS route-map configuration #}
+{% for clause in route_map_clauses | default([]) %}
+route-map {{ route_map_name }} {{ clause.action | default('permit') }} {{ clause.seq }}
+{% if clause.match_prefix_list is defined %}
+  match ip address prefix-list {{ clause.match_prefix_list }}
+{% endif %}
+{% if clause.match_community is defined %}
+  match community {{ clause.match_community }}
+{% endif %}
+{% if clause.match_as_path is defined %}
+  match as-path {{ clause.match_as_path }}
+{% endif %}
+{% if clause.match_tag is defined %}
+  match tag {{ clause.match_tag }}
+{% endif %}
+{% if clause.set_local_pref is defined %}
+  set local-preference {{ clause.set_local_pref }}
+{% endif %}
+{% if clause.set_community is defined %}
+  set community {{ clause.set_community }}{% if clause.set_community_additive | default(false) %} additive{% endif %}
+
+{% endif %}
+{% if clause.set_metric is defined %}
+  set metric {{ clause.set_metric }}
+{% endif %}
+{% if clause.set_as_path_prepend is defined %}
+  set as-path prepend {{ clause.set_as_path_prepend }}
+{% endif %}
+{% if clause.set_next_hop is defined %}
+  set ip next-hop {{ clause.set_next_hop }}
+{% endif %}
+{% endfor %}

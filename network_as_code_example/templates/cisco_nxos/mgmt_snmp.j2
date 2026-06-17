@@ -1,0 +1,17 @@
+{# mgmt_snmp — Cisco NX-OS SNMP configuration #}
+{% if snmp_location is defined %}
+snmp-server location {{ snmp_location }}
+{% endif %}
+{% if snmp_contact is defined %}
+snmp-server contact {{ snmp_contact }}
+{% endif %}
+{% for community in snmp_communities | default([]) %}
+snmp-server community {{ community.name }} {{ community.permission | default('ro') }}
+{% endfor %}
+{% for user in snmp_v3_users | default([]) %}
+snmp-server user {{ user.name }} {{ user.group | default('network-operator') }} v3 auth {{ user.auth_proto | default('sha') }} {{ user.auth_key }} priv {{ user.priv_proto | default('aes-128') }} {{ user.priv_key }}
+{% endfor %}
+{% for trap_host in snmp_trap_hosts | default([]) %}
+snmp-server host {{ trap_host.address }} traps version {{ trap_host.version | default('2c') }} {{ trap_host.community | default('public') }}
+{% endfor %}
+snmp-server enable traps

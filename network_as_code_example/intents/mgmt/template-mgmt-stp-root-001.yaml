@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_stp_root
+# Purpose:     Configure distribution switches as the STP root bridge for all
+#              VLANs. Priority 4096 (primary) and 8192 (secondary) ensure
+#              deterministic root bridge election and predictable traffic paths.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-mgmt-stp-root-001         # MANDATORY
+  type: mgmt_stp_root                    # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Spanning Tree Root — configure distribution switches as STP root for all VLANs"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east
+    roles:
+      - distribution-switch              # Apply to distribution switches (root bridge candidates)
+
+  # ── STP root configuration ──────────────────────────────────────────────────
+  management:
+    stp_root:
+      mode: rapid-pvst                   # MANDATORY — STP mode must match the network-wide policy
+      root_vlans:
+        - 1-999                          # MANDATORY — VLANs for which this device is root
+      priority: 4096                     # MANDATORY — primary root bridge priority (multiples of 4096)
+                                         #   Lower value wins: 4096 = primary, 8192 = secondary
+      secondary:                         # OPTIONAL — secondary root bridge (the peer distribution switch)
+        device_role: backup-distribution
+        priority: 8192
+      diameter: 7                        # OPTIONAL — network diameter for STP timer calculation
+      hello_time: 2                      # OPTIONAL — hello interval in seconds (default: 2)
+      forward_delay: 15                  # OPTIONAL — forward delay in seconds (default: 15)
+      max_age: 20                        # OPTIONAL — max age in seconds (default: 20)
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: all_at_once                # Both distribution switches configured together
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify STP root priority configured"
+        expected:
+          - config_snippet: "spanning-tree vlan"
+          - config_snippet: "priority 4096"

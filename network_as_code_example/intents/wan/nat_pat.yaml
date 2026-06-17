@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: nat_pat
+# Purpose:     Configure NAT overload (PAT), NAT pool, or static NAT entries.
+#              Covers inside/outside interface designation and ACL-based matching.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-nat-pat-internet-001         # MANDATORY
+type: nat_pat                         # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "NAT overload — inside RFC-1918 to outside ISP interface — internet access"  # MANDATORY
+change_ticket: CHG0030051             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL here
+
+scope:
+  devices: [border-01]               # MANDATORY
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  NAT TYPE (MANDATORY)                                                  ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+nat_type: overload                    # MANDATORY — overload | pool | static
+                                      #   overload — PAT (many-to-one via outside interface IP)
+                                      #   pool     — NAT pool (many-to-many, routable addresses)
+                                      #   static   — 1:1 static NAT (one entry per mapping)
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  INTERFACE DESIGNATION (MANDATORY for overload/pool)                  ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+inside_interface: GigabitEthernet0/1  # MANDATORY — interface(s) on the private/inside network
+outside_interface: GigabitEthernet0/0 # MANDATORY — interface on the public/outside network
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  ACL — defines which inside traffic is translated (MANDATORY)          ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+acl: ACL-NAT-INSIDE                   # MANDATORY — ACL name that permits inside source prefixes
+                                      #   Create a separate acl intent OR define inline below
+                                      # Example ACL contents would be:
+                                      #   permit ip 10.0.0.0 0.255.255.255 any
+                                      #   permit ip 192.168.0.0 0.0.255.255 any
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  NAT POOL — only used when nat_type: pool                              ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+pool_name: ""                         # OPTIONAL (required for nat_type: pool) — pool name
+pool_start: ""                        # OPTIONAL — first IP in the pool (e.g. "203.0.113.10")
+pool_end: ""                          # OPTIONAL — last IP in the pool  (e.g. "203.0.113.20")
+                                      #   IP range must be routable from the internet
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  STATIC NAT MAPPINGS — only used when nat_type: static                ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+static_mappings: []                   # OPTIONAL (required for nat_type: static)
+                                      # Example:
+                                      # static_mappings:
+                                      #   - inside: 10.0.0.10     # private IP
+                                      #     outside: 203.0.113.10  # public IP
+                                      #     protocol: tcp          # OPTIONAL — port NAT
+                                      #     inside_port: 80        # OPTIONAL — private port
+                                      #     outside_port: 80       # OPTIONAL — public port
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                  # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

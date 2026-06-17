@@ -1,0 +1,24 @@
+{# wireless_ssid — Wireless SSID configuration #}
+{# Cisco IOS-XE WLCs (Catalyst 9800) manage SSIDs via WLAN profiles. #}
+{# For Catalyst 9800, configuration is performed via RESTCONF or the controller API. #}
+{# CLI-based WLAN config: #}
+{% if wlan_id is defined %}
+wlan {{ ssid_name }} {{ wlan_id }} {{ ssid_name }}
+{% if security_type | default('wpa2') == 'wpa2' %}
+ security wpa akm dot1x
+ security wpa wpa2
+{% elif security_type == 'psk' %}
+ security wpa akm psk
+ security wpa wpa2
+ security wpa psk set-key ascii 0 {{ psk_passphrase }}
+{% elif security_type == 'open' %}
+ no security wpa
+{% endif %}
+{% if vlan is defined %}
+ client vlan {{ vlan }}
+{% endif %}
+{% if radio_policy is defined %}
+ radio policy {{ radio_policy }}
+{% endif %}
+ no shutdown
+{% endif %}

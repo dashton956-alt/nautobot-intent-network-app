@@ -1,0 +1,20 @@
+{# dhcp_snooping — Arista EOS DHCP snooping configuration #}
+ip dhcp snooping
+{% if vlan_range is defined and vlan_range %}
+ip dhcp snooping vlan {{ vlan_range }}
+{% endif %}
+{% if option82_enabled | default(false) %}
+ip dhcp snooping information option
+{% else %}
+no ip dhcp snooping information option
+{% endif %}
+
+{% for trusted_intf in trusted_interfaces | default([]) %}
+interface {{ trusted_intf }}
+   ip dhcp snooping trust
+{% endfor %}
+
+{% if rate_limit is defined and rate_limit %}
+{# Apply rate limit to untrusted interfaces — configure per-interface as needed #}
+{# ip dhcp snooping limit rate {{ rate_limit }} #}
+{% endif %}

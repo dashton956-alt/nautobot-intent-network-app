@@ -1,0 +1,91 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: acl
+# Purpose:     Create and apply an extended IP ACL. Supports IPv4, IPv6,
+#              named ACLs, object-groups, and interface application.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-acl-mgmt-plane-001           # MANDATORY
+type: acl                             # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "Management plane ACL — permit NMS/jump-host, deny all others"  # MANDATORY
+change_ticket: CHG0030040             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL here
+
+scope:
+  roles: [router, switch]             # MANDATORY — one of: devices | sites | roles | all_tenant_devices
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  ACL IDENTITY (MANDATORY)                                              ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+acl_name: ACL-MGMT-PLANE              # MANDATORY — ACL name (no spaces; max 64 chars on IOS-XE)
+
+acl_type: extended                    # OPTIONAL (default: extended)
+                                      #   extended — can match source + destination + protocol + port
+                                      #   standard — matches source address only (legacy; avoid)
+
+address_family: ipv4                  # OPTIONAL (default: ipv4)
+                                      #   ipv4 | ipv6 | dual (dual = create both v4 and v6 ACLs)
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  ACL ENTRIES — ordered list; first match wins (MANDATORY)              ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+entries:
+  - action: permit                    # MANDATORY per entry — permit | deny
+    protocol: tcp                     # MANDATORY per entry — tcp | udp | icmp | ip | ospf | eigrp | ...
+    source: 172.20.20.0/24            # MANDATORY per entry — CIDR, IP, "any", or object-group name
+    destination: any                  # MANDATORY per entry — CIDR, IP, "any", or object-group name
+    port: 22                          # OPTIONAL — destination port number or name (e.g. 22 | "ssh")
+    source_port: null                 # OPTIONAL — source port matching (uncommon)
+    log: false                        # OPTIONAL (default: false) — log matched packets (cpu-intensive)
+    description: "SSH from NMS subnet"   # OPTIONAL — rendered as 'remark' on Cisco IOS
+
+  - action: permit
+    protocol: udp
+    source: 172.20.20.0/24
+    destination: any
+    port: 161
+    log: false
+    description: "SNMP from NMS subnet"
+
+  - action: permit
+    protocol: tcp
+    source: 10.0.0.0/8
+    destination: any
+    port: 443
+    description: "HTTPS management from corporate"
+
+  - action: deny
+    protocol: ip                      # 'ip' matches any IP protocol
+    source: any
+    destination: any
+    log: true                         # Log denied traffic for security monitoring
+    description: "Implicit deny all — log for audit"
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  INTERFACE APPLICATION (OPTIONAL)                                      ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+apply_interfaces: []                  # OPTIONAL — interfaces to apply this ACL to
+                                      #   If empty, ACL is created but not applied (staged)
+                                      # Example:
+                                      # apply_interfaces:
+                                      #   - GigabitEthernet0/0
+                                      #   - GigabitEthernet0/1
+
+direction: in                         # OPTIONAL (default: in) — in | out | both
+                                      #   'in'  = filter inbound traffic on the interface
+                                      #   'out' = filter outbound traffic
+                                      #   'both'= apply in both directions
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

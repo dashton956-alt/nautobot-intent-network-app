@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: pvlan
+# Purpose:     Configure Private VLANs to isolate hosts within the same primary
+#              VLAN. Isolated ports cannot communicate with each other; community
+#              ports can communicate within their community but not isolated ports.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-pvlan-001                 # MANDATORY
+  type: pvlan                            # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Private VLAN — isolate hosts within the same primary VLAN"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    devices:
+      - dc-east-access-sw-01             # MANDATORY — PVLANs are per-device
+
+  # ── Private VLAN structure ──────────────────────────────────────────────────
+  pvlan:
+    primary_vlan: 100                    # MANDATORY — primary (outer) VLAN
+    isolated_vlan: 101                   # MANDATORY — hosts in isolated VLAN cannot talk to each other
+    community_vlans:                     # OPTIONAL — hosts within a community can communicate
+      - 102
+      - 103
+    promiscuous_ports:                   # MANDATORY — uplink/gateway ports that can reach all PVLANs
+      - interface: GigabitEthernet0/1
+        desc: "Uplink to default gateway"
+    isolated_ports:                      # OPTIONAL — ports with no host-to-host communication
+      - interface: GigabitEthernet0/2
+        desc: "Isolated host port"
+    community_ports:                     # OPTIONAL — ports within a community
+      - interface: GigabitEthernet0/3
+        community_vlan: 102
+        desc: "Community host A"
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify private-vlan configuration"
+        expected:
+          - config_snippet: "private-vlan primary"
+          - config_snippet: "private-vlan isolated"

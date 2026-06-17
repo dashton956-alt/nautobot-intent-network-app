@@ -1,0 +1,6 @@
+{# ip_source_guard — Arista EOS IP source guard configuration #}
+{# Requires DHCP snooping to be enabled first (dhcp_snooping intent) #}
+{% for intf in ip_source_guard_interfaces | default([]) %}
+interface {{ intf }}
+   ip verify source
+{% endfor %}

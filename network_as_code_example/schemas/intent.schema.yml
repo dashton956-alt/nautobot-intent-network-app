@@ -1,0 +1,2782 @@
+# intent.schema.yml
+# pykwalify schema for all intent YAML files.
+# Validates structure and required fields before intents reach Nautobot.
+# Run: pykwalify -d <intent-file>.yaml -s intent.schema.yml
+#
+# NOTE: Two file formats exist in this repo:
+#   Newer files (management/, layer2/, security/, dc_evpn/, etc.): root-level fields
+#   Older files (l2/, l3/, mgmt/, dc/, connectivity/):             intent: { ... } wrapper
+# The schema validates root-level fields. Both formats are accepted because
+# matching-rule: any at the top level allows the 'intent:' key as an optional map.
+
+type: map
+matching-rule: any
+mapping:
+
+  # ── Legacy intent: wrapper (older file format) ─────────────────────────────
+  intent:
+    type: map
+    required: false
+    matching-rule: any
+    allowempty: true
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # UNIVERSAL REQUIRED FIELDS
+  # ══════════════════════════════════════════════════════════════════════════
+  id:
+    type: str
+    required: false
+    pattern: "^[a-z0-9][a-z0-9-]{2,198}[a-z0-9]$"
+
+  type:
+    type: str
+    required: false
+    enum:
+      # Layer 2
+      - vlan_provision
+      - l2_access_port
+      - l2_trunk_port
+      - lag
+      - mlag
+      - stp_policy
+      - qinq
+      - pvlan
+      - storm_control
+      - port_security
+      - dhcp_snooping
+      - dai
+      - ip_source_guard
+      - macsec
+      # Layer 3
+      - static_route
+      - ospf
+      - bgp_ebgp
+      - bgp_ibgp
+      - bgp_isp
+      - isis
+      - eigrp
+      - route_redistribution
+      - route_policy
+      - prefix_list
+      - vrf_basic
+      - bfd
+      - pbr
+      - ipv6_dual_stack
+      - ospfv3
+      - bgp_ipv6_af
+      - fhrp
+      # MPLS / SP
+      - mpls_l3vpn
+      - mpls_l2vpn
+      - pseudowire
+      - evpn_mpls
+      - ldp
+      - rsvp_te
+      - sr_mpls
+      - srv6
+      - 6pe_6vpe
+      - mvpn
+      # DC / EVPN
+      - evpn_vxlan_fabric
+      - l2vni
+      - l3vni
+      - bgp_evpn_af
+      - anycast_gateway
+      - vtep
+      - evpn_multisite
+      - dc_underlay
+      - dc_mlag
+      # Security
+      - connectivity
+      - security
+      - acl
+      - zbf
+      - ipsec_s2s
+      - ipsec_ikev2
+      - gre_tunnel
+      - gre_over_ipsec
+      - dmvpn
+      - macsec_policy
+      - copp
+      - urpf
+      - dot1x_nac
+      - aaa
+      - fw_rule
+      - ra_guard
+      - ssl_inspection
+      # WAN / SD-WAN
+      - wan_uplink
+      - sdwan_overlay
+      - sdwan_app_policy
+      - sdwan_qos
+      - sdwan_dia
+      - nat_pat
+      - nat64
+      - wan_failover
+      # Wireless
+      - wireless_ssid
+      - wireless_vlan_map
+      - wireless_dot1x
+      - wireless_guest
+      - wireless_rf
+      - wireless_qos
+      - wireless_band_steer
+      - wireless_roam
+      - wireless_segment
+      - wireless_mesh
+      - wireless_flexconnect
+      # Cloud / Hybrid
+      - cloud_vpc_peer
+      - cloud_transit_gw
+      - cloud_direct_connect
+      - cloud_vpn_gw
+      - cloud_bgp
+      - cloud_security_group
+      - cloud_nat
+      - cloud_route_table
+      - hybrid_dns
+      - cloud_sdwan
+      # QoS
+      - qos_classify
+      - qos_dscp_mark
+      - qos_cos_remark
+      - qos_queue
+      - qos_police
+      - qos_shape
+      - qos_trust
+      # Multicast
+      - multicast_pim_sm
+      - multicast_pim_ssm
+      - igmp_snooping
+      - multicast_vrf
+      - msdp
+      # Management
+      - mgmt_ntp
+      - mgmt_dns_dhcp
+      - mgmt_snmp
+      - mgmt_syslog
+      - mgmt_netflow
+      - mgmt_telemetry
+      - mgmt_ssh
+      - mgmt_aaa
+      - mgmt_aaa_device
+      - mgmt_netconf
+      - mgmt_motd
+      - mgmt_lldp_cdp
+      - mgmt_interface
+      - mgmt_stp_root
+      - mgmt_dhcp_server
+      - mgmt_global_config
+      # Reachability
+      - reachability_static
+      - reachability_bgp_network
+      - reachability_floating
+      - reachability_ip_sla
+      # Service
+      - service_lb_vip
+      - service_dns
+      - service_dhcp
+      - service_nat
+      - service_proxy
+
+  version:
+    type: int
+    required: false
+    range:
+      min: 1
+
+  tenant:
+    type: str
+    required: false
+
+  change_ticket:
+    type: str
+    required: false
+    pattern: "^(CHG|INC|REQ|TASK)[0-9]{5,10}$"
+
+  description:
+    type: str
+    required: false
+
+  # ── Optional universal fields ──────────────────────────────────────────────
+  approved_by:
+    type: str
+    required: false
+
+  status:
+    type: str
+    required: false
+    enum:
+      - draft
+      - validated
+      - deploying
+      - deployed
+      - failed
+      - rolled_back
+      - deprecated
+
+  hostname:
+    type: str
+    required: false
+
+  domain_name:
+    type: str
+    required: false
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # SCOPE
+  # ══════════════════════════════════════════════════════════════════════════
+  scope:
+    type: map
+    required: false
+    matching-rule: any
+    mapping:
+      all_tenant_devices:
+        type: bool
+        required: false
+      site:
+        type: str
+        required: false
+      sites:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+      device:
+        type: str
+        required: false
+      devices:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+      role:
+        type: str
+        required: false
+      roles:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+      tags:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+      platform:
+        type: str
+        required: false
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # ADDITIONAL ROOT-LEVEL FIELDS (flat-form intents)
+  # ══════════════════════════════════════════════════════════════════════════
+  # Fields used by flat (non-`intent:`-wrapped) example intents across the
+  # L3 / security / wireless / cloud domains.
+  vlan:
+    type: int
+    required: false
+  group_id:
+    type: int
+    required: false
+  hello_interval:
+    type: int
+    required: false
+  dead_interval:
+    type: int
+    required: false
+  preempt_delay:
+    type: int
+    required: false
+  priority_active:
+    type: int
+    required: false
+  priority_standby:
+    type: int
+    required: false
+  max_clients:
+    type: int
+    required: false
+  autorp_scope:
+    type: int
+    required: false
+  interface_description:
+    type: str
+    required: false
+  neighbor_description:
+    type: str
+    required: false
+  channel_id:
+    type: int
+    required: false
+  lacp_mode:
+    type: str
+    required: false
+  port_mode:
+    type: str
+    required: false
+  pfs_group:
+    type: int
+    required: false
+  local_network:
+    type: str
+    required: false
+  remote_network:
+    type: str
+    required: false
+  tunnel:
+    type: any
+    required: false
+  member_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+  ports:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        allowempty: true
+        matching-rule: any
+  always:
+    type: bool
+    required: false
+  passive_default:
+    type: bool
+    required: false
+  broadcast_ssid:
+    type: bool
+    required: false
+  authentication:
+    type: any
+    required: false
+  timers:
+    type: any
+    required: false
+  security:
+    type: any
+    required: false
+  stub_areas:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+  nssa_areas:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+  no_passive:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+  routes:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        allowempty: true
+        matching-rule: any
+  entries:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        allowempty: true
+        matching-rule: any
+  peers:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        allowempty: true
+        matching-rule: any
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # MANAGEMENT (canonical wrapper for mgmt_* intent config)
+  # ══════════════════════════════════════════════════════════════════════════
+  # mgmt_* intents nest their type-specific config under `management.<subtype>`
+  # (e.g. management.ssh, management.snmp, management.aaa_device). Permissive so
+  # each subtype block validates without enumerating every field here.
+  management:
+    type: map
+    required: false
+    allowempty: true
+    matching-rule: any
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # POLICY (shared across all intent types)
+  # ══════════════════════════════════════════════════════════════════════════
+  policy:
+    type: map
+    required: false
+    mapping:
+      compliance:
+        type: str
+        required: false
+        enum: [PCI-DSS, HIPAA, SOC2, ISO27001, NONE, none]
+      encryption:
+        type: str
+        required: false
+        enum: [tls, required, preferred, none]
+      max_latency_ms:
+        type: int
+        required: false
+      min_prefixes:
+        type: int
+        required: false
+      tenant_asn:
+        type: int
+        required: false
+      max_vrfs:
+        type: int
+        required: false
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # DEPLOYMENT
+  # ══════════════════════════════════════════════════════════════════════════
+  deployment:
+    type: map
+    required: false
+    mapping:
+      controller:
+        type: str
+        required: false
+        enum: [nornir, catalyst_center, meraki, mist, ansible, nautobot]
+      controller_site:
+        type: str
+        required: false
+      controller_org:
+        type: str
+        required: false
+      strategy:
+        type: str
+        required: false
+        enum: [all_at_once, canary, rolling]
+      save_config:
+        type: bool
+        required: false
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # VERIFICATION
+  # ══════════════════════════════════════════════════════════════════════════
+  verification:
+    type: map
+    required: false
+    mapping:
+      level:
+        type: str
+        required: false
+        enum: [basic, nuts]
+      trigger:
+        type: str
+        required: false
+        enum: [on_deploy, scheduled, both]
+      schedule:
+        type: str
+        required: false
+      fail_action:
+        type: str
+        required: false
+        enum: [alert, rollback, remediate]
+      tests:
+        type: seq
+        required: false
+        sequence:
+          - type: map
+            mapping:
+              test_class:
+                type: str
+                required: true
+                enum:
+                  # NAPALM tests
+                  - TestNapalmBgpNeighbors
+                  - TestNapalmBgpNeighborsCount
+                  - TestNapalmArp
+                  - TestNapalmArpRange
+                  - TestNapalmInterfaces
+                  - TestNapalmLldpNeighbors
+                  - TestNapalmLldpNeighborsCount
+                  - TestNapalmPing
+                  - TestNapalmConfig
+                  - TestNapalmUsers
+                  - TestNapalmOnlyDefinedUsersExist
+                  - TestNapalmVlans
+                  - TestNapalmInterfaceInVlan
+                  - TestNapalmOnlyDefinedVlansExist
+                  - TestNapalmNetworkInstances
+                  - TestNapalmRunningConfigContains
+                  - TestNapalmOspfNeighbors
+                  - TestNapalmOspfNeighborsCount
+                  - TestNapalmMplsLdpNeighbors
+                  - TestNapalmEnvironment
+                  - TestNapalmFacts
+                  - TestNapalmRouteTable
+                  - TestNapalmMacTable
+                  - TestNapalmIpRoute
+                  # Netmiko tests
+                  - TestNetmikoCdpNeighbors
+                  - TestNetmikoCdpNeighborsCount
+                  - TestNetmikoOspfNeighbors
+                  - TestNetmikoOspfNeighborsCount
+                  - TestNetmikoIperf
+                  - TestNetmikoBgpSummary
+                  - TestNetmikoVxlanVtep
+                  - TestNetmikoMplsForwarding
+                  - TestNetmikoIsisNeighbors
+              label:
+                type: str
+                required: false
+              test_execution:
+                type: map
+                required: false
+                allowempty: true
+              expected:
+                type: seq
+                required: false
+                sequence:
+                  - type: map
+                    matching-rule: any
+                    allowempty: true
+              test_data:
+                type: seq
+                required: false
+                sequence:
+                  - type: map
+                    matching-rule: any
+                    allowempty: true
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # CONNECTIVITY (source / destination / isolation)
+  # ══════════════════════════════════════════════════════════════════════════
+  source:
+    type: map
+    required: false
+    mapping:
+      group:
+        type: str
+        required: false
+      sites:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+      devices:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+
+  destination:
+    type: map
+    required: false
+    mapping:
+      external:
+        type: bool
+        required: false
+      provider:
+        type: str
+        required: false
+      prefixes:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+      group:
+        type: str
+        required: false
+      sites:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+
+  isolation:
+    type: map
+    required: false
+    mapping:
+      deny_groups:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+      deny_protocols:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+            enum: [telnet, http, ftp, snmpv1, snmpv2, rsh, rlogin, tftp]
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # LAYER 2 — PORT AND VLAN FIELDS
+  # ══════════════════════════════════════════════════════════════════════════
+  interface:
+    type: str
+    required: false
+
+  vlan_id:
+    type: int
+    required: false
+    range:
+      min: 1
+      max: 4094
+
+  voice_vlan:
+    type: int
+    required: false
+    range:
+      min: 1
+      max: 4094
+
+  portfast:
+    type: bool
+    required: false
+
+  bpdu_guard:
+    type: bool
+    required: false
+
+  shutdown:
+    type: bool
+    required: false
+
+  speed:
+    type: int
+    required: false
+
+  duplex:
+    type: str
+    required: false
+    enum: [full, half, auto]
+
+  mtu:
+    type: int
+    required: false
+    range:
+      min: 64
+      max: 65535
+
+  native_vlan:
+    type: int
+    required: false
+    range:
+      min: 1
+      max: 4094
+
+  allowed_vlans:
+    type: any        # str range ("100-200") or list of VLAN IDs
+    required: false
+
+  trunk_groups:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # VLAN provisioning
+  vlans:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        mapping:
+          id:
+            type: int
+            required: true
+            range:
+              min: 1
+              max: 4094
+          name:
+            type: str
+            required: true
+          description:
+            type: str
+            required: false
+          vrf:
+            type: str
+            required: false
+          ip_address:
+            type: str
+            required: false
+          ipv6_address:
+            type: str
+            required: false
+          active:
+            type: bool
+            required: false
+
+  # LAG / Port-channel
+  lag_id:
+    type: int
+    required: false
+  lag_mode:
+    type: str
+    required: false
+    enum: [active, passive, on, static]
+  lag_members:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  min_links:
+    type: int
+    required: false
+  hash_mode:
+    type: str
+    required: false
+
+  # MLAG
+  mlag_domain_id:
+    type: str
+    required: false
+  mlag_peer_link:
+    type: str
+    required: false
+  mlag_peer_address:
+    type: str
+    required: false
+  mlag_local_interface:
+    type: str
+    required: false
+  mlag_reload_delay:
+    type: int
+    required: false
+  mlag_vlan:
+    type: int
+    required: false
+    range:
+      min: 1
+      max: 4094
+  mlag_subnet:
+    type: str
+    required: false
+  mlag_peer_link_members:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # STP policy / root bridge
+  mode:
+    type: str
+    required: false
+  priority:
+    type: int
+    required: false
+  root_vlans:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  diameter:
+    type: int
+    required: false
+  hello_time:
+    type: int
+    required: false
+  forward_delay:
+    type: int
+    required: false
+  max_age:
+    type: int
+    required: false
+  secondary:
+    type: map
+    required: false
+    mapping:
+      device_role:
+        type: str
+        required: false
+      priority:
+        type: int
+        required: false
+
+  # Storm control
+  broadcast_level:
+    type: int
+    required: false
+  multicast_level:
+    type: int
+    required: false
+  unicast_level:
+    type: int
+    required: false
+  storm_action:
+    type: str
+    required: false
+    enum: [shutdown, trap, none]
+  storm_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # Port security
+  max_mac_addresses:
+    type: int
+    required: false
+  violation_action:
+    type: str
+    required: false
+    enum: [shutdown, restrict, protect]
+  sticky_mac:
+    type: bool
+    required: false
+  aging_time:
+    type: int
+    required: false
+  port_security_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # DHCP snooping
+  trusted_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  rate_limit:
+    type: int
+    required: false
+  vlan_range:
+    type: str
+    required: false
+  option82_enabled:
+    type: bool
+    required: false
+
+  # DAI (Dynamic ARP Inspection)
+  dai_vlans:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  trusted_ports:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  arp_rate_limit:
+    type: int
+    required: false
+  dai_log_buffer:
+    type: int
+    required: false
+
+  # IP source guard
+  ip_source_guard_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # PVLAN
+  pvlan_type:
+    type: str
+    required: false
+    enum: [isolated, community, promiscuous]
+  primary_vlan:
+    type: int
+    required: false
+    range:
+      min: 1
+      max: 4094
+  secondary_vlan:
+    type: int
+    required: false
+    range:
+      min: 1
+      max: 4094
+  pvlan_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # QinQ (802.1ad)
+  outer_vlan:
+    type: int
+    required: false
+    range:
+      min: 1
+      max: 4094
+  inner_vlan:
+    type: int
+    required: false
+    range:
+      min: 1
+      max: 4094
+  qinq_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  service_provider_vlan:
+    type: int
+    required: false
+
+  # MACsec (L2 per-interface)
+  macsec_policy_name:
+    type: str
+    required: false
+  cipher_suite:
+    type: str
+    required: false
+    enum: [gcm-aes-128, gcm-aes-256, gcm-aes-xpn-128, gcm-aes-xpn-256]
+  key_server_priority:
+    type: int
+    required: false
+    range:
+      min: 0
+      max: 255
+  macsec_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  include_icv_indicator:
+    type: bool
+    required: false
+  replay_protection:
+    type: bool
+    required: false
+  replay_window:
+    type: int
+    required: false
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # LAYER 3 — ROUTING FIELDS
+  # ══════════════════════════════════════════════════════════════════════════
+  local_asn:
+    type: int
+    required: false
+
+  neighbor_ip:
+    type: str
+    required: false
+
+  neighbor_asn:
+    type: int
+    required: false
+
+  vrf:
+    type: str
+    required: false
+
+  router_id:
+    type: str
+    required: false
+
+  # BGP session parameters
+  route_map_in:
+    type: str
+    required: false
+  route_map_out:
+    type: str
+    required: false
+  prefix_list_in:
+    type: str
+    required: false
+  prefix_list_out:
+    type: str
+    required: false
+  max_prefix:
+    type: int
+    required: false
+  allowas_in:
+    type: int
+    required: false
+  timers_keepalive:
+    type: int
+    required: false
+  timers_hold:
+    type: int
+    required: false
+  password:
+    type: str
+    required: false
+  multihop:
+    type: int
+    required: false
+  local_preference:
+    type: int
+    required: false
+  send_community:
+    type: str
+    required: false
+  maximum_paths:
+    type: int
+    required: false
+  bfd:
+    type: bool
+    required: false
+  graceful_restart:
+    type: bool
+    required: false
+  default_originate:
+    type: bool
+    required: false
+  update_source:
+    type: str
+    required: false
+  route_reflector_client:
+    type: bool
+    required: false
+  next_hop_self:
+    type: bool
+    required: false
+  soft_reconfiguration:
+    type: bool
+    required: false
+  address_family:
+    type: str
+    required: false
+
+  # BGP neighbors list
+  neighbors:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  bgp_networks:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # OSPF
+  process_id:
+    type: int
+    required: false
+  area:
+    type: str
+    required: false
+  area_type:
+    type: str
+    required: false
+    enum: [normal, stub, nssa, totally-stub, totally-nssa]
+  ospf_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  passive_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  default_information_originate:
+    type: bool
+    required: false
+  reference_bandwidth:
+    type: int
+    required: false
+  redistribute:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  networks:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # IS-IS
+  net:
+    type: str
+    required: false
+  level:
+    type: str
+    required: false
+    enum: [level-1, level-2, level-1-2]
+  metric_style:
+    type: str
+    required: false
+    enum: [narrow, wide, transition]
+  isis_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # EIGRP
+  autonomous_system:
+    type: int
+    required: false
+  eigrp_networks:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  variance:
+    type: int
+    required: false
+  stub:
+    type: str
+    required: false
+    enum: [connected, summary, redistributed, receive-only]
+
+  # Static routes
+  static_routes:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        mapping:
+          prefix:
+            type: str
+            required: true
+          next_hop:
+            type: str
+            required: false
+          exit_interface:
+            type: str
+            required: false
+          admin_distance:
+            type: int
+            required: false
+            range:
+              min: 1
+              max: 255
+          vrf:
+            type: str
+            required: false
+          tag:
+            type: int
+            required: false
+          description:
+            type: str
+            required: false
+          track:
+            type: int
+            required: false
+          permanent:
+            type: bool
+            required: false
+
+  # VRF
+  vrf_name:
+    type: str
+    required: false
+  rd:
+    type: str
+    required: false
+  rt_export:
+    type: str
+    required: false
+  rt_import:
+    type: str
+    required: false
+  address_families:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # Prefix list
+  prefix_list_name:
+    type: str
+    required: false
+  prefixes:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        mapping:
+          seq:
+            type: int
+            required: true
+          action:
+            type: str
+            required: true
+            enum: [permit, deny]
+          prefix:
+            type: str
+            required: true
+          le:
+            type: int
+            required: false
+          ge:
+            type: int
+            required: false
+
+  # Route map / route policy
+  route_map_name:
+    type: str
+    required: false
+  clauses:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # Route redistribution
+  redistribution_rules:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  source_protocol:
+    type: str
+    required: false
+  target_protocol:
+    type: str
+    required: false
+
+  # BFD
+  bfd_interval:
+    type: int
+    required: false
+  bfd_min_rx:
+    type: int
+    required: false
+  bfd_multiplier:
+    type: int
+    required: false
+  bfd_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # FHRP (HSRP / VRRP / GLBP)
+  fhrp_protocol:
+    type: str
+    required: false
+    enum: [hsrp, vrrp, glbp]
+  fhrp_group:
+    type: int
+    required: false
+  virtual_ip:
+    type: str
+    required: false
+  fhrp_priority:
+    type: int
+    required: false
+    range:
+      min: 0
+      max: 255
+  preempt:
+    type: bool
+    required: false
+  fhrp_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  track_interface:
+    type: str
+    required: false
+  track_decrement:
+    type: int
+    required: false
+
+  # PBR
+  pbr_route_map:
+    type: str
+    required: false
+  pbr_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  pbr_clauses:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # IPv6
+  ipv6_enabled:
+    type: bool
+    required: false
+  ipv6_unicast_routing:
+    type: bool
+    required: false
+  ipv6_addresses:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # DC / EVPN / VXLAN
+  # ══════════════════════════════════════════════════════════════════════════
+  nve_interface:
+    type: str
+    required: false
+
+  source_interface:
+    type: str
+    required: false
+
+  replication_mode:
+    type: str
+    required: false
+    enum: [ingress-replication, multicast, static]
+
+  advertise_all_vni:
+    type: bool
+    required: false
+
+  route_target_auto:
+    type: bool
+    required: false
+
+  evpn_neighbors:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  vlan_name:
+    type: str
+    required: false
+
+  mcast_group:
+    type: str
+    required: false
+
+  anycast_gateway_mac:
+    type: str
+    required: false
+
+  redistribute_connected:
+    type: bool
+    required: false
+
+  redistribute_static:
+    type: bool
+    required: false
+
+  # DC underlay
+  underlay_protocol:
+    type: str
+    required: false
+    enum: [ospf, bgp, isis]
+  underlay_links:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  loopback_pool:
+    type: str
+    required: false
+  ptp_pool:
+    type: str
+    required: false
+  asn_pool:
+    type: str
+    required: false
+  spine_asn:
+    type: int
+    required: false
+  leaf_asn_start:
+    type: int
+    required: false
+
+  # VTEP
+  vtep_loopback:
+    type: str
+    required: false
+  vtep_loopback_pool:
+    type: str
+    required: false
+
+  # Anycast gateway
+  anycast_gateways:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # BGP EVPN address family
+  bgp_evpn_neighbors:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # EVPN multisite / DCI
+  dci_links:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  border_gateways:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  multisite_id:
+    type: int
+    required: false
+  delay_restore:
+    type: int
+    required: false
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # MPLS / SEGMENT ROUTING
+  # ══════════════════════════════════════════════════════════════════════════
+  # LDP
+  ldp_router_id:
+    type: str
+    required: false
+  ldp_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  ldp_discovery_interval:
+    type: int
+    required: false
+  ldp_holdtime:
+    type: int
+    required: false
+  ldp_targeted_sessions:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  graceful_restart_reconnect:
+    type: int
+    required: false
+  max_hop_count:
+    type: int
+    required: false
+  ldp_transport_address:
+    type: str
+    required: false
+
+  # L3VPN CE-facing
+  ce_interface:
+    type: str
+    required: false
+  ce_vlan:
+    type: int
+    required: false
+  ce_routing_protocol:
+    type: str
+    required: false
+    enum: [bgp, ospf, static, connected, rip]
+  ce_neighbor_asn:
+    type: int
+    required: false
+
+  # SR-MPLS
+  srgb_start:
+    type: int
+    required: false
+  srgb_end:
+    type: int
+    required: false
+  prefix_sids:
+    type: map
+    required: false
+    allowempty: true
+  adjacency_sids:
+    type: map
+    required: false
+    allowempty: true
+  ti_lfa:
+    type: bool
+    required: false
+  ti_lfa_mode:
+    type: str
+    required: false
+    enum: [link-protection, node-protection]
+
+  # RSVP-TE
+  rsvp_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  rsvp_tunnels:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  cspf_enabled:
+    type: bool
+    required: false
+  bandwidth_reservation:
+    type: int
+    required: false
+
+  # L2VPN / Pseudowire
+  pseudowire_id:
+    type: int
+    required: false
+  peer_ip:
+    type: str
+    required: false
+  pw_encapsulation:
+    type: str
+    required: false
+    enum: [mpls, l2tpv3]
+  pw_type:
+    type: str
+    required: false
+    enum: [ethernet, vlan, hdlc, ppp, atm]
+
+  # SRv6
+  locator_name:
+    type: str
+    required: false
+  locator_prefix:
+    type: str
+    required: false
+  srv6_functions:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # SECURITY
+  # ══════════════════════════════════════════════════════════════════════════
+
+  # ACL
+  acl_name:
+    type: str
+    required: false
+  acl_type:
+    type: str
+    required: false
+    enum: [extended, standard, ipv6, named]
+  acl_rules:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        mapping:
+          seq:
+            type: int
+            required: false
+          action:
+            type: str
+            required: true
+            enum: [permit, deny, remark]
+          protocol:
+            type: str
+            required: false
+          source:
+            type: str
+            required: false
+          destination:
+            type: str
+            required: false
+          source_port:
+            type: str
+            required: false
+          destination_port:
+            type: str
+            required: false
+          log:
+            type: bool
+            required: false
+          remark:
+            type: str
+            required: false
+  acl_apply:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        mapping:
+          interface:
+            type: str
+            required: true
+          direction:
+            type: str
+            required: true
+            enum: [in, out]
+          vrf:
+            type: str
+            required: false
+
+  # Firewall rules
+  policy_name:
+    type: str
+    required: false
+  firewall_type:
+    type: str
+    required: false
+    enum: [stateful, stateless]
+  default_action:
+    type: str
+    required: false
+    enum: [deny, permit, drop]
+  rules:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # ZBF
+  zones:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  zone_pairs:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # IPSec
+  local_endpoint:
+    type: str
+    required: false
+  remote_endpoint:
+    type: str
+    required: false
+  remote_peer:
+    type: str
+    required: false
+  ike_version:
+    type: int
+    required: false
+    enum: [1, 2]
+  encryption:
+    type: str
+    required: false
+  integrity:
+    type: str
+    required: false
+  dh_group:
+    type: int
+    required: false
+  lifetime:
+    type: int
+    required: false
+  prf:
+    type: str
+    required: false
+  proposal_name:
+    type: str
+    required: false
+  policy_map:
+    type: str
+    required: false
+  keyring_name:
+    type: str
+    required: false
+  profile_name:
+    type: str
+    required: false
+  ike_proposal:
+    type: map
+    required: false
+    matching-rule: any
+    allowempty: true
+  ipsec_proposal:
+    type: map
+    required: false
+    matching-rule: any
+    allowempty: true
+  auth_method:
+    type: str
+    required: false
+    enum: [psk, certificate, eap]
+  psk:
+    type: str
+    required: false
+  identity_local:
+    type: str
+    required: false
+  identity_remote:
+    type: str
+    required: false
+  dpd_interval:
+    type: int
+    required: false
+  dpd_retry:
+    type: int
+    required: false
+  tunnels:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  traffic_selectors:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  crypto_map_name:
+    type: str
+    required: false
+
+  # GRE tunnel
+  tunnel_source:
+    type: str
+    required: false
+  tunnel_destination:
+    type: str
+    required: false
+  tunnel_ip:
+    type: str
+    required: false
+  tunnel_vrf:
+    type: str
+    required: false
+  keepalive_interval:
+    type: int
+    required: false
+  keepalive_retries:
+    type: int
+    required: false
+
+  # AAA (security type — device login/command)
+  auth_methods:
+    type: str
+    required: false
+  enable_auth:
+    type: str
+    required: false
+  authorization:
+    type: str
+    required: false
+  accounting:
+    type: str
+    required: false
+  tacacs_servers:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  radius_servers:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  local_users:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # CoPP
+  copp_policy:
+    type: str
+    required: false
+  copp_classes:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # uRPF
+  urpf_mode:
+    type: str
+    required: false
+    enum: [strict, loose]
+  urpf_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # 802.1X / NAC
+  dot1x_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  reauthentication_period:
+    type: int
+    required: false
+  quiet_period:
+    type: int
+    required: false
+  tx_period:
+    type: int
+    required: false
+  guest_vlan:
+    type: int
+    required: false
+  auth_fail_vlan:
+    type: int
+    required: false
+  critical_vlan:
+    type: int
+    required: false
+  host_mode:
+    type: str
+    required: false
+    enum: [single-host, multi-host, multi-domain, multi-auth]
+
+  # MACsec policy (security type)
+  macsec_policies:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # RA Guard
+  ra_guard_policy:
+    type: str
+    required: false
+  ra_guard_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # SSL Inspection
+  ssl_inspection_policy:
+    type: str
+    required: false
+  ssl_categories:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # WAN / SD-WAN
+  # ══════════════════════════════════════════════════════════════════════════
+  uplinks:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        mapping:
+          interface:
+            type: str
+            required: true
+          ip_address:
+            type: str
+            required: false
+          isp_name:
+            type: str
+            required: false
+          bandwidth:
+            type: str
+            required: false
+          default_route:
+            type: str
+            required: false
+          admin_distance:
+            type: int
+            required: false
+          description:
+            type: str
+            required: false
+          bfd:
+            type: bool
+            required: false
+
+  # NAT / PAT
+  nat_type:
+    type: str
+    required: false
+    enum: [overload, pool, static]
+  inside_interface:
+    type: str
+    required: false
+  outside_interface:
+    type: str
+    required: false
+  acl:
+    type: str
+    required: false
+  pool_name:
+    type: str
+    required: false
+  pool_start:
+    type: str
+    required: false
+  pool_end:
+    type: str
+    required: false
+  static_mappings:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # WAN failover
+  primary_link:
+    type: str
+    required: false
+  backup_link:
+    type: str
+    required: false
+  failover_threshold:
+    type: int
+    required: false
+  recovery_threshold:
+    type: int
+    required: false
+  track_objects:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # SD-WAN
+  sdwan_controller:
+    type: str
+    required: false
+  sdwan_site_id:
+    type: int
+    required: false
+  sdwan_transport:
+    type: str
+    required: false
+    enum: [ipsec, gre, dtls, tls]
+  sdwan_app_policies:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  sdwan_overlay_name:
+    type: str
+    required: false
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # MULTICAST
+  # ══════════════════════════════════════════════════════════════════════════
+  rp_address:
+    type: str
+    required: false
+
+  rp_type:
+    type: str
+    required: false
+    enum: [static, bsr, auto-rp]
+
+  bsr_candidate:
+    type: str
+    required: false
+
+  ssm_range:
+    type: str
+    required: false
+
+  interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  igmp_version:
+    type: int
+    required: false
+    enum: [1, 2, 3]
+
+  igmp_query_interval:
+    type: int
+    required: false
+
+  multicast_routing:
+    type: bool
+    required: false
+
+  msdp_peers:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  rpf_check:
+    type: bool
+    required: false
+
+  scope_ttl:
+    type: int
+    required: false
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # QoS
+  # ══════════════════════════════════════════════════════════════════════════
+  class_maps:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  queues:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  apply_interfaces:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  direction:
+    type: str
+    required: false
+    enum: [input, output, both, in, out]
+
+  dscp_map:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # REACHABILITY
+  # ══════════════════════════════════════════════════════════════════════════
+  probes:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        mapping:
+          sla_id:
+            type: int
+            required: true
+          probe_type:
+            type: str
+            required: false
+            enum: [icmp-echo, tcp-connect, udp-echo, dns, http]
+          target:
+            type: str
+            required: true
+          source_interface:
+            type: str
+            required: false
+          threshold:
+            type: int
+            required: false
+          timeout:
+            type: int
+            required: false
+          frequency:
+            type: int
+            required: false
+
+  floating_routes:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  bgp_network_statements:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # SERVICE (LB VIP, DNS, DHCP, NAT, Proxy)
+  # ══════════════════════════════════════════════════════════════════════════
+  vip_name:
+    type: str
+    required: false
+
+  vip_address:
+    type: str
+    required: false
+
+  vip_port:
+    type: int
+    required: false
+
+  protocol:
+    type: str
+    required: false
+
+  load_balancing_method:
+    type: str
+    required: false
+    enum: [round_robin, least_connections, ip_hash, weighted_round_robin]
+
+  members:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  health_monitor:
+    type: map
+    required: false
+    mapping:
+      type:
+        type: str
+        required: false
+        enum: [tcp, http, https, icmp, custom]
+      path:
+        type: str
+        required: false
+      expected_codes:
+        type: seq
+        required: false
+        sequence:
+          - type: int
+      interval:
+        type: int
+        required: false
+      timeout:
+        type: int
+        required: false
+      unhealthy_threshold:
+        type: int
+        required: false
+      healthy_threshold:
+        type: int
+        required: false
+
+  persistence:
+    type: map
+    required: false
+    mapping:
+      type:
+        type: str
+        required: false
+        enum: [none, cookie, source_ip, ssl_session_id]
+      timeout:
+        type: int
+        required: false
+
+  ssl_offload:
+    type: bool
+    required: false
+  ssl_cert:
+    type: str
+    required: false
+  ssl_key:
+    type: str
+    required: false
+
+  dns_zones:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  dns_forwarders:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # DHCP server pools (service_dhcp / mgmt_dhcp_server)
+  pools:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  excluded_addresses:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  lease_time:
+    type: int
+    required: false
+
+  # Service proxy
+  proxy_address:
+    type: str
+    required: false
+  proxy_port:
+    type: int
+    required: false
+  proxy_type:
+    type: str
+    required: false
+    enum: [transparent, explicit, pac]
+  proxy_exceptions:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # MANAGEMENT
+  # ══════════════════════════════════════════════════════════════════════════
+
+  # NTP
+  ntp_servers:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  ntp_source_interface:
+    type: str
+    required: false
+  authenticate:
+    type: bool
+    required: false
+  auth_key_id:
+    type: int
+    required: false
+  auth_key:
+    type: str
+    required: false
+  ntp_access_group:
+    type: str
+    required: false
+  timezone:
+    type: str
+    required: false
+  timezone_offset:
+    type: int
+    required: false
+
+  # DNS resolver (management)
+  dns:
+    type: map
+    required: false
+    mapping:
+      servers:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+      search_domains:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+      domain_name:
+        type: str
+        required: false
+  dhcp:
+    type: map
+    required: false
+    mapping:
+      client_id:
+        type: str
+        required: false
+      default_gateway_override:
+        type: bool
+        required: false
+      vrf:
+        type: str
+        required: false
+  dns_servers:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  dns_domain_list:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  # SNMP
+  snmp_version:
+    type: str
+    required: false
+  snmp_community:
+    type: str
+    required: false
+  snmp_location:
+    type: str
+    required: false
+  snmp_contact:
+    type: str
+    required: false
+  snmp_trap_targets:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  snmp_users:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  snmp_views:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # Syslog
+  syslog_servers:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  syslog_source_interface:
+    type: str
+    required: false
+  syslog_trap_level:
+    type: str
+    required: false
+    enum: [emergencies, alerts, critical, errors, warnings, notifications, informational, debugging]
+
+  # SSH management
+  ssh_version:
+    type: int
+    required: false
+    enum: [1, 2]
+  ssh_timeout:
+    type: int
+    required: false
+  ssh_ciphers:
+    type: map
+    required: false
+    mapping:
+      kex:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+      ciphers:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+      macs:
+        type: seq
+        required: false
+        sequence:
+          - type: str
+  vty_lines:
+    type: map
+    required: false
+    mapping:
+      first:
+        type: int
+        required: false
+      last:
+        type: int
+        required: false
+      exec_timeout_minutes:
+        type: int
+        required: false
+      exec_timeout_seconds:
+        type: int
+        required: false
+      access_class:
+        type: str
+        required: false
+      transport_input:
+        type: str
+        required: false
+  ssh_allowed_prefixes:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  ssh_max_sessions:
+    type: int
+    required: false
+
+  # AAA (management type — structured)
+  aaa:
+    type: map
+    required: false
+    matching-rule: any
+    allowempty: true
+
+  # NETCONF / RESTCONF / gNMI
+  netconf_enabled:
+    type: bool
+    required: false
+  netconf_port:
+    type: int
+    required: false
+  netconf_vrf:
+    type: str
+    required: false
+  restconf_enabled:
+    type: bool
+    required: false
+  restconf_port:
+    type: int
+    required: false
+  gnmi_enabled:
+    type: bool
+    required: false
+  gnmi_port:
+    type: int
+    required: false
+  gnmi_transport:
+    type: str
+    required: false
+    enum: [grpc, grpc-tls]
+
+  # Telemetry (gRPC dial-out)
+  telemetry_destination:
+    type: str
+    required: false
+  telemetry_port:
+    type: int
+    required: false
+  telemetry_transport:
+    type: str
+    required: false
+    enum: [grpc, grpc-tls]
+  telemetry_encoding:
+    type: str
+    required: false
+    enum: [gpb, gpb-kv, json-ietf]
+  telemetry_subscriptions:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # NetFlow / IPFIX
+  netflow_version:
+    type: str
+    required: false
+  netflow_collectors:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+  netflow_source_interface:
+    type: str
+    required: false
+  sampling_mode:
+    type: str
+    required: false
+    enum: [deterministic, random, none]
+  sampling_rate:
+    type: int
+    required: false
+  flow_timeout_active:
+    type: int
+    required: false
+  flow_timeout_inactive:
+    type: int
+    required: false
+
+  # Banners / MOTD
+  login_banner:
+    type: str
+    required: false
+  motd_banner:
+    type: str
+    required: false
+  exec_banner:
+    type: str
+    required: false
+  banner_delimiter:
+    type: str
+    required: false
+
+  # LLDP / CDP
+  lldp_enabled:
+    type: bool
+    required: false
+  cdp_enabled:
+    type: bool
+    required: false
+  lldp_holdtime:
+    type: int
+    required: false
+  lldp_reinit:
+    type: int
+    required: false
+  lldp_timer:
+    type: int
+    required: false
+  lldp_interface_overrides:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # Interface (management Loopback / OOB)
+  loopback:
+    type: map
+    required: false
+    mapping:
+      name:
+        type: str
+        required: true
+      description:
+        type: str
+        required: false
+      ip_range:
+        type: str
+        required: false
+      mtu:
+        type: int
+        required: false
+  oob_management:
+    type: map
+    required: false
+    mapping:
+      name:
+        type: str
+        required: true
+      description:
+        type: str
+        required: false
+      vrf:
+        type: str
+        required: false
+      speed:
+        type: int
+        required: false
+      duplex:
+        type: str
+        required: false
+      shutdown:
+        type: bool
+        required: false
+  additional_loopbacks:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # DHCP server pools (mgmt_dhcp_server — pools key shared with service section above)
+
+  # Global config bundle (mgmt_global_config)
+  dhcp_pools:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # WIRELESS (controller-managed — fields pushed to WLC/Mist/Meraki)
+  # ══════════════════════════════════════════════════════════════════════════
+  ssid_name:
+    type: str
+    required: false
+    range:
+      min: 1
+      max: 32
+
+  security_mode:
+    type: str
+    required: false
+    enum: [wpa3-enterprise, wpa3-personal, wpa2-enterprise, wpa2-personal, open]
+
+  band:
+    type: str
+    required: false
+    enum: [2.4ghz, 5ghz, 6ghz, dual, tri]
+
+  hidden:
+    type: bool
+    required: false
+
+  client_isolation:
+    type: bool
+    required: false
+
+  rate_limit_down_mbps:
+    type: int
+    required: false
+
+  rate_limit_up_mbps:
+    type: int
+    required: false
+
+  captive_portal_url:
+    type: str
+    required: false
+
+  fast_roaming:
+    type: bool
+    required: false
+
+  band_steering:
+    type: bool
+    required: false
+
+  ap_groups:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+
+  radius_server_group:
+    type: str
+    required: false
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # CLOUD (pushed via cloud provider API adapters)
+  # ══════════════════════════════════════════════════════════════════════════
+  provider:
+    type: str
+    required: false
+    enum: [aws, azure, gcp, generic]
+
+  region:
+    type: str
+    required: false
+
+  account_id:
+    type: str
+    required: false
+
+  requester_vpc:
+    type: str
+    required: false
+
+  accepter_vpc:
+    type: str
+    required: false
+
+  requester_account:
+    type: str
+    required: false
+
+  accepter_account:
+    type: str
+    required: false
+
+  requester_region:
+    type: str
+    required: false
+
+  accepter_region:
+    type: str
+    required: false
+
+  auto_accept:
+    type: bool
+    required: false
+
+  dns_resolution:
+    type: bool
+    required: false
+
+  connection_id:
+    type: str
+    required: false
+
+  bgp_asn:
+    type: int
+    required: false
+
+  bgp_auth_key:
+    type: str
+    required: false
+
+  bandwidth_mbps:
+    type: int
+    required: false
+
+  cloud_rules:
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        matching-rule: any
+        allowempty: true

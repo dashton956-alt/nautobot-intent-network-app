@@ -1,0 +1,73 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: bgp_ibgp
+# Purpose:     Configure an internal BGP (iBGP) peering session.
+#              Covers route-reflector clients, next-hop-self, and update-source.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-bgp-ibgp-rr-001              # MANDATORY
+type: bgp_ibgp                        # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "iBGP peering RR-01 to PE-01 — AS65001 — route-reflector client"  # MANDATORY
+change_ticket: CHG0030013             # MANDATORY (CHG + 7 digits)
+approved_by: "net.engineer"           # OPTIONAL here; MANDATORY when OPA enforce is on
+
+scope:
+  devices: [rr-01]                    # MANDATORY — usually per-device for iBGP sessions
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  BGP PEER IDENTITY (MANDATORY fields)                                  ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+local_asn: 65001                      # MANDATORY — our AS (same as peer for iBGP)
+neighbor_ip: 10.0.0.2                 # MANDATORY — peer's loopback IP (use loopback for iBGP)
+
+neighbor_description: "PE-01 — iBGP client"   # OPTIONAL — neighbor description on device
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  iBGP-SPECIFIC OPTIONAL PARAMETERS                                     ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+update_source: Loopback0              # OPTIONAL (default: Loopback0) — source interface for session
+                                      #   Always use a loopback for iBGP stability
+
+next_hop_self: true                   # OPTIONAL (default: true) — RR rewrites next-hop to itself
+                                      #   Required when connecting to PE routers via the RR
+
+route_reflector_client: true          # OPTIONAL (default: false) — designate this peer as an RR
+                                      #   client; only set on the route-reflector itself
+
+vrf: ""                               # OPTIONAL — VRF for the session (omit = global table)
+
+# ── Route filtering ───────────────────────────────────────────────────────────
+route_map_in: ""                      # OPTIONAL — route-map on inbound prefixes from peer
+route_map_out: ""                     # OPTIONAL — route-map on outbound prefixes to peer
+prefix_list_in: ""                    # OPTIONAL — alternative to route_map_in
+prefix_list_out: ""                   # OPTIONAL — alternative to route_map_out
+
+# ── Session settings ──────────────────────────────────────────────────────────
+timers_keepalive: 60                  # OPTIONAL (default: 60)
+timers_hold: 180                      # OPTIONAL (default: 180)
+password: ""                          # OPTIONAL — MD5 session password
+max_prefix: null                      # OPTIONAL — cap on routes accepted from this peer
+
+# ── Best-path tuning ──────────────────────────────────────────────────────────
+local_preference: null                # OPTIONAL — LOCAL_PREF for prefixes from this peer
+send_community: "standard extended"  # OPTIONAL — community types forwarded to this peer
+maximum_paths: null                   # OPTIONAL — ECMP paths (default: 1 for iBGP)
+
+# ── Reliability ───────────────────────────────────────────────────────────────
+bfd: true                             # OPTIONAL (default: true) — BFD fast failure detection
+graceful_restart: true                # OPTIONAL (default: false) — RFC 4724 graceful restart
+default_originate: false              # OPTIONAL (default: false) — send default to this peer
+allowas_in: null                      # OPTIONAL — allow our own AS in path (unusual for iBGP)
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true                   # OPTIONAL (default: true)
+
+verification:
+  level: nuts                         # OPTIONAL — verifies BGP session state
+  trigger: both                       # OPTIONAL — on_deploy + scheduled
+  fail_action: rollback               # OPTIONAL

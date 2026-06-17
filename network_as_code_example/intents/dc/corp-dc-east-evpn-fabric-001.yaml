@@ -1,0 +1,76 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: evpn_vxlan_fabric
+# Purpose:     Deploy a full EVPN/VXLAN spine-leaf fabric for DC East. Two
+#              spines act as route reflectors for the BGP EVPN overlay; four
+#              leaf pairs provide server connectivity with OSPF underlay.
+# HIGH-IMPACT TYPE — approved_by required when OPA enforce is enabled.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-dc-east-evpn-fabric-001       # MANDATORY
+  type: evpn_vxlan_fabric                # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG0012348              # MANDATORY (CHG + 7 digits)
+  description: "Full EVPN/VXLAN spine-leaf fabric for DC East — BGP underlay and overlay"  # MANDATORY
+
+  # ── Fabric topology ─────────────────────────────────────────────────────────
+  fabric:
+    name: dc-east-fabric                 # MANDATORY — unique fabric name
+    spines:                              # MANDATORY — spine devices (BGP EVPN route reflectors)
+      - dc-east-spine-01
+      - dc-east-spine-02
+    leaves:                              # MANDATORY — leaf devices (VTEP nodes)
+      - dc-east-leaf-01
+      - dc-east-leaf-02
+      - dc-east-leaf-03
+      - dc-east-leaf-04
+    underlay_protocol: ospf              # MANDATORY — ospf | bgp — IGP for loopback reachability
+    overlay_asn: 65100                   # MANDATORY — BGP AS for EVPN overlay sessions
+    anycast_gateway_mac: "00:00:00:aa:bb:cc"  # MANDATORY — shared virtual MAC for anycast GW
+    replication_mode: ingress            # MANDATORY — ingress | multicast — BUM traffic handling
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: canary                     # Canary: deploy to one leaf first before full rollout
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmBgpNeighbors
+        label: "Verify BGP overlay sessions between spines and leaves"
+        test_data:
+          - host: dc-east-spine-01
+            expected:
+              - peer: dc-east-leaf-01
+                state: Established
+              - peer: dc-east-leaf-02
+                state: Established
+      - test_class: TestNapalmInterfaces
+        label: "Verify fabric uplink interfaces are up"
+        test_data:
+          - host: dc-east-spine-01
+            expected:
+              - name: Ethernet1
+                is_enabled: true
+                is_up: true
+              - name: Ethernet2
+                is_enabled: true
+                is_up: true
+      - test_class: TestNapalmLldpNeighbors
+        label: "Verify spine-leaf LLDP adjacencies"
+        test_data:
+          - host: dc-east-spine-01
+            expected:
+              - local_port: Ethernet1
+                neighbor: dc-east-leaf-01
+              - local_port: Ethernet2
+                neighbor: dc-east-leaf-02

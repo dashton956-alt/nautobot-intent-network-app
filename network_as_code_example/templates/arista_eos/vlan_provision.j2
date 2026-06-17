@@ -1,0 +1,26 @@
+{# vlan_provision — Arista EOS VLAN and SVI provisioning #}
+{% for vlan in vlans %}
+vlan {{ vlan.id }}
+   name {{ vlan.name }}
+{% if vlan.description is defined and vlan.description %}
+   ! {{ vlan.description }}
+{% endif %}
+{% if vlan.active is defined and not vlan.active %}
+   state suspend
+{% endif %}
+{% endfor %}
+
+{% for vlan in vlans %}
+{% if vlan.ip_address is defined and vlan.ip_address %}
+interface Vlan{{ vlan.id }}
+   description {{ vlan.description | default(vlan.name) }}
+{% if vlan.vrf is defined and vlan.vrf %}
+   vrf {{ vlan.vrf }}
+{% endif %}
+   ip address {{ vlan.ip_address }}
+{% if vlan.ipv6_address is defined and vlan.ipv6_address %}
+   ipv6 address {{ vlan.ipv6_address }}
+{% endif %}
+   no shutdown
+{% endif %}
+{% endfor %}

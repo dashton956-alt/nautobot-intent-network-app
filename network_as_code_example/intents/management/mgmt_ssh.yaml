@@ -1,0 +1,99 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_ssh
+# Purpose:     Enforce SSHv2-only access with strong cipher suites, idle
+#              timeouts, and source ACL restrictions. Disables telnet on all
+#              VTY lines. Weak SSH algorithms are blocked by OPA policy.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-ssh-all-devices-001            # MANDATORY
+type: mgmt_ssh                          # MANDATORY
+version: 1                              # MANDATORY
+tenant: acme-corp                       # MANDATORY
+description: "SSH access control — SSHv2-only with strong ciphers — all devices"  # MANDATORY
+change_ticket: CHG0030104               # MANDATORY (CHG + 7 digits)
+approved_by: ""                         # OPTIONAL here
+
+scope:
+  all_tenant_devices: true              # MANDATORY — SSH policy must apply to every device
+
+management:
+  ssh:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  SSH VERSION AND BASICS (MANDATORY)                                    ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    version: 2                              # MANDATORY — SSHv2 only; v1 is cryptographically broken
+    enabled: true                           # MANDATORY — enable SSH server
+    key_bits: 4096                          # OPTIONAL (default: 2048) — RSA host key size
+                                            #   Minimum 2048 for compliance; 4096 recommended
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  TIMEOUTS (OPTIONAL)                                                   ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    authentication_retries: 3               # OPTIONAL (default: 3) — failed attempts before disconnect
+    timeout_secs: 60                        # OPTIONAL (default: 120) — SSH negotiation timeout
+    idle_timeout_mins: 10                   # OPTIONAL (default: 0=never) — disconnect idle sessions
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  CIPHER SUITES (OPTIONAL — strong defaults applied if omitted)         ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    algorithms:
+      kex:                                  # OPTIONAL — key exchange algorithms (omit = platform default)
+        - ecdh-sha2-nistp256                # ECDH with NIST P-256 curve
+        - ecdh-sha2-nistp384                # ECDH with NIST P-384 curve
+        - diffie-hellman-group14-sha256     # DH group 14 with SHA-256
+        # - diffie-hellman-group1-sha1      # WEAK — do not use; OPA will block
+      enc:                                  # OPTIONAL — symmetric encryption algorithms
+        - aes256-gcm@openssh.com            # AES-256 GCM (AEAD — preferred)
+        - aes128-gcm@openssh.com            # AES-128 GCM (AEAD)
+        # - 3des-cbc                        # WEAK — do not use
+        # - arcfour                         # WEAK — do not use
+      mac:                                  # OPTIONAL — MAC algorithms (not needed for AEAD enc)
+        - hmac-sha2-256
+        - hmac-sha2-512
+        # - hmac-md5                        # WEAK — do not use
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  ACCESS CONTROL (OPTIONAL)                                             ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    acl: ACL-SSH-SOURCES                    # OPTIONAL — ACL permitting management source IPs only
+                                            #   Strongly recommended to restrict SSH to jump hosts
+                                            #   and automation controllers
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  VTY LINE CONFIGURATION (OPTIONAL)                                     ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    vty_lines:
+      - range: "0 4"                        # OPTIONAL — VTY line range to configure
+        transport_in: ssh                   # OPTIONAL — ssh | telnet | all (use ssh ONLY)
+        transport_out: none                 # OPTIONAL — disable outbound telnet
+        exec_timeout_mins: 10               # OPTIONAL — exec idle timeout per session
+        access_class: ACL-SSH-SOURCES       # OPTIONAL — apply source ACL to VTY lines
+
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: NONE
+  encryption: none
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                     # OPTIONAL (default: rolling)
+  save_config: true
+  # NOTE: do NOT use fail_action: rollback for SSH/AAA changes —
+  # a rollback could lock out all administrative access to the device.
+
+verification:
+  level: nuts
+  trigger: on_deploy
+  fail_action: alert                    # IMPORTANT: alert only — never rollback for SSH changes
+  tests:
+    - test_class: TestNapalmRunningConfigContains
+      label: "Verify SSHv2 configured"
+      expected:
+        - config_snippet: "ip ssh version 2"
+        - config_snippet: "transport input ssh"

@@ -1,0 +1,16 @@
+{# mgmt_motd — Arista EOS banner / MOTD configuration #}
+{% set delim = banner_delimiter | default('%') %}
+{% if login_banner is defined and login_banner %}
+banner login {{ delim }}
+{{ login_banner }}{{ delim }}
+{% endif %}
+
+{% if motd_banner is defined and motd_banner %}
+banner motd {{ delim }}
+{{ motd_banner }}{{ delim }}
+{% endif %}
+
+{% if exec_banner is defined and exec_banner %}
+banner text {{ delim }}
+{{ exec_banner }}{{ delim }}
+{% endif %}

@@ -1,0 +1,12 @@
+{# mgmt_ssh — Cisco NX-OS SSH server configuration #}
+feature ssh
+ssh key rsa 2048
+{% if ssh_timeout is defined %}
+ssh timeout {{ ssh_timeout }}
+{% endif %}
+{% if max_sessions is defined %}
+ssh login-attempts {{ max_sessions }}
+{% endif %}
+line vty
+ exec-timeout {{ vty_timeout | default(10) }}
+ terminal-type network

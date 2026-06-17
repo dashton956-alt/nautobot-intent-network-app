@@ -1,0 +1,27 @@
+{# l3vni — Cisco NX-OS Layer 3 VNI (VRF-VNI mapping) configuration #}
+vrf context {{ vrf_name }}
+ vni {{ l3vni_id }}
+ rd {{ rd }}
+ address-family ipv4 unicast
+  route-target import {{ rt_import }}
+  route-target import {{ rt_import }} evpn
+  route-target export {{ rt_export }}
+  route-target export {{ rt_export }} evpn
+
+vlan {{ transit_vlan }}
+ vn-segment {{ l3vni_id }}
+
+interface Vlan{{ transit_vlan }}
+ no shutdown
+ mtu {{ mtu | default(9216) }}
+ vrf member {{ vrf_name }}
+ ip forward
+
+router bgp {{ local_as }}
+ vrf {{ vrf_name }}
+  address-family ipv4 unicast
+   advertise l2vpn evpn
+   redistribute direct route-map PERMIT-ALL
+{% if redistribute_static | default(false) %}
+   redistribute static route-map PERMIT-ALL
+{% endif %}

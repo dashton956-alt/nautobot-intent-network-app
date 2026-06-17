@@ -1,0 +1,23 @@
+{# mgmt_netflow — Arista EOS sFlow / flow tracking configuration #}
+{# Arista EOS uses sFlow natively; NetFlow/IPFIX via hardware flow-tracking or a collector agent #}
+
+{% if sampling_mode is defined and sampling_mode != 'none' %}
+sflow sample {{ sampling_rate | default(1000) }}
+sflow polling-interval 30
+{% for collector in netflow_collectors | default([]) %}
+sflow destination {{ collector.host }} {{ collector.port | default(6343) }}
+{% endfor %}
+{% if netflow_source_interface is defined and netflow_source_interface %}
+sflow source-interface {{ netflow_source_interface }}
+{% endif %}
+sflow run
+{% endif %}
+
+{# For IPFIX/NetFlow via flow-tracking (EOS 4.28+): #}
+{% for collector in netflow_collectors | default([]) %}
+{# flow tracking hardware #}
+{#    tracker NETFLOW-{{ loop.index }} #}
+{#       record format ipfix #}
+{#       exporter {{ collector.host }}:{{ collector.port | default(4739) }} #}
+{#       source interface {{ netflow_source_interface | default('Management0') }} #}
+{% endfor %}

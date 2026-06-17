@@ -1,0 +1,24 @@
+{# ldp — Arista EOS MPLS LDP configuration #}
+mpls ldp
+   router-id interface {{ ldp_router_id | default('Loopback0') }}
+{% if ldp_transport_address is defined and ldp_transport_address %}
+   transport-address interface {{ ldp_transport_address }}
+{% endif %}
+{% if max_hop_count is defined and max_hop_count %}
+   igp sync
+{% endif %}
+{% if graceful_restart_reconnect is defined and graceful_restart_reconnect %}
+   graceful-restart
+   graceful-restart restart-time {{ graceful_restart_reconnect }}
+{% endif %}
+   !
+{% for targeted in ldp_targeted_sessions | default([]) %}
+   neighbor {{ targeted.ip }}
+      targeted-hello accept
+{% endfor %}
+   shutdown
+
+{% for intf in ldp_interfaces | default([]) %}
+interface {{ intf }}
+   mpls ldp interface
+{% endfor %}

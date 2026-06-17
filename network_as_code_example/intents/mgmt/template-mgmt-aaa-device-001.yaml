@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_aaa_device
+# Purpose:     Configure TACACS+ for device login authentication and command
+#              authorisation on all devices. A local emergency admin account
+#              provides fallback access when TACACS+ servers are unreachable.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-mgmt-aaa-device-001       # MANDATORY
+  type: mgmt_aaa_device                  # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "TACACS / RADIUS for Device Mgmt — configure TACACS+ for device login and command authorisation"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    all_tenant_devices: true             # MANDATORY — AAA must apply to every device
+
+  # ── AAA configuration ───────────────────────────────────────────────────────
+  management:
+    aaa_device:
+      tacacs_servers:                    # MANDATORY — at least one TACACS+ server
+        - host: "10.1.1.20"
+          port: 49                       # OPTIONAL (default: 49) — TACACS+ TCP port
+          key_ref: vault:secret/tacacs/acme-corp-device  # MANDATORY — auth key from Vault
+          timeout: 5                     # OPTIONAL — server response timeout in seconds
+          priority: 1                    # OPTIONAL — priority 1 = primary server
+        - host: "10.1.1.21"
+          port: 49
+          key_ref: vault:secret/tacacs/acme-corp-device
+          timeout: 5
+          priority: 2                    # OPTIONAL — priority 2 = secondary server
+      server_group: TACACS-CORP          # MANDATORY — named group referenced by AAA methods
+      authentication:
+        login: "group TACACS-CORP local" # MANDATORY — try TACACS+ first, local as fallback
+      authorization:
+        exec: "group TACACS-CORP local if-authenticated"   # OPTIONAL — exec shell authorisation
+        commands_15: "group TACACS-CORP none"              # OPTIONAL — priv-15 command authorisation
+      accounting:
+        commands_0: "start-stop group TACACS-CORP"         # OPTIONAL — log all commands
+        commands_15: "start-stop group TACACS-CORP"
+        exec: "start-stop group TACACS-CORP"
+      local_fallback:                    # MANDATORY — emergency access when TACACS+ unreachable
+        username: emergency-admin
+        privilege: 15
+        password_ref: vault:secret/local-accounts/emergency
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify TACACS+ server group configured"
+        expected:
+          - config_snippet: "tacacs server"
+          - config_snippet: "aaa authentication login"

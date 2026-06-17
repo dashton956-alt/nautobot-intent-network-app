@@ -1,5 +1,5 @@
 {# lldp_cdp.j2 — arista-eos #}
-! LLDP Configuration
+! LLDP/CDP Configuration
 ! Intent: {{ intent_id }}
 !
 {% if lldp_global %}
@@ -12,4 +12,17 @@ interface {{ intf }}
    no lldp transmit
    no lldp receive
 {% endfor %}
+{% if cdp_global is defined %}
+!
+! CDP Configuration
+{% if cdp_global %}
+cdp run
+{% else %}
+no cdp run
+{% endif %}
+{% for intf in cdp_disable_on | default([]) %}
+interface {{ intf }}
+   no cdp enable
+{% endfor %}
+{% endif %}
 !

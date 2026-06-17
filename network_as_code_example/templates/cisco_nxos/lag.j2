@@ -1,0 +1,26 @@
+{# lag — Cisco NX-OS Port-Channel (LAG) configuration #}
+feature lacp
+
+interface port-channel{{ portchannel_id }}
+ description {{ description | default('LAG') }}
+{% if lag_mode | default('trunk') == 'access' %}
+ switchport
+ switchport mode access
+ switchport access vlan {{ access_vlan | default(1) }}
+{% else %}
+ switchport
+ switchport mode trunk
+{% if allowed_vlans is defined %}
+ switchport trunk allowed vlan {{ allowed_vlans | join(',') }}
+{% endif %}
+{% endif %}
+{% if vpc_id is defined %}
+ vpc {{ vpc_id }}
+{% endif %}
+ no shutdown
+
+{% for member in member_interfaces | default([]) %}
+interface {{ member }}
+ channel-group {{ portchannel_id }} mode {{ lacp_mode | default('active') }}
+ no shutdown
+{% endfor %}

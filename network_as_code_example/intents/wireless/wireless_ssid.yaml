@@ -1,0 +1,77 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: wireless_ssid
+# Purpose:     Provision a wireless SSID on APs or a wireless controller.
+#              Pushed via controller adapter (Cisco WLC, Mist, Aruba Central).
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-ssid-corp-wifi-001           # MANDATORY
+type: wireless_ssid                   # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "Corporate WPA3-Enterprise SSID — employee device access"  # MANDATORY
+change_ticket: CHG0030060             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL here
+
+scope:
+  sites: [hq-building-a]             # MANDATORY — site where APs / WLC reside
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  SSID IDENTITY (MANDATORY)                                             ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+ssid_name: CORP-WIFI                  # MANDATORY — SSID broadcast name (max 32 chars)
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  SECURITY (OPTIONAL — defaults to wpa3-enterprise)                    ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+security_mode: wpa3-enterprise        # OPTIONAL (default: wpa3-enterprise)
+                                      #   wpa3-enterprise  — 802.1X with RADIUS (recommended)
+                                      #   wpa3-personal    — PSK/SAE (home/small office)
+                                      #   wpa2-enterprise  — legacy enterprise (avoid new deploys)
+                                      #   wpa2-personal    — PSK (legacy; avoid)
+                                      #   open             — no encryption (guest with captive portal)
+
+psk: ""                               # OPTIONAL — PSK/SAE passphrase for *-personal modes
+                                      #   Minimum 12 chars; use Nautobot Secrets in production
+                                      #   Not used for *-enterprise modes (uses RADIUS instead)
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  VLAN BINDING (OPTIONAL)                                               ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+vlan_id: 200                          # OPTIONAL — VLAN for client traffic; auto-allocated from
+                                      #   WirelessVlanPool if this is a wireless_vlan_map intent
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  RADIO SETTINGS (OPTIONAL)                                             ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+band: dual                            # OPTIONAL (default: dual)
+                                      #   dual  — broadcast on both 2.4GHz and 5GHz (recommended)
+                                      #   5ghz  — 5GHz only (better performance, shorter range)
+                                      #   2.4ghz — 2.4GHz only (legacy; more interference)
+                                      #   6ghz  — 6GHz (WiFi 6E only; enterprise APs)
+
+broadcast_ssid: true                  # OPTIONAL (default: true) — advertise SSID in beacon frames
+                                      #   Set false for hidden SSID (security-by-obscurity only)
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  CLIENT SETTINGS (OPTIONAL)                                            ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+client_isolation: false               # OPTIONAL (default: false) — prevent client-to-client traffic
+                                      #   Set true for guest SSIDs; false for enterprise (printers etc)
+
+max_clients: null                     # OPTIONAL — maximum concurrent clients on this SSID per AP
+                                      #   Null = no limit; useful to reserve capacity for voice APs
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

@@ -1,0 +1,16 @@
+{# ipv6_dual_stack — Arista EOS IPv6 dual-stack interface configuration #}
+ipv6 unicast-routing
+
+{% for addr_entry in ipv6_addresses | default([]) %}
+interface {{ addr_entry.interface }}
+   ipv6 enable
+   ipv6 address {{ addr_entry.address }}
+{% if addr_entry.link_local is defined %}
+   ipv6 address {{ addr_entry.link_local }} link-local
+{% endif %}
+{% if addr_entry.nd_suppress | default(false) %}
+   ipv6 nd suppress-ra
+{% else %}
+   no ipv6 nd suppress-ra
+{% endif %}
+{% endfor %}

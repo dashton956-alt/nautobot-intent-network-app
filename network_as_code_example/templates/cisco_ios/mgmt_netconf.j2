@@ -1,0 +1,19 @@
+{# mgmt_netconf — Cisco IOS-XE NETCONF / RESTCONF configuration #}
+{% if netconf_enabled | default(false) %}
+netconf-yang
+{% if netconf_port is defined and netconf_port != 830 %}
+netconf-yang port {{ netconf_port }}
+{% endif %}
+{% endif %}
+
+{% if restconf_enabled | default(false) %}
+restconf
+{% endif %}
+
+{% if gnmi_enabled | default(false) %}
+gnmi
+ port {{ gnmi_port | default(9339) }}
+{% if gnmi_transport | default('grpc') == 'grpc-tls' %}
+ server certificate /etc/gnmi/cert.pem key /etc/gnmi/key.pem
+{% endif %}
+{% endif %}

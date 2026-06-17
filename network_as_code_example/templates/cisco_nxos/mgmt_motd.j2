@@ -1,0 +1,11 @@
+{# mgmt_motd — Cisco NX-OS banner/MOTD configuration #}
+{% if banner_motd is defined %}
+banner motd #
+{{ banner_motd }}
+#
+{% endif %}
+{% if banner_login is defined %}
+banner login #
+{{ banner_login }}
+#
+{% endif %}

@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: lag
+# Purpose:     Bundle physical interfaces into a single logical Link Aggregation
+#              Group (LAG / Port-Channel) using LACP. Provides bandwidth
+#              aggregation and link-level redundancy.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-lag-001                   # MANDATORY
+  type: lag                              # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Port Channel / LAG — bundle physical interfaces into a logical aggregate"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    devices:
+      - dc-east-access-sw-01             # MANDATORY — LAGs are per-device
+
+  # ── LAG configuration ───────────────────────────────────────────────────────
+  lag:
+    port_channel_id: 1                   # MANDATORY — Port-Channel interface number
+    description: "LAG to distribution switch"  # OPTIONAL — logical interface description
+    mode: active                         # OPTIONAL — active (LACP) | passive | on (static)
+    load_balance: src-dst-mac            # OPTIONAL — src-dst-mac | src-dst-ip | round-robin
+    min_links: 1                         # OPTIONAL — minimum active members before LAG goes down
+    members:                             # MANDATORY — at least one physical interface
+      - interface: Ethernet1
+      - interface: Ethernet2
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify port-channel interface exists in running config"
+        expected:
+          - config_snippet: "Port-Channel1"

@@ -1,97 +1,157 @@
-# Network-as-Code Example Intents
+# Network-as-Code Example
 
-Reference YAML intent files for the **nautobot-app-intent-networking** plugin.
+Reference implementation for the **nautobot-app-intent-networking** plugin.
+Shows how to structure a git-ops workflow where every network change goes through
+a pull request with automated validation before reaching any device.
 
-Each file covers one intent type with **every supported field documented**, marked as `MANDATORY` or `OPTIONAL`, with explanations of valid values and when to use each option.
-
-## Structure
+## How It Works
 
 ```
-intents/
-  layer2/
-    vlan_provision.yaml       — Create VLANs across a set of switches
-    l2_access_port.yaml       — Access port (single VLAN) configuration
-    l2_trunk_port.yaml        — Trunk port with allowed VLAN list
-    lag.yaml                  — Port-Channel / LAG (EtherChannel)
-
-  layer3/
-    static_route.yaml         — Static routes, floating statics, VRF routes
-    ospf.yaml                 — OSPF area/adjacency + redistribution
-    bgp_ebgp.yaml             — External BGP peering (eBGP)
-    bgp_ibgp.yaml             — Internal BGP peering (iBGP / route-reflector)
-    vrf_basic.yaml            — VRF (non-MPLS) for traffic segmentation
-    fhrp.yaml                 — HSRP / VRRP / GLBP gateway redundancy
-
-  mpls/
-    mpls_l3vpn.yaml           — Full MPLS L3VPN service provisioning
-    sr_mpls.yaml              — Segment Routing MPLS (SRGB, prefix-SIDs, TI-LFA)
-
-  dc_evpn/
-    evpn_vxlan_fabric.yaml    — Full VXLAN EVPN fabric bootstrap
-    l2vni.yaml                — L2 VNI provisioning (VXLAN segment)
-    l3vni.yaml                — L3VNI / IP VRF over VXLAN
-
-  security/
-    acl.yaml                  — Extended ACL (IPv4/IPv6, interface application)
-    fw_rule.yaml              — Declarative firewall policy (stateful/stateless)
-    ipsec_s2s.yaml            — IPSec site-to-site VPN
-    ipsec_ikev2.yaml          — IKEv2-specific IPSec (OPA-compliant structure)
-    aaa.yaml                  — TACACS+ / RADIUS authentication, authorisation, accounting
-
-  wan/
-    wan_uplink.yaml           — WAN uplinks with IP addressing and default routes
-    nat_pat.yaml              — NAT overload (PAT), pool NAT, static NAT
-
-  wireless/
-    wireless_ssid.yaml        — SSID provisioning (WPA3, security, band, VLAN)
-
-  cloud/
-    cloud_vpc_peer.yaml       — AWS VPC / Azure VNet peering
-    cloud_direct_connect.yaml — AWS Direct Connect / Azure ExpressRoute
-
-  qos/
-    qos_queue.yaml            — LLQ / CBWFQ queuing policy-map
-    qos_classify.yaml         — Traffic classification class-maps (DSCP, ACL)
-
-  multicast/
-    multicast_pim_sm.yaml     — PIM Sparse Mode with static/BSR/Auto-RP
-
-  management/
-    mgmt_ntp.yaml             — NTP servers, authentication, source interface
-    mgmt_snmp.yaml            — SNMPv3 / SNMPv2c, users, groups, trap targets
-    mgmt_syslog.yaml          — Syslog servers, severity, buffering, timestamps
-
-  reachability/
-    reachability_ip_sla.yaml  — IP SLA probes for WAN failover tracking
-
-  service/
-    service_lb_vip.yaml       — Load balancer VIP, pool members, health checks
+Engineer writes YAML intent
+       │
+       ▼
+  Git Pull Request
+       │
+       ▼
+  CI Pipeline (GitHub Actions)
+  ├── YAML syntax check
+  ├── Schema validation (pykwalify)
+  └── OPA policy checks
+       │
+       ▼
+  Human Review + Approval
+       │
+       ▼
+  PR Merged → Nautobot datasource sync triggered
+       │
+       ▼
+  Nautobot resolves intent → renders config → deploys via Nornir
+       │
+       ▼
+  Verification → Intent status updated ✓
 ```
 
-## Common Fields (present in every intent)
+## Directory Structure
 
-| Field | Mandatory? | Notes |
-|---|---|---|
-| `id` | **MANDATORY** | Unique across all files in the repo |
-| `type` | **MANDATORY** | Must match an `IntentTypeChoices` value |
-| `version` | **MANDATORY** | Positive integer (1–9999); increment on change |
-| `tenant` | **MANDATORY** | Must match a Tenant in Nautobot exactly |
-| `description` | **MANDATORY** | OPA enforces ≥ 10 characters |
-| `change_ticket` | **MANDATORY** | OPA enforces `CHG` + 7 digits format |
-| `approved_by` | OPTIONAL* | *MANDATORY for high-impact types: `dmvpn`, `ipsec_s2s`, `ipsec_ikev2`, `evpn_vxlan_fabric`, `mpls_l3vpn`, `fw_rule`, `sr_mpls`, `sdwan_overlay` |
-| `scope` | **MANDATORY** | One of: `sites`, `devices`, `roles`, `all_tenant_devices` |
-| `deployment.strategy` | OPTIONAL | `rolling` \| `canary` \| `all_at_once`; defaults to `rolling` |
-| `deployment.save_config` | OPTIONAL | Defaults to `true` |
-| `verification.level` | OPTIONAL | `basic` \| `nuts`; defaults to `basic` |
-| `verification.trigger` | OPTIONAL | `on_deploy` \| `scheduled` \| `both`; PCI-DSS/HIPAA enforce `both` |
-| `verification.fail_action` | OPTIONAL | `alert` \| `rollback` \| `remediate`; defaults to `alert` |
+```
+network_as_code_example/
+├── intents/                      # Intent YAML files (the source of truth)
+│   ├── cloud/                    # Cloud / hybrid cloud intents
+│   ├── connectivity/             # Legacy connectivity intents
+│   ├── dc/                       # Real DC/EVPN customer examples
+│   ├── dc_evpn/                  # DC/EVPN reference templates
+│   ├── examples/                 # Header, scope, policy, verification examples
+│   ├── ipsec-wan/                # IPSec WAN examples
+│   ├── l2/                       # Real L2 customer examples
+│   ├── layer2/                   # L2 reference templates (every field documented)
+│   ├── l3/                       # Real L3 customer examples
+│   ├── layer3/                   # L3 reference templates
+│   ├── management/               # Management reference templates
+│   ├── mgmt/                     # Real management customer examples
+│   ├── mpls/                     # MPLS / SP reference templates
+│   ├── multicast/                # Multicast reference templates
+│   ├── qos/                      # QoS reference templates
+│   ├── reachability/             # Reachability reference templates
+│   ├── security/                 # Security reference templates
+│   ├── service/                  # Service reference templates
+│   ├── wan/                      # WAN reference templates
+│   └── wireless/                 # Wireless reference templates
+│
+├── templates/                    # Jinja2 config templates per vendor OS
+│   ├── arista_eos/               # Arista EOS (76 intent-type templates)
+│   ├── cisco_ios/                # Cisco IOS / IOS-XE (58 templates)
+│   └── cisco_nxos/               # Cisco NX-OS (47 templates)
+│
+├── schemas/
+│   └── intent.schema.yml         # pykwalify schema (used by CI)
+│
+└── policies/
+    └── compliance.rego           # OPA policy (PCI-DSS, HIPAA, SOC2)
+```
 
-## OPA Compliance Notes
+## Intent File Naming
 
-The plugin enforces compliance rules automatically when `policy.compliance` is set:
+Two styles coexist in `intents/`:
 
-- **PCI-DSS**: Requires `encryption: required`, `verification.trigger: both`, `telnet` in `deny_protocols`, `max_latency_ms <= 20`, IKEv2 + AES-256 + SHA-256 + DH≥14 for tunnels
-- **HIPAA**: Requires `encryption != none`, `verification.trigger: both`, AES-256 + SHA-256 for tunnels
-- **SOC2**: Raises advisory warnings for `snmp_version: v2c`, `encryption: preferred`, `save_config: false` (non-blocking)
+| Style | Example | Purpose |
+|-------|---------|---------|
+| **Reference** | `layer2/l2_access_port.yaml` | Every field shown with MANDATORY/OPTIONAL annotations |
+| **Real example** | `l2/corp-l2-access-servers-dc-east-001.yaml` | Realistic customer intent |
 
-High-impact types enforce `deployment.strategy: rolling` or `canary` (never `all_at_once`).
+Reference files are named by intent type and document all supported fields.
+Real examples show production-ready intents with realistic values.
+
+## Common Fields (every intent requires these)
+
+| Field | Mandatory | Notes |
+|-------|-----------|-------|
+| `id` | **Yes** | Unique slug: lowercase, alphanumeric + hyphens |
+| `type` | **Yes** | Must match an `IntentTypeChoices` value |
+| `version` | **Yes** | Positive integer — increment on every edit |
+| `tenant` | **Yes** | Must match a Tenant slug in Nautobot |
+| `description` | **Yes** | Minimum 10 characters |
+| `change_ticket` | **Yes** | Format: `CHG0000000` (CHG + 7 digits) |
+| `scope` | **Yes** | One of: `sites`, `devices`, `roles`, `all_tenant_devices` |
+| `approved_by` | Conditional | Required for high-impact types (see below) |
+
+### High-impact types that require `approved_by`
+
+`dmvpn`, `ipsec_s2s`, `ipsec_ikev2`, `evpn_vxlan_fabric`, `mpls_l3vpn`,
+`fw_rule`, `sr_mpls`, `sdwan_overlay`
+
+## Deployment & Verification Options
+
+```yaml
+deployment:
+  strategy: rolling      # rolling | canary | all_at_once (default: rolling)
+  save_config: true      # write memory after deploy (default: true)
+
+verification:
+  level: basic           # basic | nuts (default: basic)
+  trigger: on_deploy     # on_deploy | scheduled | both (default: on_deploy)
+  fail_action: alert     # alert | rollback | remediate (default: alert)
+```
+
+## OPA Compliance
+
+Set `policy.compliance` to enforce compliance rules automatically:
+
+| Standard | Key enforcements |
+|----------|-----------------|
+| **PCI-DSS** | `encryption: required`, `verification.trigger: both`, telnet denied, `max_latency_ms ≤ 20`, IKEv2 + AES-256 + SHA-256 + DH≥14 |
+| **HIPAA** | `encryption != none`, `verification.trigger: both`, AES-256 + SHA-256 |
+| **SOC2** | Advisory warnings for SNMPv2c, preferred encryption, `save_config: false` |
+
+High-impact intents enforce `strategy: rolling` or `canary` — never `all_at_once`.
+
+## Templates
+
+The `templates/` directory contains Jinja2 templates for rendering intent YAMLs
+directly to device config. These templates take intent YAML fields as variables
+and are organized by vendor OS:
+
+- `arista_eos/` — EOS 4.x syntax (76 templates)
+- `cisco_ios/` — IOS / IOS-XE syntax (58 templates)
+- `cisco_nxos/` — NX-OS syntax (47 templates)
+
+> **Note:** These example templates render directly from intent YAML fields.
+> The plugin's internal templates at `intent_networking/jinja_templates/` render
+> from resolver primitive output — they use different variable names and serve
+> the Nautobot deployment pipeline.
+
+## CI Validation
+
+The GitHub Actions workflow (`.github/workflows/validate-intents.yml`) runs
+automatically on any PR that touches `network_as_code_example/intents/**`:
+
+1. **YAML syntax** — every changed file parses cleanly
+2. **Schema validation** — pykwalify validates against `schemas/intent.schema.yml`
+
+To run locally:
+
+```bash
+pip install pykwalify pyyaml
+pykwalify \
+  --data-file network_as_code_example/intents/layer2/l2_access_port.yaml \
+  --schema-file network_as_code_example/schemas/intent.schema.yml
+```

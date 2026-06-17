@@ -1,0 +1,65 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: fhrp
+# Purpose:     Configure HSRP, VRRP, or GLBP for first-hop gateway redundancy.
+#              Manages virtual IP, priority, and preemption across two devices.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-fhrp-vlan100-001             # MANDATORY
+type: fhrp                            # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "HSRP group 10 — VLAN 100 gateway 10.100.0.1 — active/standby"  # MANDATORY
+change_ticket: CHG0030015             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL here
+
+scope:
+  devices: [sw-core-01, sw-core-02]   # MANDATORY — needs exactly 2 devices for active/standby
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  FHRP CORE PARAMETERS (MANDATORY)                                      ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+protocol: hsrp                        # MANDATORY — hsrp | vrrp | glbp
+group_id: 10                          # MANDATORY — FHRP group number (0–255 for HSRP, 0–255 VRRP)
+virtual_ip: 10.100.0.1                # MANDATORY — shared virtual gateway IP
+interface: Vlan100                    # MANDATORY — SVI or routed interface to configure FHRP on
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  PRIORITY & PREEMPTION (OPTIONAL)                                      ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# Priority is assigned per-device. The resolver uses device index to assign:
+#   first device  → active  (higher priority)
+#   second device → standby (lower priority)
+priority_active: 110                  # OPTIONAL (default: 110) — active device priority
+priority_standby: 90                  # OPTIONAL (default: 90)  — standby device priority
+                                      #   Cisco default: 100. Higher wins. Max: 255.
+
+preempt: true                         # OPTIONAL (default: true) — reclaim active role after recovery
+preempt_delay: 30                     # OPTIONAL (default: 0) — seconds to wait before preempting
+                                      #   Allows routing to converge before resuming active role
+
+# ── Authentication ────────────────────────────────────────────────────────────
+authentication:
+  type: md5                           # OPTIONAL — md5 | plain | none (default: none)
+  key: "hsrp-key-01"                  # OPTIONAL — authentication key string
+
+# ── Timers ────────────────────────────────────────────────────────────────────
+timers:
+  hello: 1                            # OPTIONAL (default: 3) — hello interval in seconds
+                                      #   Reduce to 1s for faster failover
+  hold: 3                             # OPTIONAL (default: 10) — hold time (must be > 3x hello)
+
+# ── BFD ───────────────────────────────────────────────────────────────────────
+bfd: false                            # OPTIONAL (default: false) — tie FHRP failover to BFD
+                                      #   Enables sub-second failover when BFD detects link failure
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: rollback               # OPTIONAL — rollback if virtual IP is unreachable

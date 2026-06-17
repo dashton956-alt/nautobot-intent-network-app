@@ -1,0 +1,62 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: evpn_multisite
+# Purpose:     Configure EVPN multi-site (DCI) on border leaf switches to extend
+#              L2/L3 segments between DC East and DC West over the data centre
+#              interconnect (DCI) link. RT stitching re-originates EVPN routes
+#              between the two fabric domains.
+# HIGH-IMPACT TYPE — approved_by required when OPA enforce is enabled.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-evpn-multisite-001        # MANDATORY
+  type: evpn_multisite                   # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Multi-Site EVPN — configure EVPN gateway/border leaf for DCI between DC East and DC West"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    devices:                             # MANDATORY — border leaves at both DC sites
+      - dc-east-border-leaf-01
+      - dc-west-border-leaf-01
+
+  # ── Multi-site configuration ────────────────────────────────────────────────
+  dc:
+    evpn_multisite:
+      site_id: 100                       # MANDATORY — unique numeric ID per DC site
+      dci_link: Ethernet49               # MANDATORY — physical DCI interface
+      border_gateway: true               # MANDATORY — this device is an EVPN border gateway
+      gateway_ip: "10.255.200.1"         # MANDATORY — local border gateway IP
+      remote_sites:                      # MANDATORY — remote site entries
+        - site_id: 200
+          gateway_ip: "10.255.200.2"     # MANDATORY — remote border gateway IP
+          dci_link_peer: "10.10.200.1"   # OPTIONAL — peer DCI IP for connectivity check
+      reorigination:                     # OPTIONAL — control which route types are re-originated
+        mac_ip: true                     # Re-originate MAC/IP routes (L2VNI stretching)
+        prefix: true                     # Re-originate IP prefix routes (L3VNI stretching)
+      rt_stitching:                      # OPTIONAL — import/export route-targets for stitching
+        import:
+          - "65001:100"
+        export:
+          - "65001:100"
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify multisite border gateway"
+        expected:
+          - config_snippet: "multisite border-gateway"

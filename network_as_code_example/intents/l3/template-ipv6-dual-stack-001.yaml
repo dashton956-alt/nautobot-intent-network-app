@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: ipv6_dual_stack
+# Purpose:     Configure both IPv4 and IPv6 addresses on core router interfaces
+#              and loopbacks. Enables dual-stack operation for the transition
+#              to IPv6 while maintaining IPv4 compatibility.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-ipv6-dual-stack-001       # MANDATORY
+  type: ipv6_dual_stack                  # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "IPv6 Dual-Stack Interface — configure both IPv4 and IPv6 on access and core interfaces"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east
+    roles:
+      - core-router
+
+  # ── Interface addresses ─────────────────────────────────────────────────────
+  interfaces:
+    - name: Loopback0                    # MANDATORY — interface name
+      ipv4_address: "10.255.0.1/32"      # MANDATORY — IPv4 address with prefix length
+      ipv6_address: "2001:db8:ffff::1/128"  # MANDATORY — IPv6 address with prefix length
+      ipv6_enable: true                  # MANDATORY — enable IPv6 processing on interface
+    - name: GigabitEthernet0/0
+      description: "Dual-stack uplink"
+      ipv4_address: "10.0.0.1/30"
+      ipv6_address: "2001:db8:10::/127"  # /127 for P2P links (RFC 6164)
+      ipv6_enable: true
+      ipv6_nd_suppress_ra: true          # OPTIONAL — suppress RAs on P2P links (reduce noise)
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify IPv6 enabled on interfaces"
+        expected:
+          - config_snippet: "ipv6 address 2001:db8:ffff::1/128"
+          - config_snippet: "ipv6 enable"

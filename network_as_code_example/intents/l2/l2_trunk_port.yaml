@@ -1,0 +1,102 @@
+---
+# =============================================================================
+# Intent Type: l2_trunk_port
+# Domain:      Layer 2 / Switching
+# =============================================================================
+# Configures 802.1Q trunk ports with an allowed VLAN list on all devices in scope.
+#
+# MULTI-PORT FORM (recommended — one intent configures many uplinks):
+#   Use the `ports` list. Each entry can have its own allowed VLANs and native VLAN.
+#
+# SINGLE-PORT FORM (legacy — still fully supported):
+#   Use top-level `interface` + `allowed_vlans` + `native_vlan` fields.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Common header fields — required on every intent
+# -----------------------------------------------------------------------------
+id: "acme-l2-trunk-001" # MANDATORY — unique slug, alphanumeric + hyphens
+type: "l2_trunk_port" # MANDATORY — must be exactly "l2_trunk_port"
+version: 1 # MANDATORY — integer, increment on every edit
+tenant: "acme-corp" # MANDATORY — must match a Nautobot Tenant slug
+description: "Configure uplink trunk ports on distribution switches" # MANDATORY — minimum 10 characters
+change_ticket: "CHG0040003" # MANDATORY — format: CHG + 7 digits
+approved_by: "net.engineer" # OPTIONAL — required for high-impact intent types
+
+# -----------------------------------------------------------------------------
+# Scope — which devices this intent targets
+# Choose ONE of: sites | devices | roles | all_tenant_devices
+# -----------------------------------------------------------------------------
+scope:
+  sites:
+    - "dc-east" # MANDATORY (if using sites) — Nautobot Site slug
+  # devices:
+  #   - "dist-sw-01"  # MANDATORY (if using devices) — Nautobot Device name
+  # roles:
+  #   - "distribution-switch"  # MANDATORY (if using roles) — Nautobot Device Role slug
+  # all_tenant_devices: true   # OPTIONAL — targets every device under the tenant
+
+# -----------------------------------------------------------------------------
+# Multi-port form (NEW in v2.0.11)
+# Each port entry independently controls its allowed VLANs and native VLAN.
+# Useful for configuring all uplinks in one intent.
+# -----------------------------------------------------------------------------
+ports:
+  - interface: "GigabitEthernet0/47" # MANDATORY — exact interface name as in Nautobot
+    allowed_vlans: # OPTIONAL — default: [] (no VLAN filter, all VLANs allowed)
+      - 100 # VLAN IDs must exist in Nautobot VLAN model
+      - 200
+      - 300
+    native_vlan: 1 # OPTIONAL — integer 1–4094; untagged VLAN on trunk
+    description: "Uplink to core-sw-01" # OPTIONAL — port description pushed to device
+
+  - interface: "GigabitEthernet0/48" # MANDATORY
+    allowed_vlans: # OPTIONAL
+      - 100
+      - 200
+    native_vlan: 1 # OPTIONAL
+    description: "Uplink to core-sw-02 (redundant)" # OPTIONAL
+
+  - interface: "TenGigabitEthernet1/1" # MANDATORY — 10G uplink to spine
+    allowed_vlans: # OPTIONAL — empty list means all VLANs allowed
+      - 100
+      - 200
+      - 300
+      - 400
+      - 500
+    # native_vlan omitted — no untagged VLAN (all frames are tagged)
+    description: "Spine uplink" # OPTIONAL
+
+# -----------------------------------------------------------------------------
+# Deployment options
+# -----------------------------------------------------------------------------
+deployment:
+  strategy: "rolling" # OPTIONAL — default: rolling | values: rolling, parallel
+  save_config: true # OPTIONAL — default: true; writes config to NVRAM
+
+# -----------------------------------------------------------------------------
+# Verification
+# -----------------------------------------------------------------------------
+verification:
+  level: "basic" # OPTIONAL — default: basic | values: basic, extended
+  trigger: "on_deploy" # OPTIONAL — default: on_deploy | values: on_deploy, scheduled, manual
+  fail_action: "alert" # OPTIONAL — default: alert | values: alert, rollback
+
+# =============================================================================
+# SINGLE-PORT LEGACY FORM — shown here for reference
+# This form is still fully supported and requires no migration.
+# =============================================================================
+# id: "acme-l2-trunk-legacy-001"
+# type: "l2_trunk_port"
+# version: 1
+# tenant: "acme-corp"
+# description: "Single trunk port configuration"
+# change_ticket: "CHG0040004"
+# scope:
+#   devices:
+#     - "dist-sw-01"
+# interface: "GigabitEthernet0/47"  # MANDATORY (legacy form) — single interface
+# allowed_vlans:                     # OPTIONAL — list of VLAN IDs
+#   - 100
+#   - 200
+# native_vlan: 1                     # OPTIONAL — untagged VLAN

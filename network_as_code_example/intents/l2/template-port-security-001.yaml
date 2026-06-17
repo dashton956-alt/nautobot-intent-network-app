@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: port_security
+# Purpose:     Limit the number of MAC addresses learned on each access port
+#              to prevent MAC flooding attacks. Sticky MAC learning persists
+#              learned addresses across reboots.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-port-security-001         # MANDATORY
+  type: port_security                    # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Port Security / MAC Limit — restrict the number of MAC addresses per access port"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    roles:
+      - access-switch                    # Apply to all access-switches in tenant
+
+  # ── Port security policy ────────────────────────────────────────────────────
+  port_security:
+    apply_to_all_access_ports: true      # MANDATORY — enable on every access port
+    max_mac_addresses: 3                 # OPTIONAL (default: 1) — per-port MAC limit
+    violation_action: restrict           # OPTIONAL — protect | restrict | shutdown
+                                         #   protect: drop violating frames silently
+                                         #   restrict: drop + increment violation counter
+                                         #   shutdown: err-disable the port
+    sticky_mac: true                     # OPTIONAL — persist dynamically learned MACs in config
+    aging:
+      enabled: true                      # OPTIONAL — age out learned MAC entries
+      time_minutes: 60                   # OPTIONAL — absolute age time in minutes
+      type: absolute                     # OPTIONAL — absolute | inactivity
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify port-security enabled on access ports"
+        expected:
+          - config_snippet: "switchport port-security maximum 3"
+          - config_snippet: "switchport port-security violation restrict"

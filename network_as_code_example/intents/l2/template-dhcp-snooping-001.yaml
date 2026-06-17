@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: dhcp_snooping
+# Purpose:     Enable DHCP snooping on server/storage VLANs and mark uplink
+#              ports as trusted. Prevents rogue DHCP servers on access ports.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-dhcp-snooping-001         # MANDATORY
+  type: dhcp_snooping                    # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "DHCP Snooping — enable on server VLANs and mark uplinks as trusted"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    roles:
+      - access-switch                    # Apply to all access-switches in tenant
+
+  # ── DHCP Snooping policy ────────────────────────────────────────────────────
+  dhcp_snooping:
+    enabled: true                        # MANDATORY — enable DHCP snooping globally
+    vlans:                               # MANDATORY — VLANs to protect
+      - 100
+      - 101
+      - 200
+    trusted_ports:                       # MANDATORY — uplink ports allowed to forward DHCP offers
+      - interface: GigabitEthernet0/1
+        desc: "Uplink to distribution"
+      - interface: Port-Channel1
+        desc: "LAG uplink"
+    rate_limit_untrusted: 15             # OPTIONAL — packets per second on untrusted ports
+    option_82: true                      # OPTIONAL — insert relay agent info (Option 82)
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify DHCP snooping is enabled"
+        expected:
+          - config_snippet: "ip dhcp snooping"
+          - config_snippet: "ip dhcp snooping vlan 100"

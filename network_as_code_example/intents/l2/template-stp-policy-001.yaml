@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: stp_policy
+# Purpose:     Set the global Spanning Tree mode and enable portfast/BPDU-guard
+#              defaults on all access-switches. Rapid-PVST reduces convergence
+#              time compared to classic STP (802.1D).
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-stp-policy-001            # MANDATORY
+  type: stp_policy                       # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Spanning Tree Policy — set STP mode and port-fast/BPDU-guard on all access switches"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    roles:
+      - access-switch                    # Apply to all access-switches in tenant
+
+  # ── STP policy ──────────────────────────────────────────────────────────────
+  stp:
+    mode: rapid-pvst                     # MANDATORY — rapid-pvst | mstp | rstp
+    root_vlans:                          # OPTIONAL — configure root bridge for these VLANs
+      - 1-999
+    portfast_default: true               # OPTIONAL — enable portfast on all access ports by default
+    bpduguard_default: true              # OPTIONAL — enable BPDU guard globally on portfast ports
+    loopguard_default: false             # OPTIONAL — enable loop guard on non-designated ports
+    edge_ports:                          # OPTIONAL — explicit per-port overrides
+      - interface: Ethernet1
+        bpduguard: true
+      - interface: Ethernet2
+        bpduguard: true
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify STP mode in running config"
+        expected:
+          - config_snippet: "spanning-tree mode rapid-pvst"

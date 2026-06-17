@@ -1,0 +1,15 @@
+{# fw_rule — Cisco IOS-XE ACL-based firewall rules (IOS uses named ACLs, not ZBF by default) #}
+ip access-list extended {{ acl_name | default('FW-RULES') }}
+{% for rule in fw_rules | default([]) %}
+{% if rule.action == 'remark' %}
+ remark {{ rule.remark }}
+{% else %}
+ {{ rule.seq | default('') }} {{ rule.action }} {{ rule.protocol | default('ip') }} {{ rule.source | default('any') }} {{ rule.destination | default('any') }}{% if rule.destination_port is defined %} eq {{ rule.destination_port }}{% endif %}{% if rule.log | default(false) %} log{% endif %}
+
+{% endif %}
+{% endfor %}
+ deny ip any any log
+{% if apply_interface is defined %}
+interface {{ apply_interface }}
+ ip access-group {{ acl_name | default('FW-RULES') }} {{ apply_direction | default('in') }}
+{% endif %}

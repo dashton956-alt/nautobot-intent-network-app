@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_netconf
+# Purpose:     Enable NETCONF (RFC 6241) and RESTCONF (RFC 8040) on all managed
+#              devices to support model-driven programmability and automation
+#              tooling (Nornir, Ansible, Nautobot). gNMI disabled by default.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-mgmt-netconf-all-devices-001  # MANDATORY
+  type: mgmt_netconf                     # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG0012401              # MANDATORY (CHG + 7 digits)
+  description: "Enable NETCONF and RESTCONF on all managed devices for automation"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    all_tenant_devices: true             # MANDATORY — automation access required on all devices
+
+  management:
+    netconf:
+      # ── API configuration ───────────────────────────────────────────────────────
+      netconf_enabled: true                  # MANDATORY — enable NETCONF agent
+      netconf_port: 830                      # OPTIONAL (default: 830) — standard NETCONF port
+      netconf_vrf: "MGMT"                    # OPTIONAL — VRF for NETCONF connections
+      restconf_enabled: true                 # OPTIONAL — enable RESTCONF HTTP API
+      restconf_port: 443                     # OPTIONAL (default: 443) — RESTCONF over HTTPS
+      gnmi_enabled: false                    # OPTIONAL — gNMI for streaming telemetry (disabled here)
+      gnmi_port: 6030                        # OPTIONAL — gNMI port (if enabled)
+
+
+  policy:
+    compliance: NONE
+    encryption: tls                      # NETCONF/RESTCONF must use TLS in production
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify NETCONF is enabled"
+        expected:
+          - config_snippet: "management api netconf"

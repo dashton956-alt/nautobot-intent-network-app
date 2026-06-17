@@ -1,0 +1,13 @@
+{# port_security — Arista EOS port security configuration #}
+{% for intf in port_security_interfaces | default([interface]) %}
+interface {{ intf }}
+   switchport port-security
+   switchport port-security maximum {{ max_mac_addresses | default(1) }}
+{% if sticky_mac | default(false) %}
+   switchport port-security mac-address sticky
+{% endif %}
+{% if aging_time is defined and aging_time %}
+   switchport port-security aging time {{ aging_time }}
+{% endif %}
+   switchport port-security violation {{ violation_action | default('shutdown') }}
+{% endfor %}

@@ -1,0 +1,14 @@
+{# copp — Arista EOS Control Plane Policing configuration #}
+{# Arista EOS uses system copp policy with traffic classes #}
+
+policy-map type copp {{ copp_policy | default('COPP-POLICY') }}
+{% for cls in copp_classes | default([]) %}
+   class {{ cls.name }}
+{% if cls.police_rate is defined %}
+      police rate {{ cls.police_rate }} bps burst {{ cls.burst | default(cls.police_rate) }} byte
+{% endif %}
+{% endfor %}
+
+{# Apply to control plane interface #}
+system control-plane
+   service-policy input {{ copp_policy | default('COPP-POLICY') }}

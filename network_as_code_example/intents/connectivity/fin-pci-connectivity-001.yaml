@@ -1,0 +1,75 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: connectivity
+# Purpose:     Provision a PCI-DSS compliant MPLS L3VPN path between finance
+#              servers and the Stripe payment gateway. Denies access from
+#              employee LAN and guest Wi-Fi, and prohibits insecure protocols
+#              (telnet, FTP, SNMPv1/v2) on the finance network path.
+# HIGH-IMPACT TYPE — approved_by required when OPA enforce is enabled.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: fin-pci-connectivity-001           # MANDATORY
+  type: connectivity                     # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG0012345              # MANDATORY (CHG + 7 digits)
+  description: "Finance servers to Stripe payment gateway — PCI-DSS compliant MPLS L3VPN"  # MANDATORY
+
+  # ── Source definition ───────────────────────────────────────────────────────
+  source:
+    group: finance-servers               # MANDATORY — source device group
+    sites:                               # MANDATORY — source sites
+      - dc-east
+      - dc-west
+
+  # ── Destination definition ──────────────────────────────────────────────────
+  destination:
+    external: true                       # MANDATORY — destination is outside the tenant
+    provider: stripe                     # OPTIONAL — cloud provider or SaaS name
+    prefixes:                            # MANDATORY — external destination IP prefixes
+      - "52.84.0.0/14"
+      - "54.182.0.0/16"
+
+  # ── Policy ──────────────────────────────────────────────────────────────────
+  policy:
+    compliance: PCI-DSS                  # MANDATORY — compliance framework applied to this path
+    encryption: required                 # MANDATORY — all traffic must be encrypted
+    max_latency_ms: 20                   # OPTIONAL — SLA: maximum acceptable one-way latency
+    tenant_asn: 64612                    # OPTIONAL — MPLS L3VPN AS for the finance tenant
+
+  # ── Isolation rules ─────────────────────────────────────────────────────────
+  isolation:
+    deny_groups:                         # MANDATORY — groups denied access to this path
+      - employee-lan
+      - guest-wifi
+    deny_protocols:                      # MANDATORY — insecure protocols blocked (PCI requirement)
+      - telnet
+      - http
+      - ftp
+      - snmpv1
+      - snmpv2
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: all_at_once
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: both
+    schedule: "*/15 * * * *"             # Continuous verification every 15 minutes
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmBgpNeighbors
+        label: "Verify MPLS PE BGP sessions for PCI traffic path"
+        test_data:
+          - host: dc-east-pe-01
+            expected:
+              - peer: dc-west-pe-01
+                state: Established
+      - test_class: TestNapalmNetworkInstances
+        label: "Verify PCI VRF is present on PE routers"
+        expected:
+          - name: PCI-FINANCE
+            type: L3VRF

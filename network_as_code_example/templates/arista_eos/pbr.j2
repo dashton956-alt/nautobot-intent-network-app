@@ -1,0 +1,24 @@
+{# pbr — Arista EOS Policy-Based Routing configuration #}
+{% for clause in pbr_clauses | default([]) %}
+route-map {{ pbr_route_map }} {{ clause.action | default('permit') }} {{ clause.seq }}
+{% if clause.match_acl is defined %}
+   match ip address {{ clause.match_acl }}
+{% endif %}
+{% if clause.match_length is defined %}
+   match length {{ clause.match_length.min }} {{ clause.match_length.max }}
+{% endif %}
+{% if clause.set_nexthop is defined %}
+   set ip next-hop {{ clause.set_nexthop }}
+{% endif %}
+{% if clause.set_nexthop_verify is defined %}
+   set ip next-hop verify-availability {{ clause.set_nexthop_verify }} {{ clause.track_id | default(1) }} track {{ clause.track_id | default(1) }}
+{% endif %}
+{% if clause.set_interface is defined %}
+   set interface {{ clause.set_interface }}
+{% endif %}
+{% endfor %}
+
+{% for intf in pbr_interfaces | default([]) %}
+interface {{ intf }}
+   ip policy route-map {{ pbr_route_map }}
+{% endfor %}

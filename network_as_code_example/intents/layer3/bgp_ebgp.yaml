@@ -1,0 +1,83 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: bgp_ebgp
+# Purpose:     Configure an external BGP (eBGP) peering session. Covers
+#              authentication, route-maps, prefix-lists, BFD, and timers.
+# HIGH-IMPACT TYPE — approved_by required when OPA enforce is enabled.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-bgp-ebgp-isp-001             # MANDATORY
+type: bgp_ebgp                        # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "eBGP peering with ISP-A — AS64512 — primary uplink"  # MANDATORY (>=10 chars)
+change_ticket: CHG0030012             # MANDATORY (CHG + 7 digits)
+approved_by: "net.engineer"           # MANDATORY for bgp_ebgp when OPA enforce is on
+
+scope:
+  devices: [router-01]                # MANDATORY — eBGP sessions are normally per-device
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  BGP PEER IDENTITY (MANDATORY fields)                                  ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+local_asn: 65001                      # MANDATORY — our BGP AS number (1–4294967295)
+neighbor_ip: 203.0.113.1              # MANDATORY — peer's IP address
+neighbor_asn: 64512                   # MANDATORY — peer's AS number
+
+neighbor_description: "ISP-A primary peering — Tier-1"  # OPTIONAL — neighbor description on device
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  OPTIONAL BGP SESSION PARAMETERS                                       ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+vrf: ""                               # OPTIONAL — VRF to establish session in (omit = global)
+                                      #   Example: vrf: INTERNET
+
+# ── Route filtering ───────────────────────────────────────────────────────────
+route_map_in: "RM-ISP-IN"            # OPTIONAL — route-map applied to incoming prefixes
+route_map_out: "RM-ISP-OUT"          # OPTIONAL — route-map applied to outgoing prefixes
+prefix_list_in: "PL-ACCEPT-FROM-ISP" # OPTIONAL — alternative to route_map_in
+prefix_list_out: "PL-ADVERTISE-TO-ISP"  # OPTIONAL — alternative to route_map_out
+
+# ── Loop prevention ───────────────────────────────────────────────────────────
+max_prefix: 500000                    # OPTIONAL (default: 1000) — shut session if peer sends
+                                      #   more than this many prefixes (full table ~900k)
+allowas_in: null                      # OPTIONAL — allow our own AS in AS-PATH (integer or null)
+                                      #   Used for back-to-back or hub-spoke eBGP
+
+# ── Session settings ──────────────────────────────────────────────────────────
+timers_keepalive: 60                  # OPTIONAL (default: 60) — keepalive interval in seconds
+timers_hold: 180                      # OPTIONAL (default: 180) — hold-time; must be > 3x keepalive
+
+password: ""                          # OPTIONAL — MD5 session password; use Nautobot Secrets
+                                      #   in production rather than plain text here
+
+multihop: null                        # OPTIONAL — eBGP multihop TTL (integer 2–255); omit for
+                                      #   directly connected peers (default single-hop)
+
+# ── Best-path tuning ──────────────────────────────────────────────────────────
+local_preference: null                # OPTIONAL — set local-preference for inbound routes (default 100)
+                                      #   Higher value = preferred exit. Set on inbound route-map
+                                      #   rather than here for fine-grained control.
+send_community: "standard extended"  # OPTIONAL — community types to send to peer
+                                      #   standard | extended | large | all
+maximum_paths: 2                      # OPTIONAL — ECMP paths for load balancing (default: 1)
+
+# ── Reliability ───────────────────────────────────────────────────────────────
+bfd: true                             # OPTIONAL (default: true) — BFD fast link failure detection
+graceful_restart: false               # OPTIONAL (default: false) — RFC 4724 graceful restart
+default_originate: false              # OPTIONAL (default: false) — send a default route to peer
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: none                    # OPTIONAL — none | PCI-DSS | HIPAA | SOC2
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true                   # OPTIONAL (default: true)
+
+verification:
+  level: nuts                         # OPTIONAL — nuts verifies BGP neighbour state via pyATS
+  trigger: both                       # OPTIONAL — both = on_deploy + scheduled checks
+  fail_action: rollback               # OPTIONAL — rollback if neighbour doesn't establish

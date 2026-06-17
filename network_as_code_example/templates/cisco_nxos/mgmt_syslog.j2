@@ -1,0 +1,10 @@
+{# mgmt_syslog — Cisco NX-OS syslog configuration #}
+{% if syslog_source_interface is defined %}
+logging source-interface {{ syslog_source_interface }}
+{% endif %}
+{% for host in syslog_servers | default([]) %}
+logging server {{ host.address | default(host) }} {{ host.severity | default(6) }}{% if host.use_vrf is defined %} use-vrf {{ host.use_vrf }}{% endif %}
+
+{% endfor %}
+logging level {{ facility | default('local6') }} {{ severity | default(6) }}
+logging timestamp milliseconds

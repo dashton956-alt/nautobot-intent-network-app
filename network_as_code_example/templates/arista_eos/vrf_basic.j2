@@ -1,0 +1,23 @@
+{# vrf_basic — Arista EOS VRF definition with RD/RT #}
+vrf instance {{ vrf_name }}
+{% if rd is defined and rd %}
+   rd {{ rd }}
+{% endif %}
+   !
+   address-family ipv4
+{% if rt_import is defined and rt_import %}
+      route-target import {{ rt_import }}
+{% endif %}
+{% if rt_export is defined and rt_export %}
+      route-target export {{ rt_export }}
+{% endif %}
+{% if 'ipv6' in (address_families | default([])) %}
+   !
+   address-family ipv6
+{% if rt_import is defined and rt_import %}
+      route-target import {{ rt_import }}
+{% endif %}
+{% if rt_export is defined and rt_export %}
+      route-target export {{ rt_export }}
+{% endif %}
+{% endif %}

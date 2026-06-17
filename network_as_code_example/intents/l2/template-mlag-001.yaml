@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mlag
+# Purpose:     Configure Multi-Chassis LAG (MLAG) between a leaf pair to
+#              provide redundant server connectivity with a single logical
+#              switch view. Both peers must be configured simultaneously.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-mlag-001                  # MANDATORY
+  type: mlag                             # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "MLAG / MC-LAG — configure Multi-Chassis LAG pair for redundant server connectivity"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    devices:                             # MANDATORY — both MLAG peers required
+      - dc-east-leaf-01
+      - dc-east-leaf-02
+
+  # ── MLAG configuration ──────────────────────────────────────────────────────
+  mlag:
+    domain_id: MLAG-DOMAIN-1             # MANDATORY — unique domain ID per MLAG pair
+    local_interface: Vlan4094            # MANDATORY — SVI used for MLAG peer communication
+    peer_address: "10.255.255.1"         # MANDATORY — peer MLAG IP
+    peer_link: Port-Channel999           # MANDATORY — inter-switch link (ISL) port-channel
+    reload_delay: 300                    # OPTIONAL — delay before reloaded switch re-joins (seconds)
+    reload_delay_non_mlag: 330           # OPTIONAL — delay for non-MLAG ports
+    heartbeat_interval: 4000             # OPTIONAL — keepalive interval in milliseconds
+    keepalive_vrf: MGMT                  # OPTIONAL — VRF for MLAG heartbeat traffic
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: all_at_once                # Both peers must be configured together
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify MLAG domain configuration"
+        expected:
+          - config_snippet: "mlag configuration"
+          - config_snippet: "domain-id MLAG-DOMAIN-1"

@@ -1,0 +1,21 @@
+{# mgmt_interface — Cisco NX-OS management and loopback interface configuration #}
+{% if loopback0_ip is defined %}
+interface loopback0
+ description {{ loopback0_description | default('Router-ID / NMS Source') }}
+ ip address {{ loopback0_ip }}/32
+{% endif %}
+{% for lo in additional_loopbacks | default([]) %}
+interface loopback{{ lo.id }}
+ description {{ lo.description | default('Loopback' + lo.id | string) }}
+{% if lo.vrf is defined %}
+ vrf member {{ lo.vrf }}
+{% endif %}
+ ip address {{ lo.ip_address }}/{{ lo.prefix_len | default(32) }}
+{% endfor %}
+{% if mgmt_ip is defined %}
+interface mgmt0
+ description {{ mgmt_description | default('Out-of-Band Management') }}
+ vrf member management
+ ip address {{ mgmt_ip }}/{{ mgmt_prefix_len | default(24) }}
+ no shutdown
+{% endif %}

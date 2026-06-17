@@ -1,0 +1,8 @@
+{# bfd — Cisco IOS-XE Bidirectional Forwarding Detection configuration #}
+{% for intf in bfd_interfaces | default([]) %}
+interface {{ intf.name }}
+ bfd interval {{ intf.interval | default(300) }} min_rx {{ intf.min_rx | default(300) }} multiplier {{ intf.multiplier | default(3) }}
+{% if intf.echo | default(true) == false %}
+ no bfd echo
+{% endif %}
+{% endfor %}

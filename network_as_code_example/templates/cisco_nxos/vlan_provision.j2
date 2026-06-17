@@ -1,0 +1,11 @@
+{# vlan_provision — Cisco NX-OS VLAN provisioning #}
+{% for vlan in vlans | default([]) %}
+vlan {{ vlan.id }}
+ name {{ vlan.name | default('VLAN-' + vlan.id | string) }}
+{% if vlan.vni is defined %}
+ vn-segment {{ vlan.vni }}
+{% endif %}
+{% if vlan.state | default('active') == 'suspend' %}
+ state suspend
+{% endif %}
+{% endfor %}

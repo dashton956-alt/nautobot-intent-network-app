@@ -1,0 +1,81 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_syslog
+# Purpose:     Configure syslog destinations, severity levels, and source
+#              interface. Centralized logging is required for PCI-DSS/HIPAA.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-syslog-all-devices-001       # MANDATORY
+type: mgmt_syslog                     # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "Syslog to SIEM and log aggregator — all tenant devices"  # MANDATORY
+change_ticket: CHG0030102             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL here
+
+scope:
+  all_tenant_devices: true            # MANDATORY
+
+management:
+  syslog:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  SYSLOG SERVERS (MANDATORY — at least one)                             ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    servers:
+      - host: 10.10.10.30                 # MANDATORY per server — syslog collector IP or hostname
+        port: 514                         # OPTIONAL (default: 514) — UDP 514 standard; 6514 for TLS
+        protocol: udp                     # OPTIONAL (default: udp) — udp | tcp | tls
+        severity: informational           # OPTIONAL (default: informational) — see levels below
+
+      - host: 10.10.10.31                 # Secondary syslog server for redundancy
+        port: 514
+        protocol: udp
+        severity: informational
+
+    # Syslog severity levels (0=highest, 7=lowest):
+    #   0 = emergencies   — system unusable
+    #   1 = alerts        — immediate action needed
+    #   2 = critical      — critical conditions
+    #   3 = errors        — error conditions
+    #   4 = warnings      — warning conditions
+    #   5 = notifications — normal but significant
+    #   6 = informational — informational messages (recommended minimum)
+    #   7 = debugging     — debug-level messages (never in production — CPU intensive)
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  SOURCE INTERFACE (OPTIONAL)                                           ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    source_interface: Loopback0           # OPTIONAL — syslog packet source interface
+                                          #   Use a loopback for stable source IP
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  LOCAL BUFFERING (OPTIONAL)                                            ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    buffered_size: 65536                  # OPTIONAL — local buffer size in bytes (default: 4096)
+                                          #   Increase for high-traffic devices
+    buffered_severity: warnings           # OPTIONAL — minimum severity for local buffer logging
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  MESSAGE FORMATTING (OPTIONAL)                                         ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    timestamps: true                      # OPTIONAL (default: true) — include timestamp in messages
+    timestamps_format: datetime           # OPTIONAL — datetime | uptime
+                                          #   datetime — calendar time (requires NTP sync)
+                                          #   uptime   — seconds since boot
+
+    facility: local7                      # OPTIONAL (default: local7) — syslog facility
+
+                                      #   local0–local7 | daemon | kern | user
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

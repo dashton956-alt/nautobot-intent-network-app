@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: reachability_ip_sla
+# Purpose:     Configure IP SLA probes for continuous path monitoring.
+#              Used for WAN failover tracking, SLA measurement, and alerting.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-ip-sla-wan-probe-001         # MANDATORY
+type: reachability_ip_sla             # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "IP SLA probes — WAN failover tracking — primary and backup ISP"  # MANDATORY
+change_ticket: CHG0030110             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL here
+
+scope:
+  devices: [border-01]               # MANDATORY
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  IP SLA PROBES — list (MANDATORY — at least one probe)                ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+probes:
+  - sla_id: 1                         # MANDATORY per probe — SLA operation number (1–2147483647)
+    probe_type: icmp-echo             # OPTIONAL (default: icmp-echo)
+                                      #   icmp-echo   — ICMP ping to target (most common)
+                                      #   tcp-connect — TCP SYN to target:port (HTTP health check)
+                                      #   udp-echo    — UDP probe to target:port
+                                      #   dns         — DNS resolution timing
+                                      #   http        — HTTP GET response time
+
+    target: 8.8.8.8                   # MANDATORY per probe — destination IP or hostname
+                                      #   Use provider's well-known IP or a customer endpoint
+
+    source_interface: GigabitEthernet0/0  # OPTIONAL — force probe out this interface
+                                          #   Useful for WAN failover — one probe per ISP link
+
+    threshold: 500                    # OPTIONAL — latency threshold in milliseconds
+                                      #   Probe is marked 'over threshold' when RTT exceeds this
+
+    timeout: 2000                     # OPTIONAL — probe timeout in milliseconds (default: 5000)
+                                      #   Should be < frequency to avoid overlap
+
+    frequency: 5                      # OPTIONAL (default: 60) — probe interval in seconds
+                                      #   5 seconds for fast WAN failover detection
+
+    # track_object: 1                 # OPTIONAL — Nautobot track object to create/update
+                                      #   Used with floating static routes: route only installed
+                                      #   when track object is UP
+
+  - sla_id: 2
+    probe_type: icmp-echo
+    target: 4.2.2.1                   # Different target for ISP-B probe
+    source_interface: GigabitEthernet0/1
+    threshold: 500
+    timeout: 2000
+    frequency: 5
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: basic
+  trigger: both                       # OPTIONAL — both = monitor continuously
+  fail_action: alert

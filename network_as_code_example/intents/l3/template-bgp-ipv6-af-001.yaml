@@ -1,0 +1,63 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: bgp_ipv6_af
+# Purpose:     Activate the BGP IPv6 unicast address family on an existing
+#              BGP session to carry IPv6 prefixes over IPv6 peers. Enables
+#              dual-stack internet connectivity alongside IPv4 BGP.
+# HIGH-IMPACT TYPE — approved_by required when OPA enforce is enabled.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-bgp-ipv6-af-001           # MANDATORY
+  type: bgp_ipv6_af                      # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "BGP IPv6 Address Family — activate IPv6 unicast AF on existing BGP peers"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    devices:
+      - lon-edge-rtr-01                  # MANDATORY — per-device for edge routers
+
+  # ── BGP IPv6 Address Family ─────────────────────────────────────────────────
+  routing:
+    protocol: bgp                        # MANDATORY
+    as_number: 65001                     # MANDATORY — our BGP AS number
+    router_id: "10.255.0.1"             # MANDATORY — 32-bit router-id (even for IPv6 AF)
+    address_families:
+      ipv6_unicast:
+        enabled: true                    # MANDATORY — activate IPv6 unicast AF
+        neighbors:
+          - ip: "2001:db8:1::1"          # MANDATORY — IPv6 peer address
+            remote_as: 1299
+            description: "Telia IPv6 session"
+            activate: true               # MANDATORY — activate this peer in IPv6 AF
+            send_community: both         # OPTIONAL — both = standard + extended communities
+            next_hop_self: false         # OPTIONAL — do not rewrite next-hop (typical for eBGP)
+        networks:                        # OPTIONAL — prefixes to originate into BGP
+          - "2001:db8:acme::/48"
+        redistribute:                    # OPTIONAL — inject routes from other sources
+          - connected
+          - static
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: all_at_once
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: both
+    schedule: "*/30 * * * *"
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify BGP IPv6 address-family activated"
+        expected:
+          - config_snippet: "address-family ipv6"
+          - config_snippet: "neighbor 2001:db8:1::1 activate"

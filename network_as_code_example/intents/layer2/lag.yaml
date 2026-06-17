@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: lag
+# Purpose:     Bundle multiple physical interfaces into a Port-Channel (LAG /
+#              EtherChannel). Provides bandwidth aggregation and link redundancy.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-lag-uplink-001                # MANDATORY
+type: lag                              # MANDATORY
+version: 1                             # MANDATORY
+tenant: acme-corp                      # MANDATORY
+description: "Port-Channel 1 — dual 10G uplink leaf-01 to spine-01"  # MANDATORY (>=10 chars)
+change_ticket: CHG0030004              # MANDATORY (CHG + 7 digits)
+approved_by: ""                        # OPTIONAL here
+
+# ── Scope ─────────────────────────────────────────────────────────────────────
+scope:
+  devices: [leaf-01]                   # MANDATORY — LAG intents target one device
+  # sites: [dc-east]
+  # roles: [leaf-switch]
+
+# ── LAG configuration ─────────────────────────────────────────────────────────
+channel_id: 1                          # MANDATORY — Port-Channel number (1–4096)
+                                       #   Creates interface Port-channel<id>
+
+member_interfaces:                     # MANDATORY — physical interfaces to bundle (min 2)
+  - TenGigabitEthernet0/1
+  - TenGigabitEthernet0/2
+
+lacp_mode: active                      # OPTIONAL (default: active)
+                                       #   active  — send LACP PDUs (recommended for production)
+                                       #   passive — only respond to LACP PDUs from the peer
+                                       #   on      — static LAG, no LACP (avoid in production)
+
+port_mode: trunk                       # OPTIONAL (default: trunk)
+                                       #   trunk  — 802.1Q tagged uplink
+                                       #   access — untagged host-facing port-channel (rare)
+
+allowed_vlans: [100, 200, 300]         # OPTIONAL — used when port_mode is trunk
+                                       #   Omit for access mode
+
+native_vlan: 999                       # OPTIONAL — native/untagged VLAN when port_mode is trunk
+                                       #   Best practice: not VLAN 1
+
+mtu: 9000                              # OPTIONAL (default: 9216) — frame size in bytes
+                                       #   Common values: 1500 (standard), 9000/9216 (jumbo)
+                                       #   Must match on BOTH ends of the LAG
+
+interface_description: "PC1 → spine-01 dual-10G aggregation"  # OPTIONAL — interface description
+
+# ── Deployment ────────────────────────────────────────────────────────────────
+deployment:
+  strategy: rolling                    # OPTIONAL (default: rolling)
+  save_config: true                    # OPTIONAL (default: true)
+
+# ── Verification ──────────────────────────────────────────────────────────────
+verification:
+  level: basic                         # OPTIONAL (default: basic)
+  trigger: on_deploy                   # OPTIONAL (default: on_deploy)
+  fail_action: rollback                # OPTIONAL — rollback if LAG fails to form

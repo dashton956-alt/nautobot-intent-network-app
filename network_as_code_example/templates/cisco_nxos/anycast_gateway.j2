@@ -1,0 +1,13 @@
+{# anycast_gateway — Cisco NX-OS distributed anycast gateway configuration #}
+fabric forwarding anycast-gateway-mac {{ anycast_mac | default('0001.0001.0001') }}
+
+{% for gw in anycast_gateways | default([]) %}
+interface Vlan{{ gw.vlan_id }}
+ no shutdown
+ mtu {{ gw.mtu | default(9216) }}
+{% if gw.vrf is defined %}
+ vrf member {{ gw.vrf }}
+{% endif %}
+ ip address {{ gw.ip_address }}
+ fabric forwarding mode anycast-gateway
+{% endfor %}

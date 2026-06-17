@@ -1,0 +1,18 @@
+{# l2_access_port — Cisco NX-OS access port configuration #}
+{% for intf in access_ports | default([]) %}
+interface {{ intf.name }}
+ description {{ intf.description | default('Access port') }}
+ switchport
+ switchport mode access
+ switchport access vlan {{ intf.access_vlan | default(1) }}
+{% if intf.portfast | default(true) %}
+ spanning-tree port type edge
+{% endif %}
+{% if intf.bpduguard | default(true) %}
+ spanning-tree bpduguard enable
+{% endif %}
+{% if intf.storm_control_bcast is defined %}
+ storm-control broadcast level {{ intf.storm_control_bcast }}
+{% endif %}
+ no shutdown
+{% endfor %}

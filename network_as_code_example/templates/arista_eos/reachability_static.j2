@@ -1,0 +1,10 @@
+{# reachability_static — Arista EOS static reachability routes #}
+{% for route in static_routes | default([]) %}
+{% if route.vrf is defined and route.vrf %}
+ip route vrf {{ route.vrf }} {{ route.prefix }} {{ route.next_hop }}{% if route.admin_distance is defined %} {{ route.admin_distance }}{% endif %}{% if route.description is defined %} name {{ route.description | replace(' ', '_') }}{% endif %}
+
+{% else %}
+ip route {{ route.prefix }} {{ route.next_hop }}{% if route.admin_distance is defined %} {{ route.admin_distance }}{% endif %}{% if route.description is defined %} name {{ route.description | replace(' ', '_') }}{% endif %}
+
+{% endif %}
+{% endfor %}

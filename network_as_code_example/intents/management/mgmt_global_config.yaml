@@ -1,0 +1,142 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_global_config
+# Purpose:     Day-0 bootstrap bundle applied to every managed device at initial
+#              onboarding. Combines NTP, DNS, syslog, SNMP, SSH, banners, and
+#              NETCONF into a single intent for consistent baseline configuration.
+#              Avoids the need to run 8 separate intents for a new device.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-global-config-all-devices-001  # MANDATORY
+type: mgmt_global_config                # MANDATORY
+version: 1                              # MANDATORY
+tenant: acme-corp                       # MANDATORY
+description: "Day-0 global management bundle — NTP, DNS, syslog, SNMP, SSH, banners, NETCONF"  # MANDATORY
+change_ticket: CHG0030114               # MANDATORY (CHG + 7 digits)
+approved_by: ""                         # OPTIONAL here
+
+scope:
+  all_tenant_devices: true              # MANDATORY — day-0 config applies to every device
+
+management:
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  HOSTNAME AND DOMAIN (OPTIONAL)                                        ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+
+  hostname: "lab-arista-sw01"             # OPTIONAL — override per-device hostname from Nautobot
+                                          #   In production, leave this blank and let Nautobot set it
+  domain_name: "acme-corp.local"          # OPTIONAL — DNS domain (also used for SSH key generation)
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  NTP (MANDATORY)                                                       ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+
+  ntp_servers:
+    - "10.0.0.1"                          # MANDATORY — primary NTP server
+    - "10.0.0.2"                          # Secondary NTP server
+  ntp_source_interface: "Loopback0"       # OPTIONAL — use loopback for stable source IP
+  timezone: "UTC"                         # OPTIONAL — IANA timezone name
+  timezone_offset: 0                      # OPTIONAL — UTC offset in hours
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  DNS (MANDATORY)                                                       ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+
+  dns_servers:
+    - "10.0.0.10"                         # MANDATORY — primary DNS server
+    - "10.0.0.11"                         # Secondary DNS server
+  dns_domain_list:                        # OPTIONAL — DNS search domain list
+    - "acme-corp.local"
+    - "dc-east.acme-corp.local"
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  SYSLOG (MANDATORY)                                                    ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+
+  syslog_servers:
+    - host: "10.0.0.50"                   # MANDATORY — syslog collector
+      port: 514
+      protocol: udp
+    - host: "10.0.0.51"
+      port: 514
+      protocol: udp
+  syslog_source_interface: "Loopback0"    # OPTIONAL — source interface for syslog
+  syslog_trap_level: "informational"      # OPTIONAL — minimum severity to forward
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  SNMP (MANDATORY)                                                      ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+
+  snmp_version: "3"                       # MANDATORY — v3 | v2c (v3 recommended)
+  snmp_community: "acme-RO-2025"          # OPTIONAL — community for v2c only
+  snmp_location: "DC-East, Rack A1"       # OPTIONAL — sysLocation OID
+  snmp_contact: "noc@acme-corp.com"       # OPTIONAL — sysContact OID
+  snmp_trap_targets:
+    - host: "10.0.0.60"
+      community: "acme-TRAP-2025"
+      version: "2c"
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  SSH (MANDATORY)                                                       ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+
+  ssh_version: 2                          # MANDATORY — SSHv2 only
+  ssh_timeout: 60                         # OPTIONAL — SSH negotiation timeout in seconds
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  BANNERS (OPTIONAL — recommended for compliance)                       ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+
+  login_banner: |
+    *** AUTHORIZED ACCESS ONLY — Acme Corp ***
+  motd_banner: |
+    Managed by Intent Networking — All sessions logged.
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  NETCONF / RESTCONF (OPTIONAL)                                         ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+
+  netconf_enabled: true                   # OPTIONAL — enable NETCONF for automation
+  netconf_port: 830
+  restconf_enabled: false                 # OPTIONAL — enable RESTCONF HTTP API
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  LLDP / CDP (OPTIONAL)                                                 ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+
+  lldp_enabled: true                      # OPTIONAL — enable LLDP globally
+  cdp_enabled: false                      # OPTIONAL — disable CDP (Cisco-proprietary)
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  DHCP SERVER POOLS (OPTIONAL)                                          ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+
+  dhcp_pools: []                          # OPTIONAL — omit or leave empty if not a DHCP server
+
+                                        #   Use the dedicated mgmt_dhcp_server intent for pools
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: NONE
+  encryption: tls
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                     # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: nuts
+  trigger: on_deploy
+  fail_action: alert
+  tests:
+    - test_class: TestNapalmUsers
+      label: "Verify admin user exists on managed devices"
+      expected:
+        - username: admin
+          level: 15
+    - test_class: TestNapalmInterfaces
+      label: "Verify management interface is up"
+      expected:
+        - name: Management0
+          is_enabled: true
+          is_up: true

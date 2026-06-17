@@ -1,0 +1,31 @@
+{# sr_mpls — Arista EOS Segment Routing MPLS configuration #}
+mpls ip
+
+router segment-routing
+   srgb {{ srgb_start }}-{{ srgb_end }}
+{% if ti_lfa | default(true) %}
+   fast-reroute lfa flag
+{% endif %}
+
+router isis {{ process_id | default('DEFAULT') }}
+   segment-routing mpls
+{% if ti_lfa | default(true) %}
+   fast-reroute lfa mode {{ ti_lfa_mode | default('node-protection') }}
+{% endif %}
+
+{# Per-device prefix SIDs — keyed by device hostname, resolved at render time #}
+{% if prefix_sids is defined and prefix_sids[inventory_hostname] is defined %}
+interface Loopback0
+   isis segment-routing prefix-sid index {{ prefix_sids[inventory_hostname] }}
+{% endif %}
+
+{# Per-device adjacency SIDs #}
+{% if adjacency_sids is defined and adjacency_sids[inventory_hostname] is defined %}
+{% for adj_sid in adjacency_sids[inventory_hostname] %}
+interface {{ adj_sid.interface }}
+   isis adjacency-sid absolute {{ adj_sid.sid }}
+{% if adj_sid.protected | default(false) %}
+   isis segment-routing adjacency-sid protected
+{% endif %}
+{% endfor %}
+{% endif %}

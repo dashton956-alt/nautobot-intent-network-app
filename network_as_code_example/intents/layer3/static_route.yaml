@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: static_route
+# Purpose:     Install one or more static routes across a set of devices.
+#              Covers default routes, VRF-scoped routes, and floating statics.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-static-route-001              # MANDATORY
+type: static_route                     # MANDATORY
+version: 1                             # MANDATORY
+tenant: acme-corp                      # MANDATORY
+description: "Default route via ISP + VRF management routes"  # MANDATORY (>=10 chars)
+change_ticket: CHG0030010              # MANDATORY (CHG + 7 digits)
+approved_by: ""                        # OPTIONAL here
+
+# ── Scope ─────────────────────────────────────────────────────────────────────
+scope:
+  sites: [dc-east]                     # MANDATORY — one of: sites | devices | roles | all_tenant_devices
+  # devices: [router-01, router-02]
+  # roles: [border-router]
+  # all_tenant_devices: true
+
+# ── Routes ────────────────────────────────────────────────────────────────────
+routes:
+  - prefix: 0.0.0.0/0                  # MANDATORY — destination prefix in CIDR notation
+    next_hop: 203.0.113.1              # MANDATORY (if no exit_interface) — next-hop IP address
+    # exit_interface: GigabitEthernet0/0  # OPTIONAL — use instead of or alongside next_hop
+    admin_distance: 1                  # OPTIONAL (default: 1) — lower = preferred; 1=static default
+    name: "DEFAULT-VIA-ISP"           # OPTIONAL — route description/tag on device
+    # vrf: ""                          # OPTIONAL — install in this VRF (omit for global table)
+    # tag: 100                         # OPTIONAL — route tag for policy matching
+    # track: ""                        # OPTIONAL — IP SLA track object for conditional install
+
+  - prefix: 10.200.0.0/16
+    next_hop: 10.0.0.254
+    admin_distance: 1
+    vrf: MGMT                          # OPTIONAL — install route inside a specific VRF
+    name: "MGMT-BACKBONE"
+
+  - prefix: 192.168.99.0/24
+    next_hop: 10.0.0.1
+    admin_distance: 254                # OPTIONAL — high distance = floating/backup static
+                                       #   Only active when primary route (lower distance) is gone
+    track: 1                           # OPTIONAL — IP SLA track object; route only installed when
+                                       #   the tracked object is UP
+
+# ── Deployment ────────────────────────────────────────────────────────────────
+deployment:
+  strategy: rolling                    # OPTIONAL (default: rolling) — rolling | canary | all_at_once
+  save_config: true                    # OPTIONAL (default: true)
+
+# ── Verification ──────────────────────────────────────────────────────────────
+verification:
+  level: basic                         # OPTIONAL (default: basic) — basic | nuts
+  trigger: on_deploy                   # OPTIONAL (default: on_deploy) — on_deploy | scheduled | both
+  fail_action: rollback                # OPTIONAL (default: alert) — alert | rollback | remediate

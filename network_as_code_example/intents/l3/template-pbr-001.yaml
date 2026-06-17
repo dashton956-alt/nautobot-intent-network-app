@@ -1,0 +1,63 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: pbr
+# Purpose:     Steer specific traffic flows to a designated next-hop, bypassing
+#              the normal routing table. Used to route VoIP via low-latency MPLS
+#              and video streaming via the direct internet access (DIA) link.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-pbr-001                   # MANDATORY
+  type: pbr                              # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Policy-Based Routing — steer specific traffic flows based on source or DSCP"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    devices:
+      - lon-edge-rtr-01                  # MANDATORY — PBR is per-device
+
+  # ── PBR policies ────────────────────────────────────────────────────────────
+  pbr:
+    policies:
+      - name: PBR-VOIP-TO-MPLS
+        description: "Route VoIP traffic via MPLS WAN"
+        match:
+          acl: ACL-VOIP-TRAFFIC          # MANDATORY — ACL defining matched traffic
+        set:
+          next_hop: "10.1.1.1"           # MANDATORY — next-hop for matched traffic
+          fallback_routing_table: true   # OPTIONAL — use routing table if next-hop unreachable
+        apply_to:
+          - interface: GigabitEthernet0/1
+            direction: in                # MANDATORY — in | out (PBR only effective inbound)
+      - name: PBR-VIDEO-TO-DIA
+        description: "Route video streaming via DIA link"
+        match:
+          dscp: AF41                     # OPTIONAL — match by DSCP marking instead of ACL
+        set:
+          next_hop: "192.0.2.1"
+          fallback_routing_table: true
+        apply_to:
+          - interface: GigabitEthernet0/1
+            direction: in
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: all_at_once
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify PBR route-map applied"
+        expected:
+          - config_snippet: "ip policy route-map PBR-VOIP-TO-MPLS"

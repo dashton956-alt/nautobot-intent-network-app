@@ -1,0 +1,31 @@
+{# fhrp — Cisco NX-OS HSRP/VRRP first-hop redundancy configuration #}
+{% for vip in vip_interfaces | default([]) %}
+interface {{ vip.interface }}
+{% if vip.protocol | default('hsrp') == 'vrrp' %}
+ vrrp {{ vip.group | default(1) }} address-family ipv4
+  address {{ vip.virtual_ip }} primary
+{% if vip.priority is defined %}
+  priority {{ vip.priority }}
+{% endif %}
+{% if vip.preempt | default(false) %}
+  preempt
+{% endif %}
+  no shutdown
+{% else %}
+ hsrp version 2
+ hsrp {{ vip.group | default(1) }}
+  ip {{ vip.virtual_ip }}
+{% if vip.priority is defined %}
+  priority {{ vip.priority }}
+{% endif %}
+{% if vip.preempt | default(false) %}
+  preempt
+{% endif %}
+{% if vip.track is defined %}
+  track {{ vip.track }} decrement {{ vip.track_decrement | default(20) }}
+{% endif %}
+{% if vip.hello_interval is defined %}
+  timers {{ vip.hello_interval }} {{ vip.hold_time | default(10) }}
+{% endif %}
+{% endif %}
+{% endfor %}

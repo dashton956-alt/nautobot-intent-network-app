@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: ospf
+# Purpose:     Configure OSPF process and area assignments on DC distribution
+#              and core routers. Backbone area 0 carries loopbacks and core
+#              links; stub areas reduce LSA flooding to access layer devices.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-ospf-001                  # MANDATORY
+  type: ospf                             # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "OSPF Adjacency / Area — configure OSPF process and area assignments"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east
+    roles:
+      - distribution-switch
+      - core-router
+
+  # ── OSPF configuration ──────────────────────────────────────────────────────
+  routing:
+    protocol: ospf                       # MANDATORY
+    process_id: 1                        # MANDATORY — OSPF process ID (local significance only)
+    router_id: "10.255.0.1"             # MANDATORY — unique 32-bit router-id per device
+    areas:
+      - area_id: "0.0.0.0"              # MANDATORY — backbone area
+        type: backbone
+        networks:
+          - "10.255.0.0/24"             # Loopbacks — used for BGP next-hop and router-id
+          - "10.10.0.0/24"              # Core point-to-point links
+      - area_id: "0.0.0.1"
+        type: stub                       # OPTIONAL — stub | nssa | normal
+        networks:
+          - "10.10.1.0/24"
+    passive_interfaces:                  # OPTIONAL — suppress OSPF hellos on non-routing interfaces
+      - Loopback0
+    authentication:
+      enabled: true                      # OPTIONAL — enable area-wide authentication
+      type: message-digest               # OPTIONAL — simple | message-digest
+    bfd: true                            # OPTIONAL — use BFD for fast neighbour failure detection
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: both
+    schedule: "*/30 * * * *"
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify OSPF process configuration"
+        expected:
+          - config_snippet: "router ospf 1"
+          - config_snippet: "router-id 10.255.0.1"

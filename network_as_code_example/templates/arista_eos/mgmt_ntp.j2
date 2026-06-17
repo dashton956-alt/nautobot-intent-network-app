@@ -1,0 +1,25 @@
+{# mgmt_ntp — Arista EOS NTP configuration #}
+{% if timezone is defined and timezone %}
+clock timezone {{ timezone }} {{ timezone_offset | default(0) }}
+{% endif %}
+
+{% if authenticate | default(false) %}
+ntp authenticate
+ntp authentication-key {{ auth_key_id }} md5 {{ auth_key }}
+ntp trusted-key {{ auth_key_id }}
+{% endif %}
+
+{% for server in ntp_servers | default([]) %}
+{% if ntp_source_interface is defined and ntp_source_interface %}
+ntp server {{ server }}{% if authenticate | default(false) %} key {{ auth_key_id }}{% endif %} vrf management
+{% else %}
+ntp server {{ server }}{% if authenticate | default(false) %} key {{ auth_key_id }}{% endif %}
+{% endif %}
+{% endfor %}
+
+{% if ntp_source_interface is defined and ntp_source_interface %}
+ntp source {{ ntp_source_interface }}
+{% endif %}
+{% if ntp_access_group is defined and ntp_access_group %}
+ntp access-group serve {{ ntp_access_group }}
+{% endif %}

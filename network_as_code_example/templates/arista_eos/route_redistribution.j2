@@ -1,0 +1,21 @@
+{# route_redistribution — Arista EOS route redistribution between protocols #}
+{% if target_protocol == 'bgp' or target_protocol == 'bgp_ebgp' or target_protocol == 'bgp_ibgp' %}
+router bgp {{ local_asn }}
+   address-family ipv4
+{% for rule in redistribution_rules | default([]) %}
+      redistribute {{ rule.source }}{% if rule.route_map is defined %} route-map {{ rule.route_map }}{% endif %}{% if rule.metric is defined %} metric {{ rule.metric }}{% endif %}
+
+{% endfor %}
+{% elif target_protocol == 'ospf' %}
+router ospf {{ process_id | default(1) }}
+{% for rule in redistribution_rules | default([]) %}
+   redistribute {{ rule.source }}{% if rule.metric is defined %} metric {{ rule.metric }}{% endif %}{% if rule.metric_type is defined %} metric-type {{ rule.metric_type }}{% endif %}{% if rule.route_map is defined %} route-map {{ rule.route_map }}{% endif %}{% if rule.subnets | default(true) %} subnets{% endif %}
+
+{% endfor %}
+{% elif target_protocol == 'isis' %}
+router isis {{ process_id | default('DEFAULT') }}
+{% for rule in redistribution_rules | default([]) %}
+   redistribute {{ rule.source }}{% if rule.level is defined %} into {{ rule.level }}{% endif %}{% if rule.route_map is defined %} route-map {{ rule.route_map }}{% endif %}
+
+{% endfor %}
+{% endif %}

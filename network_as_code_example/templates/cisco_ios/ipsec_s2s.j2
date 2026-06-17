@@ -1,0 +1,28 @@
+{# ipsec_s2s — Cisco IOS-XE IKEv1 Site-to-Site IPSec configuration #}
+crypto isakmp policy {{ isakmp_policy | default(10) }}
+ encryption {{ encryption | default('aes 256') }}
+ hash {{ hash_alg | default('sha256') }}
+ authentication pre-share
+ group {{ dh_group | default(14) }}
+ lifetime {{ lifetime | default(86400) }}
+
+crypto isakmp key {{ psk }} address {{ remote_peer }}
+
+crypto ipsec transform-set {{ transform_set | default('TS-S2S') }} esp-{{ esp_encryption | default('aes 256') }} esp-{{ esp_integrity | default('sha256') }}-hmac
+ mode tunnel
+
+{% if acl_name is defined %}
+ip access-list extended {{ acl_name }}
+{% for rule in interesting_traffic | default([]) %}
+ permit ip {{ rule.source }} {{ rule.source_wildcard | default('0.0.0.0') }} {{ rule.destination }} {{ rule.destination_wildcard | default('0.0.0.0') }}
+{% endfor %}
+
+crypto map {{ crypto_map | default('CRYPTO-MAP') }} {{ seq | default(10) }} ipsec-isakmp
+ set peer {{ remote_peer }}
+ set transform-set {{ transform_set | default('TS-S2S') }}
+ match address {{ acl_name }}
+{% endif %}
+{% if apply_interface is defined %}
+interface {{ apply_interface }}
+ crypto map {{ crypto_map | default('CRYPTO-MAP') }}
+{% endif %}

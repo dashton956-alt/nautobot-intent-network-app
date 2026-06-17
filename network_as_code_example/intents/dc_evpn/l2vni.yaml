@@ -1,0 +1,44 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: l2vni
+# Purpose:     Provision an L2 VNI (VXLAN segment) for a VLAN across the fabric.
+#              VNI is auto-allocated from the VxlanVniPool if not specified.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-l2vni-vlan100-001            # MANDATORY
+type: l2vni                           # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "L2VNI for VLAN 100 — PROD-SERVERS segment across DC-East fabric"  # MANDATORY
+change_ticket: CHG0030031             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL here
+
+scope:
+  sites: [dc-east]                    # MANDATORY — all VTEP devices that need to carry this VNI
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  L2VNI PARAMETERS                                                      ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+vlan_id: 100                          # MANDATORY — 802.1Q VLAN this VNI is bound to (1–4094)
+
+vlan_name: PROD-SERVERS               # OPTIONAL — VLAN name; auto-generated as "L2VNI-<vni>" if omitted
+
+# vni_id: 10100                       # OPTIONAL — explicit VNI value; auto-allocated from
+                                      #   VxlanVniPool if omitted (recommended — prevents conflicts)
+
+replication_mode: ingress-replication # OPTIONAL (default: ingress-replication)
+                                      #   ingress-replication — unicast BUM (no multicast required)
+                                      #   multicast           — requires PIM in underlay
+
+mcast_group: ""                       # OPTIONAL — multicast group IP for BUM (only when
+                                      #   replication_mode: multicast, e.g. "239.1.1.100")
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: basic                        # OPTIONAL
+  trigger: on_deploy
+  fail_action: alert

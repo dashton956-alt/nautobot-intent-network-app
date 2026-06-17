@@ -1,0 +1,33 @@
+{# evpn_vxlan_fabric — Cisco NX-OS VXLAN EVPN fabric base configuration #}
+feature bgp
+feature pim
+feature interface-vlan
+feature vn-segment-vlan-based
+feature nv overlay
+
+{% if nve_advertise_virtual_rmac | default(false) %}
+fabric forwarding anycast-gateway-mac {{ anycast_mac | default('0001.0001.0001') }}
+{% endif %}
+
+router bgp {{ local_as }}
+ router-id {{ router_id }}
+ log-neighbor-changes
+ address-family l2vpn evpn
+  advertise-pip
+{% for neighbor in evpn_neighbors | default([]) %}
+ neighbor {{ neighbor.ip }}
+  remote-as {{ neighbor.remote_as | default(local_as) }}
+  description {{ neighbor.description | default('EVPN peer') }}
+  update-source {{ neighbor.update_source | default('loopback0') }}
+{% if neighbor.remote_as | default(local_as) == local_as %}
+  address-family l2vpn evpn
+   send-community extended
+{% if neighbor.rr_client | default(false) %}
+   route-reflector-client
+{% endif %}
+   next-hop-unchanged
+{% else %}
+  address-family l2vpn evpn
+   send-community extended
+{% endif %}
+{% endfor %}

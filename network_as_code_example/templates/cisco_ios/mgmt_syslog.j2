@@ -1,0 +1,13 @@
+{# mgmt_syslog — Cisco IOS-XE syslog configuration #}
+logging on
+{% if syslog_trap_level is defined and syslog_trap_level %}
+logging trap {{ syslog_trap_level }}
+{% endif %}
+{% if syslog_source_interface is defined and syslog_source_interface %}
+logging source-interface {{ syslog_source_interface }}
+{% endif %}
+
+{% for server in syslog_servers | default([]) %}
+logging host {{ server.host }}{% if server.port is defined and server.port != 514 %} transport {{ server.protocol | default('udp') }} port {{ server.port }}{% endif %}
+
+{% endfor %}

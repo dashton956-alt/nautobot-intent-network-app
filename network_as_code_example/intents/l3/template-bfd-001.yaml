@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: bfd
+# Purpose:     Configure Bidirectional Forwarding Detection (BFD) for sub-second
+#              failure detection on core and PE router interfaces. BFD clients
+#              (OSPF, BGP, IS-IS) will use BFD sessions instead of their own
+#              hello timers for faster convergence.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-bfd-001                   # MANDATORY
+  type: bfd                              # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "BFD — configure Bidirectional Forwarding Detection for fast failover"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    roles:
+      - core-router
+      - pe-router
+
+  # ── BFD timers ──────────────────────────────────────────────────────────────
+  bfd:
+    interval_ms: 300                     # MANDATORY — minimum transmit interval in ms
+    min_rx_ms: 300                       # MANDATORY — minimum receive interval in ms
+    multiplier: 3                        # MANDATORY — detect multiplier; failure after 3 misses
+                                         #   Detection time = interval_ms × multiplier (900ms here)
+    clients:                             # MANDATORY — protocols that register as BFD clients
+      - protocol: ospf
+        process_id: 1
+        all_interfaces: true             # Enable BFD on all OSPF-enabled interfaces
+      - protocol: bgp
+        neighbors:                       # Enable BFD for specific BGP peers
+          - "10.255.0.2"
+          - "10.255.0.3"
+      - protocol: isis
+        process_id: 1
+        all_interfaces: true
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify BFD interval configured"
+        expected:
+          - config_snippet: "bfd interval"

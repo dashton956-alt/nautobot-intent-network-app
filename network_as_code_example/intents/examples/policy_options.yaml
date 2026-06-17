@@ -1,0 +1,152 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# POLICY OPTIONS REFERENCE
+# ─────────────────────────────────────────────────────────────────────────────
+# This file is a REFERENCE ONLY — it is not a runnable intent.
+# It documents every field available under the `policy:` block, all valid
+# compliance frameworks, encryption values, and how OPA uses these values
+# to enforce additional rules at deploy time.
+# ═════════════════════════════════════════════════════════════════════════════
+
+policy:
+
+  # ── Compliance ──────────────────────────────────────────────────────────────
+  # Declares the regulatory framework that governs this intent.
+  # OPA uses this to enforce additional validation rules at deploy time.
+  #
+  compliance: NONE                       # OPTIONAL (default: NONE)
+                                         # Values:
+                                         #
+                                         #   NONE      — no compliance framework applied
+                                         #               • use for internal/non-regulated traffic
+                                         #
+                                         #   PCI-DSS   — Payment Card Industry Data Security Standard
+                                         #               OPA enforces:
+                                         #                 • encryption: required
+                                         #                 • trigger: both (continuous verification)
+                                         #                 • deny_protocols: telnet, http, ftp,
+                                         #                   snmpv1, snmpv2
+                                         #                 • approved_by: mandatory
+                                         #               Use for: payment processing paths,
+                                         #                        cardholder data segments
+                                         #
+                                         #   HIPAA     — Health Insurance Portability and
+                                         #               Accountability Act
+                                         #               OPA enforces:
+                                         #                 • encryption: required
+                                         #                 • approved_by: mandatory
+                                         #               Use for: healthcare data, PHI segments
+                                         #
+                                         #   SOC2      — Service Organization Control 2
+                                         #               OPA enforces:
+                                         #                 • snmpv1/v2c triggers a warning
+                                         #                 • audit logging required
+                                         #               Use for: SaaS/cloud service segments
+
+  # ── Encryption ──────────────────────────────────────────────────────────────
+  # Declares the encryption posture of this network segment or link.
+  # OPA uses this to block plaintext deployment when required.
+  #
+  encryption: none                       # OPTIONAL (default: none)
+                                         # Values:
+                                         #
+                                         #   none      — no encryption required
+                                         #               • use for internal VLANs, OSPF, etc.
+                                         #
+                                         #   tls       — TLS encryption required for management
+                                         #               • use for: NETCONF, RESTCONF, telemetry,
+                                         #                          SNMPv3 with encryption
+                                         #
+                                         #   required  — data-plane encryption is MANDATORY
+                                         #               • OPA blocks deployment if encryption
+                                         #                 algorithm is missing or weak
+                                         #               • use for: ipsec_s2s, ipsec_ikev2,
+                                         #                          PCI-DSS connectivity intents,
+                                         #                          HIPAA data paths
+                                         #
+                                         #   macsec    — IEEE 802.1AE link-layer encryption
+                                         #               • used by the macsec intent type
+                                         #               • OPA verifies cipher suite is present
+
+  # ── Approved by ─────────────────────────────────────────────────────────────
+  # The identity of the person or system that approved this change.
+  # OPA enforces this field for HIGH-IMPACT intent types when enforce mode is on.
+  #
+  # approved_by: "net.engineer"          # OPTIONAL here — MANDATORY for high-impact types
+                                         # Format: Nautobot username or AD/LDAP identity
+                                         # High-impact types that require approved_by:
+                                         #   bgp_ebgp, bgp_ibgp, evpn_vxlan_fabric,
+                                         #   ipsec_s2s, ipsec_ikev2, fw_rule, mpls_l3vpn,
+                                         #   sr_mpls, connectivity (PCI-DSS), dc_underlay
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EXAMPLES — policy blocks for common scenarios
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Internal / non-regulated segment (most intents):
+# policy:
+#   compliance: NONE
+#   encryption: none
+
+# Management plane with secure transport:
+# policy:
+#   compliance: NONE
+#   encryption: tls
+
+# IPSec / encrypted WAN tunnel:
+# policy:
+#   compliance: NONE
+#   encryption: required
+
+# MACsec inter-switch link:
+# policy:
+#   compliance: NONE
+#   encryption: macsec
+
+# PCI-DSS payment card segment:
+# policy:
+#   compliance: PCI-DSS
+#   encryption: required
+#   approved_by: "net.engineer"
+
+# HIPAA healthcare data path:
+# policy:
+#   compliance: HIPAA
+#   encryption: required
+#   approved_by: "net.engineer"
+
+# SOC2 SaaS service path:
+# policy:
+#   compliance: SOC2
+#   encryption: tls
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OPA ENFORCEMENT MATRIX
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#   compliance    encryption    What OPA additionally enforces
+#   ──────────    ──────────    ───────────────────────────────────────────────
+#   NONE          none          No extra rules
+#   NONE          tls           Checks management API uses TLS
+#   NONE          required      Checks encryption algorithm is defined
+#   NONE          macsec        Checks MACsec cipher suite is present
+#   PCI-DSS       required      + trigger: both enforced
+#                               + deny_protocols enforced (telnet, ftp, http,
+#                                 snmpv1, snmpv2)
+#                               + approved_by mandatory
+#                               + fail_action cannot be 'none'
+#   HIPAA         required      + approved_by mandatory
+#                               + encryption algorithm strength checked
+#   SOC2          any           + SNMPv1/v2c triggers OPA warning (not block)
+#                               + audit logging must be enabled
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# HIGH-IMPACT TYPES — require approved_by when OPA enforce mode is enabled
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#   bgp_ebgp              bgp_ibgp            evpn_vxlan_fabric
+#   bgp_evpn_af           dc_underlay         evpn_multisite
+#   ipsec_s2s             ipsec_ikev2         fw_rule
+#   mpls_l3vpn            sr_mpls             route_redistribution
+#   connectivity          (when compliance != NONE)

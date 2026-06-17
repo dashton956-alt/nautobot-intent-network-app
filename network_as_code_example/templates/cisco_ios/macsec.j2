@@ -1,0 +1,25 @@
+{# macsec — Cisco IOS-XE MACsec (802.1AE) configuration #}
+{% for profile in macsec_profiles | default([]) %}
+mka policy {{ profile.name }}
+{% if profile.cipher | default('') == 'gcm-aes-256' %}
+ macsec-cipher-suite gcm-aes-256
+{% else %}
+ macsec-cipher-suite gcm-aes-128
+{% endif %}
+{% if profile.replay_protect | default(false) %}
+ replay-protect window-size {{ profile.replay_window | default(0) }}
+{% endif %}
+{% if profile.sak_rekey_interval is defined %}
+ sak-rekey interval {{ profile.sak_rekey_interval }}
+{% endif %}
+{% endfor %}
+{% for intf in macsec_interfaces | default([]) %}
+interface {{ intf.name }}
+{% if intf.pre_shared_key is defined %}
+ mka pre-shared-key key-chain {{ intf.pre_shared_key }}
+{% endif %}
+{% if intf.macsec_policy is defined %}
+ mka policy {{ intf.macsec_policy }}
+{% endif %}
+ macsec
+{% endfor %}

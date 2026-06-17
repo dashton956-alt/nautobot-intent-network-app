@@ -1,0 +1,21 @@
+{# pvlan — Arista EOS Private VLAN configuration #}
+vlan {{ primary_vlan }}
+   private-vlan primary
+
+vlan {{ secondary_vlan }}
+   private-vlan {{ pvlan_type }}
+
+vlan {{ primary_vlan }}
+   private-vlan association add {{ secondary_vlan }}
+
+{% for pvlan_intf in pvlan_interfaces | default([]) %}
+interface {{ pvlan_intf.interface }}
+{% if pvlan_intf.type | default('') == 'promiscuous' %}
+   switchport mode private-vlan promiscuous
+   switchport private-vlan mapping {{ primary_vlan }} {{ secondary_vlan }}
+{% elif pvlan_intf.type | default('') == 'host' %}
+   switchport mode private-vlan host
+   switchport private-vlan host-association {{ primary_vlan }} {{ secondary_vlan }}
+{% endif %}
+   no shutdown
+{% endfor %}

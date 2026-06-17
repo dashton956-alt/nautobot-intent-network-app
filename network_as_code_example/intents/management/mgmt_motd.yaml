@@ -1,0 +1,86 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_motd
+# Purpose:     Deploy consistent login and MOTD banners across all devices.
+#              Pre-login banners are legally required in most jurisdictions to
+#              establish consent to monitoring and deter unauthorised access.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-motd-all-devices-001           # MANDATORY
+type: mgmt_motd                         # MANDATORY
+version: 1                              # MANDATORY
+tenant: acme-corp                       # MANDATORY
+description: "Login and MOTD banners — security warning and monitoring notice — all devices"  # MANDATORY
+change_ticket: CHG0030106               # MANDATORY (CHG + 7 digits)
+approved_by: ""                         # OPTIONAL here
+
+scope:
+  all_tenant_devices: true              # MANDATORY — banners required on every device
+
+management:
+  motd:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  LOGIN BANNER (MANDATORY)                                              ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+    #
+    # The login banner is displayed BEFORE the authentication prompt.
+    # It establishes that the system is monitored and access is restricted —
+    # this is required by legal and compliance teams in most organisations.
+    # Do NOT use a friendly/welcoming login banner; it may reduce legal standing.
+
+    login_banner: |                         # MANDATORY — pre-authentication warning
+      ********************************************************************
+      *  AUTHORIZED ACCESS ONLY — This system is the property of        *
+      *  Acme Corp.  Unauthorized access is strictly prohibited and      *
+      *  will be prosecuted to the fullest extent of the law.            *
+      *  All access is monitored and logged.                             *
+      ********************************************************************
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  MOTD BANNER (OPTIONAL)                                                ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+    #
+    # Message of the Day — displayed after successful login.
+    # Use for operational notices: maintenance windows, NOC contact details.
+
+    motd_banner: |                          # OPTIONAL — post-authentication informational notice
+      ============================================================
+      Acme Corp Network Device — Managed by Intent Networking
+      All sessions are monitored and logged.
+      NOC: noc@acme-corp.example | +44 20 XXXX XXXX
+      ============================================================
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  EXEC BANNER (OPTIONAL)                                                ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    exec_banner: ""                         # OPTIONAL — displayed when exec shell opens
+                                            #   Leave empty unless you need per-session notices
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  DELIMITER (OPTIONAL)                                                  ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    delimiter: "^"                          # OPTIONAL (default: ^) — banner delimiter character
+
+                                        #   Must NOT appear anywhere in the banner text
+                                        #   Common safe choices: ^ % ~ @
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: NONE
+  encryption: none
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                     # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: nuts
+  trigger: on_deploy
+  fail_action: alert
+  tests:
+    - test_class: TestNapalmConfig
+      label: "Verify login banner is set in running config"
+      expected:
+        - config_snippet: "AUTHORIZED ACCESS ONLY"

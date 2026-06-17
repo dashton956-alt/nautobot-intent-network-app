@@ -1,0 +1,97 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: vlan_provision
+# Purpose:     Create one or more VLANs on a set of switches simultaneously.
+#              Use this instead of touching each device individually.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  IDENTITY — every intent requires these four fields                     ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+id: acme-vlan-provision-001            # MANDATORY — unique across every file in your repo
+                                       #   Convention: <tenant>-<domain>-<type>-<seq>
+type: vlan_provision                   # MANDATORY — must match an IntentTypeChoices value
+version: 1                             # MANDATORY — positive integer (1–9999); increment on change
+tenant: acme-corp                      # MANDATORY — must match a Tenant name in Nautobot exactly
+description: "Production VLANs for the DC fabric — servers, storage, management"
+                                       # MANDATORY — OPA rejects descriptions shorter than 10 chars
+change_ticket: CHG0030001              # MANDATORY for high-impact types; OPA enforces CHG+7digits
+                                       # Required for all types when your OPA policy mandates it
+approved_by: "net.engineer"            # OPTIONAL — GitHub username; MANDATORY for dmvpn, ipsec_*,
+                                       #   evpn_vxlan_fabric, mpls_l3vpn, fw_rule, sdwan_overlay
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  SCOPE — where to apply this intent (MANDATORY — choose exactly one)   ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+scope:
+  # Option A — all devices at one or more sites (most common for fabric-wide changes)
+  sites: [dc-east]
+
+  # Option B — specific named devices (most surgical; use for targeted changes)
+  # devices: [spine-01, spine-02, leaf-01, leaf-02]
+
+  # Option C — all devices that have a Nautobot device role tag
+  # roles: [leaf-switch, spine-switch]
+
+  # Option D — every active device owned by this tenant
+  # all_tenant_devices: true
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  VLAN DEFINITIONS — type-specific (MANDATORY — at least one entry)     ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+vlans:
+  - id: 100                            # MANDATORY — VLAN ID (1–4094)
+    name: PROD-SERVERS                 # MANDATORY — VLAN name; rendered as 'vlan name' on device
+    description: "Production server subnet"   # OPTIONAL — rendered as vlan description
+
+  - id: 200
+    name: STORAGE
+    description: "iSCSI / NFS storage traffic"
+
+  - id: 300
+    name: MGMT
+    description: "Out-of-band management VLAN"
+
+  - id: 400
+    name: VMOTION
+    description: "VMware vMotion traffic — keep separate from server VLAN"
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  POLICY — OPA compliance enforcement (OPTIONAL)                        ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# policy:                              # OPTIONAL block — omit if not compliance-regulated
+#   compliance: none                   # OPTIONAL — PCI-DSS | HIPAA | SOC2 | none (default: none)
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  DEPLOYMENT — how to push the config (OPTIONAL — defaults shown)       ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+deployment:
+  strategy: rolling                    # OPTIONAL (default: rolling)
+                                       #   rolling    — device-by-device, stop on first failure
+                                       #   canary     — push to 1 device first, pause, then continue
+                                       #   all_at_once — push to all devices simultaneously (risky)
+                                       #   NOTE: high-risk types enforce rolling or canary via OPA
+  save_config: true                    # OPTIONAL (default: true) — write to startup-config/NVRAM
+                                       #   Set false only for dry-run / lab testing
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  VERIFICATION — post-deploy checks (OPTIONAL — defaults shown)         ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+verification:
+  level: basic                         # OPTIONAL (default: basic)
+                                       #   basic — connectivity and status checks via Nornir
+                                       #   nuts  — full pyATS/NUTS test suite execution
+  trigger: on_deploy                   # OPTIONAL (default: on_deploy)
+                                       #   on_deploy — run checks immediately after deploy
+                                       #   scheduled — run on a cron schedule only
+                                       #   both      — on deploy AND on schedule
+                                       #   NOTE: PCI-DSS and HIPAA enforce 'both' via OPA
+  fail_action: alert                   # OPTIONAL (default: alert)
+                                       #   alert      — create a Nautobot notification and stop
+                                       #   rollback   — auto-rollback to previous config
+                                       #   remediate  — attempt auto-remediation via OPA decision

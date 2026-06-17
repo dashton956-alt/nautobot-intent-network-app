@@ -1,0 +1,19 @@
+{# igmp_snooping — Cisco NX-OS IGMP snooping configuration #}
+{% if igmp_snooping_enable | default(true) %}
+ip igmp snooping
+{% else %}
+no ip igmp snooping
+{% endif %}
+{% for v in igmp_vlans | default([]) %}
+{% if v.enable | default(true) %}
+ip igmp snooping vlan {{ v.vlan_id }}
+{% else %}
+no ip igmp snooping vlan {{ v.vlan_id }}
+{% endif %}
+{% if v.querier_address is defined %}
+ip igmp snooping vlan {{ v.vlan_id }} querier {{ v.querier_address }}
+{% endif %}
+{% if v.mrouter_port is defined %}
+ip igmp snooping vlan {{ v.vlan_id }} mrouter interface {{ v.mrouter_port }}
+{% endif %}
+{% endfor %}

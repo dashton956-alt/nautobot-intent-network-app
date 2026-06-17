@@ -1,0 +1,37 @@
+{# dc_underlay — Cisco NX-OS DC fabric underlay configuration (BGP or OSPF) #}
+{% if underlay_protocol | default('bgp') == 'ospf' %}
+feature ospf
+
+router ospf {{ process_id | default(1) }}
+ router-id {{ router_id }}
+ log-adjacency-changes detail
+{% for intf in underlay_interfaces | default([]) %}
+interface {{ intf.name }}
+ no switchport
+ mtu {{ intf.mtu | default(9216) }}
+ ip address {{ intf.ip_address }}/{{ intf.prefix_len | default(31) }}
+ ip ospf network point-to-point
+ ip router ospf {{ process_id | default(1) }} area {{ intf.area | default('0.0.0.0') }}
+ no shutdown
+{% endfor %}
+{% else %}
+feature bgp
+
+router bgp {{ local_as }}
+ router-id {{ router_id }}
+ log-neighbor-changes
+{% for neighbor in underlay_neighbors | default([]) %}
+ neighbor {{ neighbor.ip }}
+  remote-as {{ neighbor.remote_as }}
+  description {{ neighbor.description | default('Underlay peer') }}
+  address-family ipv4 unicast
+   send-community extended
+{% endfor %}
+{% for intf in underlay_interfaces | default([]) %}
+interface {{ intf.name }}
+ no switchport
+ mtu {{ intf.mtu | default(9216) }}
+ ip address {{ intf.ip_address }}/{{ intf.prefix_len | default(31) }}
+ no shutdown
+{% endfor %}
+{% endif %}

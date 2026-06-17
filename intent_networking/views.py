@@ -43,6 +43,7 @@ from intent_networking.models import (
     WirelessVlanPool,
 )
 from intent_networking.tables import (
+    IntentApprovalTable,
     IntentAuditEntryTable,
     IntentTable,
     ResolutionPlanTable,
@@ -373,7 +374,7 @@ class ApprovalListView(ObjectListView):
     """Read-only list of all approvals across all intents."""
 
     queryset = IntentApproval.objects.all().select_related("intent", "approver")
-    table_class = None  # Uses generic rendering
+    table_class = IntentApprovalTable
     action_buttons = ("export",)
 
 

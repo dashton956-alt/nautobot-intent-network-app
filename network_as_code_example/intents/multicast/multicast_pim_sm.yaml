@@ -1,0 +1,65 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: multicast_pim_sm
+# Purpose:     Enable IP multicast routing with PIM Sparse Mode. Configures
+#              global multicast routing, RP address, and per-interface PIM.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-multicast-pim-sm-001         # MANDATORY
+type: multicast_pim_sm                # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "PIM Sparse Mode — DC core — static RP at 10.0.0.254"  # MANDATORY
+change_ticket: CHG0030090             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL here
+
+scope:
+  sites: [dc-east]                    # MANDATORY
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  RENDEZVOUS POINT (OPTIONAL — required for PIM-SM)                    ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+rp_address: 10.0.0.254                # OPTIONAL — RP IP address (omit for SSM-only deployments)
+
+rp_type: static                       # OPTIONAL (default: static)
+                                      #   static  — manually configured RP address
+                                      #   bsr     — Bootstrap Protocol (RFC 5059); auto RP election
+                                      #   auto-rp — Cisco Auto-RP (legacy; prefer BSR)
+
+bsr_candidate: 10.0.0.254             # OPTIONAL — BSR candidate address (only for rp_type: bsr)
+autorp_scope: 32                             # OPTIONAL — Auto-RP scope TTL (only for rp_type: auto-rp)
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  SOURCE-SPECIFIC MULTICAST (OPTIONAL)                                 ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+ssm_range: ""                         # OPTIONAL — ACL name defining SSM group range
+                                      #   Example: "ACL-SSM-GROUPS" matching 232.0.0.0/8
+                                      #   SSM requires no RP — sources are explicitly specified
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  PIM INTERFACES — where to enable PIM hellos (MANDATORY — list)       ║
+# ╚══════════════════════════════════════════════────────────────────────────╝
+
+interfaces:                           # MANDATORY — interfaces on which to enable PIM
+  - name: GigabitEthernet0/0          # MANDATORY per entry — interface name
+    mode: sparse-mode                 # OPTIONAL (default: sparse-mode)
+                                      #   sparse-mode      — standard PIM-SM (requires RP)
+                                      #   sparse-dense-mode — hybrid (legacy; avoid)
+                                      #   passive          — receive joins but no hellos (stub)
+
+  - name: GigabitEthernet0/1
+    mode: sparse-mode
+
+  - name: Loopback0
+    mode: sparse-mode                 # Enable on loopback so RP address is reachable
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: nuts                         # OPTIONAL — verifies PIM neighbours, RP reachability
+  trigger: both
+  fail_action: alert

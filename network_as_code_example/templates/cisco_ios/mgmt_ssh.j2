@@ -1,0 +1,31 @@
+{# mgmt_ssh — Cisco IOS-XE SSHv2 configuration #}
+{# WARNING: Do NOT use fail_action: rollback for SSH changes #}
+ip ssh version 2
+{% if ssh_timeout is defined and ssh_timeout %}
+ip ssh time-out {{ ssh_timeout }}
+{% endif %}
+{% if ssh_max_sessions is defined and ssh_max_sessions %}
+ip ssh maxstartups {{ ssh_max_sessions }}
+{% endif %}
+
+{% if ssh_allowed_prefixes is defined and ssh_allowed_prefixes %}
+ip access-list standard ACL-SSH-MGMT
+{% for prefix in ssh_allowed_prefixes %}
+ permit {{ prefix }}
+{% endfor %}
+ deny   any log
+{% endif %}
+
+{% if vty_lines is defined %}
+line vty {{ vty_lines.first | default(0) }} {{ vty_lines.last | default(4) }}
+ transport input {{ vty_lines.transport_input | default('ssh') }}
+{% if vty_lines.exec_timeout_minutes is defined %}
+ exec-timeout {{ vty_lines.exec_timeout_minutes }} {{ vty_lines.exec_timeout_seconds | default(0) }}
+{% endif %}
+{% if ssh_allowed_prefixes is defined and ssh_allowed_prefixes %}
+ access-class ACL-SSH-MGMT in
+{% elif vty_lines.access_class is defined %}
+ access-class {{ vty_lines.access_class }} in
+{% endif %}
+ login authentication default
+{% endif %}

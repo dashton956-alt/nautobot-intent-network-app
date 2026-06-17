@@ -1,0 +1,10 @@
+{# reachability_static — Cisco IOS-XE static route for reachability testing/SLA #}
+{% for route in static_routes | default([]) %}
+{% if route.vrf is defined %}
+ip route vrf {{ route.vrf }} {{ route.prefix | replace('/', ' /') | replace('/','') }} {{ route.next_hop }}{% if route.admin_distance is defined %} {{ route.admin_distance }}{% endif %}
+
+{% else %}
+ip route {{ route.prefix | replace('/', ' /') | replace('/','') }} {{ route.next_hop }}{% if route.admin_distance is defined %} {{ route.admin_distance }}{% endif %}
+
+{% endif %}
+{% endfor %}

@@ -1,0 +1,87 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: ipsec_ikev2
+# Purpose:     IKEv2-specific IPSec configuration — IKEv2 proposal, policy,
+#              keyring, and profile objects. Richer than ipsec_s2s for modern
+#              platforms. OPA reads from security.ipsec_ikev2.ikev2.proposal.*
+# HIGH-IMPACT TYPE — requires approved_by when OPA enforce is on.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-ipsec-ikev2-dc-branch-001    # MANDATORY
+type: ipsec_ikev2                     # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "IKEv2 IPSec tunnel — DC to Branch — PCI-DSS compliant encryption"  # MANDATORY
+change_ticket: CHG0030043             # MANDATORY (CHG + 7 digits)
+approved_by: "net.engineer"           # MANDATORY for ipsec_ikev2 (high-impact)
+
+scope:
+  devices: [router-01]               # MANDATORY
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  IKEv2 PROPOSAL (OPTIONAL — defaults are OPA-compliant)               ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+proposal_name: IKEv2-PROPOSAL-PCI    # OPTIONAL (auto-generated as "IKEV2-<intent_id>" if omitted)
+
+encryption: aes-cbc-256               # OPTIONAL (default: aes-cbc-256)
+                                      #   OPA enforces AES-256 for PCI-DSS and HIPAA
+                                      #   Allowed: aes-cbc-256 | aes-gcm-256
+                                      #   BLOCKED by OPA: aes-128-* | aes-gcm-128 | 3des
+
+integrity: sha256                     # OPTIONAL (default: sha256)
+                                      #   OPA blocks SHA-1 for PCI-DSS/HIPAA
+                                      #   Allowed: sha256 | sha384 | sha512
+
+dh_group: 14                          # OPTIONAL (default: 14)
+                                      #   OPA enforces >= 14 for PCI-DSS/HIPAA
+                                      #   Allowed: 14 | 15 | 16 | 19 | 20 | 21
+
+prf: sha256                           # OPTIONAL (default: sha256) — pseudo-random function
+                                      #   Used for key derivation; match with integrity algorithm
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  IKEv2 POLICY / KEYRING / PROFILE (OPTIONAL)                          ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+policy_name: IKEv2-POLICY-PCI         # OPTIONAL — IKEv2 policy object name on device
+keyring_name: KR-BRANCH               # OPTIONAL — IKEv2 keyring object name
+profile_name: IKEv2-PROF-BRANCH       # OPTIONAL — IKEv2 profile object name
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  PEER DEFINITIONS (OPTIONAL — list of remote peers)                   ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+peers:
+  - name: BRANCH-ROUTER               # OPTIONAL — peer label
+    ip: 203.0.113.100                  # MANDATORY per peer — remote peer IP
+    psk: ""                            # OPTIONAL — pre-shared key; use Nautobot Secrets in prod
+    local_interface: GigabitEthernet0/0  # OPTIONAL — local interface for this peering
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  OPA COMPLIANCE STRUCTURE                                              ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# OPA compliance rules for ipsec_ikev2 read from security.ipsec_ikev2.ikev2.proposal.*
+# This nested structure is required for OPA PCI-DSS / HIPAA checks to fire correctly.
+security:
+  ipsec_ikev2:
+    ikev2:
+      ike_version: 2                  # OPTIONAL — confirms IKEv2 (informational for OPA)
+      proposal:
+        encryption: aes-cbc-256       # MANDATORY for OPA PCI-DSS check — must be AES-256
+        dh_group: 14                  # MANDATORY for OPA PCI-DSS check — must be >= 14
+        integrity: sha256             # OPTIONAL — OPA HIPAA check uses this
+
+policy:
+  compliance: PCI-DSS                 # OPTIONAL — drives OPA rule selection
+  encryption: required                # MANDATORY when compliance: PCI-DSS or HIPAA
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: canary                    # OPTIONAL — OPA enforces rolling/canary for high-impact types
+  save_config: true
+
+verification:
+  level: nuts                         # OPTIONAL — verifies IKEv2 SA established
+  trigger: both                       # MANDATORY for PCI-DSS (OPA enforced)
+  fail_action: rollback

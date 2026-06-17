@@ -1,0 +1,87 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_lldp_cdp
+# Purpose:     Enable LLDP globally and optionally disable CDP. LLDP is the
+#              vendor-neutral IEEE 802.1AB standard. CDP is Cisco-proprietary
+#              and can leak platform information; disable in mixed-vendor envs.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-lldp-cdp-all-devices-001       # MANDATORY
+type: mgmt_lldp_cdp                     # MANDATORY
+version: 1                              # MANDATORY
+tenant: acme-corp                       # MANDATORY
+description: "LLDP enabled globally, CDP disabled — all devices"  # MANDATORY
+change_ticket: CHG0030107               # MANDATORY (CHG + 7 digits)
+approved_by: ""                         # OPTIONAL here
+
+scope:
+  all_tenant_devices: true              # MANDATORY — neighbour discovery on all devices
+
+management:
+  lldp_cdp:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  GLOBAL SETTINGS (MANDATORY)                                           ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    lldp_global: true                       # MANDATORY — enable LLDP globally on all interfaces
+                                            #   Required for: Nautobot topology sync, cable verification
+                                            #   LLDP transmits: hostname, interface, description,
+                                            #   system capabilities, management IP
+
+    cdp_global: false                       # MANDATORY — disable CDP globally (Cisco-proprietary)
+                                            #   Set true only if all devices are Cisco AND you
+                                            #   need CDP for phones/Cisco-only automation
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  PER-INTERFACE OVERRIDES (OPTIONAL)                                    ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    lldp_interfaces:                        # OPTIONAL — per-interface LLDP enable/disable overrides
+      - interface: Ethernet1
+        enabled: true
+      - interface: Ethernet2
+        enabled: true
+      # Disable LLDP on interfaces facing untrusted networks or customers:
+      # - interface: GigabitEthernet0/0     # WAN-facing — suppress platform discovery
+      #   enabled: false
+
+    cdp_interfaces: []                      # OPTIONAL — per-interface CDP overrides (empty = none)
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  SUPPRESS ON SPECIFIC INTERFACES (OPTIONAL)                            ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    disable_on:                             # OPTIONAL — interfaces where LLDP is suppressed
+      - Management0                         # Suppress on OOB management (avoid leaking mgmt topology)
+
+  # - GigabitEthernet0/0                # WAN/uplink facing untrusted networks
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  LLDP TIMERS (OPTIONAL)                                                ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# lldp_timer: 30                        # OPTIONAL (default: 30) — transmit interval in seconds
+# lldp_holdtime: 120                    # OPTIONAL (default: 120) — neighbour holdtime in seconds
+# lldp_reinit: 2                        # OPTIONAL (default: 2) — delay before LLDP re-initialises
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: NONE
+  encryption: none
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                     # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: nuts
+  trigger: on_deploy
+  fail_action: alert
+  tests:
+    - test_class: TestNapalmLldpNeighbors
+      label: "Verify LLDP adjacencies are active"
+      test_data:
+        - host: lab-arista-sw01
+          expected:
+            - local_port: Ethernet1
+              neighbor: lab-spine-01

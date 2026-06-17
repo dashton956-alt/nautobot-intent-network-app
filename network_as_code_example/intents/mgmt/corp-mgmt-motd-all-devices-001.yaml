@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_motd
+# Purpose:     Deploy consistent login and MOTD banners on all network devices.
+#              Legal banners are required before authentication to establish
+#              consent to monitoring and deter unauthorised access attempts.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-mgmt-motd-all-devices-001     # MANDATORY
+  type: mgmt_motd                        # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG0012400              # MANDATORY (CHG + 7 digits)
+  description: "Login and MOTD banners — all network devices — security warning banners"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    all_tenant_devices: true             # MANDATORY — banners must apply to every device
+
+  management:
+    motd:
+      # ── Banner text ─────────────────────────────────────────────────────────────
+      login_banner: |                        # MANDATORY — shown before authentication prompt
+        ********************************************************************
+        *  AUTHORIZED ACCESS ONLY — This system is the property of        *
+        *  Acme Corp.  Unauthorized access is prohibited and will be      *
+        *  prosecuted to the fullest extent of the law.                   *
+        ********************************************************************
+
+      motd_banner: |                         # OPTIONAL — shown after successful authentication
+        ============================================================
+        Acme Corp Network Device — Managed by Intent Networking
+        All sessions are monitored and logged.
+        ============================================================
+
+      exec_banner: ""                        # OPTIONAL — shown when exec shell opens (leave empty)
+      delimiter: "^"                         # OPTIONAL — banner delimiter character (must not appear in text)
+
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmConfig
+        label: "Verify banner is set in running config"
+        expected:
+          - config_snippet: "AUTHORIZED ACCESS ONLY"

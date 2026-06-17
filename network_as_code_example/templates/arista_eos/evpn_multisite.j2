@@ -1,0 +1,24 @@
+{# evpn_multisite — Arista EOS EVPN Multi-Site (DCI) configuration #}
+{# Applied to border gateway devices at each site #}
+
+evpn multisite border-gateway {{ multisite_id }}
+{% if delay_restore is defined and delay_restore %}
+   delay-restore {{ delay_restore }}
+{% endif %}
+
+{% for link in dci_links | default([]) %}
+interface {{ link.interface }}
+   evpn multisite dci-tracking
+{% if link.ip is defined %}
+   ip address {{ link.ip }}
+{% endif %}
+   no shutdown
+{% endfor %}
+
+router bgp {{ local_asn }}
+   address-family evpn
+{% for bgw in border_gateways | default([]) %}
+      neighbor {{ bgw }} activate
+      neighbor {{ bgw }} send-community extended
+{% endfor %}
+      neighbor evpn-multisite-remote-vtep activate

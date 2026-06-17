@@ -1,0 +1,65 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: dc_mlag
+# Purpose:     Configure a dual-homed MLAG pair at the DC leaf layer to provide
+#              redundant, loop-free server connectivity. The peer-link (ISL)
+#              carries MLAG control and data traffic between the two leaves.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-dc-mlag-001               # MANDATORY
+  type: dc_mlag                          # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "MLAG in DC Fabric — configure dual-homed MLAG pair for server ToR connectivity"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east
+    roles:
+      - leaf-switch
+
+  # ── MLAG pair configuration ─────────────────────────────────────────────────
+  dc:
+    mlag:
+      pair:                              # MANDATORY — both leaves in the MLAG pair
+        - device: dc-east-leaf-01
+          peer: dc-east-leaf-02
+      domain_id: DC-EAST-MLAG            # MANDATORY — unique domain ID for this pair
+      local_ip: "10.255.254.0/31"        # MANDATORY — MLAG peer-link IP (/31 point-to-point)
+      peer_ip: "10.255.254.1"            # MANDATORY — peer's MLAG IP
+      peer_link: Port-Channel999         # MANDATORY — ISL port-channel interface
+      peer_link_members:                 # MANDATORY — physical interfaces forming the ISL
+        - Ethernet47
+        - Ethernet48
+      mlag_vlan: 4094                    # MANDATORY — dedicated VLAN for MLAG communication
+      timers:
+        heartbeat_interval: 4000         # OPTIONAL — keepalive interval in milliseconds
+        reload_delay: 300                # OPTIONAL — seconds to wait after reload before MLAG activates
+      mlag_interfaces:                   # OPTIONAL — MLAG interfaces for dual-homed servers
+        - mlag_id: 1
+          description: "Server dual-home — node 1"
+          members:
+            - Ethernet1
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: all_at_once                # Both leaves must be configured together
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify MLAG domain configured"
+        expected:
+          - config_snippet: "mlag configuration"
+          - config_snippet: "domain-id DC-EAST-MLAG"

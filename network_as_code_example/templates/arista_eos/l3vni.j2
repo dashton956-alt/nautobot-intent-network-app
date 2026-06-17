@@ -1,0 +1,32 @@
+{# l3vni — Arista EOS L3VNI (IP VRF over VXLAN) provisioning #}
+{# transit_vlan auto-derived as 3900 + (vni % 100) if not specified #}
+{% set transit_vl = transit_vlan | default(3900 + (vni_id | default(50000) % 100)) %}
+
+vrf instance {{ vrf_name }}
+   rd {{ rd | default('auto') }}
+   route-target import evpn {{ rt_import | default('auto') }}
+   route-target export evpn {{ rt_export | default('auto') }}
+
+vlan {{ transit_vl }}
+   name L3VNI-TRANSIT-{{ vrf_name }}
+
+interface Vlan{{ transit_vl }}
+   description L3VNI Transit — {{ vrf_name }}
+   vrf {{ vrf_name }}
+   ip address virtual router-mac-address {{ anycast_gateway_mac | default('001c.7300.0099') }}
+   no shutdown
+
+interface Vxlan1
+   vxlan vrf {{ vrf_name }} vni {{ vni_id }}
+
+router bgp {{ local_asn }}
+   vrf {{ vrf_name }}
+      rd {{ rd | default('auto') }}
+      route-target import evpn {{ rt_import | default('auto') }}
+      route-target export evpn {{ rt_export | default('auto') }}
+{% if redistribute_connected | default(true) %}
+      redistribute connected
+{% endif %}
+{% if redistribute_static | default(false) %}
+      redistribute static
+{% endif %}

@@ -1,0 +1,37 @@
+{# route_policy — Arista EOS route-map configuration #}
+{% for clause in clauses | default([]) %}
+route-map {{ route_map_name }} {{ clause.action | default('permit') }} {{ clause.seq }}
+{% if clause.description is defined and clause.description %}
+   description {{ clause.description }}
+{% endif %}
+{% for match in clause.match | default([]) %}
+{% if match.type == 'prefix-list' %}
+   match ip address prefix-list {{ match.value }}
+{% elif match.type == 'community' %}
+   match community {{ match.value }}
+{% elif match.type == 'as-path' %}
+   match as-path {{ match.value }}
+{% elif match.type == 'tag' %}
+   match tag {{ match.value }}
+{% elif match.type == 'metric' %}
+   match metric {{ match.value }}
+{% elif match.type == 'interface' %}
+   match interface {{ match.value }}
+{% endif %}
+{% endfor %}
+{% for set_stmt in clause.set | default([]) %}
+{% if set_stmt.type == 'local-preference' %}
+   set local-preference {{ set_stmt.value }}
+{% elif set_stmt.type == 'community' %}
+   set community {{ set_stmt.value }}
+{% elif set_stmt.type == 'metric' %}
+   set metric {{ set_stmt.value }}
+{% elif set_stmt.type == 'as-path-prepend' %}
+   set as-path prepend {{ set_stmt.value }}
+{% elif set_stmt.type == 'next-hop' %}
+   set ip next-hop {{ set_stmt.value }}
+{% elif set_stmt.type == 'tag' %}
+   set tag {{ set_stmt.value }}
+{% endif %}
+{% endfor %}
+{% endfor %}

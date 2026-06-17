@@ -28,6 +28,7 @@ from nautobot.extras.models import JobResult, Status
 from nautobot.tenancy.models import Tenant
 
 from intent_networking.controller_adapters import (
+    NotImplementedAdapterError,
     classify_primitives,
     get_adapter,
 )
@@ -209,7 +210,7 @@ class IntentResolutionJob(Job):
             plan_data = resolve_intent(intent)
         except (ValueError, NotImplementedError) as exc:
             self.logger.failure("Resolution failed: %s", exc)
-            intent.status = Status.objects.get(name__iexact="Failed")
+            intent.status = Status.objects.get(name__iexact="Failed")  # bypasses clean(): job-driven transition
             intent.save()
             return
         except Exception as exc:
@@ -236,7 +237,7 @@ class IntentResolutionJob(Job):
         devices = Device.objects.filter(name__in=device_names)
         plan.affected_devices.set(devices)
 
-        # Update intent status
+        # bypasses clean(): job-driven transition
         intent.status = Status.objects.get(name__iexact="Validated")
         intent.save()
 
@@ -384,7 +385,7 @@ class IntentDeploymentJob(Job):
 
         # Update status only for real deployments, not dry-runs.
         if commit:
-            intent.status = Status.objects.get(name__iexact="Deploying")
+            intent.status = Status.objects.get(name__iexact="Deploying")  # bypasses clean(): job-driven transition
             intent.git_commit_sha = kwargs["commit_sha"]
             intent.save()
         self.logger.info("Deploying %s to %s devices", intent_id, plan.affected_devices.count())
@@ -449,7 +450,7 @@ class IntentDeploymentJob(Job):
             push_results = self._push_configs(plan, rendered_configs, commit, save_config)
 
         if push_results["success"]:
-            intent.status = Status.objects.get(name__iexact="Deployed")
+            intent.status = Status.objects.get(name__iexact="Deployed")  # bypasses clean(): job-driven transition
             intent.deployed_at = timezone.now()
             intent.rendered_configs = rendered_configs  # cache for audit
             intent.save()
@@ -681,6 +682,14 @@ class IntentDeploymentJob(Job):
                         len(adapter_prims),
                         adapter_type,
                     )
+            except NotImplementedAdapterError as exc:
+                # No vendor implementation — a hard deployment failure, not a skip.
+                self.logger.failure(
+                    "Controller adapter '%s' has no vendor implementation: %s",
+                    adapter_type,
+                    exc,
+                )
+                errors.append(f"{adapter_type}: {exc}")
             except ValueError as exc:
                 self.logger.warning(
                     "Controller adapter '%s' not configured — skipping %s primitives: %s",
@@ -741,7 +750,7 @@ class IntentDeploymentJob(Job):
         return {"success": len(errors) == 0, "errors": errors}
 
     def _mark_failed(self, intent: Intent):
-        intent.status = Status.objects.get(name__iexact="Failed")
+        intent.status = Status.objects.get(name__iexact="Failed")  # bypasses clean(): job-driven transition
         intent.save()
         IntentAuditEntry.objects.create(
             intent=intent,
@@ -754,7 +763,12 @@ class IntentDeploymentJob(Job):
 
     def _trigger_rollback(self, intent: Intent, commit: bool):
         """Enqueue a rollback job for the given intent."""
-        _enqueue_job("IntentRollbackJob", intent_id=intent.intent_id, commit=commit)
+        _enqueue_job(
+            "IntentRollbackJob",
+            requesting_user=getattr(self, "user", None),
+            intent_id=intent.intent_id,
+            commit=commit,
+        )
 
     @staticmethod
     def _get_adapter(intent):
@@ -912,10 +926,19 @@ class IntentVerificationJob(Job):
             )
         elif intent.verification_fail_action == "rollback":
             self.logger.warning("Verification failed — triggering auto-rollback for %s", intent.intent_id)
-            _enqueue_job("IntentRollbackJob", intent_id=intent.intent_id)
+            _enqueue_job(
+                "IntentRollbackJob",
+                requesting_user=getattr(self, "user", None),
+                intent_id=intent.intent_id,
+            )
         elif intent.verification_fail_action == "remediate":
             self.logger.warning("Verification failed — triggering auto-remediation for %s", intent.intent_id)
-            _enqueue_job("IntentReconciliationJob", intent_id=intent.intent_id, auto_remediate=True)
+            _enqueue_job(
+                "IntentReconciliationJob",
+                requesting_user=getattr(self, "user", None),
+                intent_id=intent.intent_id,
+                auto_remediate=True,
+            )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -975,8 +998,9 @@ class IntentRollbackJob(Job):
 
         if previous_plan:
             self.logger.info("Rolling back to plan v%s", previous_plan.intent_version)
-            deploy_job = IntentDeploymentJob()
-            deploy_job.run(
+            _enqueue_job(
+                "IntentDeploymentJob",
+                requesting_user=getattr(self, "user", None),
                 intent_id=intent_id,
                 commit_sha=f"rollback-from-v{intent.version}",
                 commit=commit,
@@ -990,7 +1014,7 @@ class IntentRollbackJob(Job):
             if current_plan:
                 self._push_removal_config(current_plan, commit)
 
-        intent.status = Status.objects.get(name__iexact="Rolled Back")
+        intent.status = Status.objects.get(name__iexact="Rolled Back")  # bypasses clean(): job-driven transition
         intent.save()
 
         # Audit trail
@@ -1053,11 +1077,7 @@ class IntentReconciliationJob(Job):
         """Execute the reconciliation job across all deployed intents."""
         from intent_networking.verifiers.basic import BasicVerifier  # noqa: PLC0415
 
-        deployed = (
-            Intent.objects.filter(status__name__iexact="Deployed")
-            .exclude(status__name__iexact="Retired")
-            .select_related("tenant")
-        )
+        deployed = Intent.objects.filter(status__name__iexact="Deployed").select_related("tenant")
 
         self.logger.info("Reconciling %s deployed intents", deployed.count())
 
@@ -1121,8 +1141,9 @@ class IntentReconciliationJob(Job):
 
                 if self._is_auto_remediable(intent, verify_result):
                     self.logger.info("Auto-remediating %s", intent.intent_id)
-                    deploy = IntentDeploymentJob()
-                    deploy.run(
+                    _enqueue_job(
+                        "IntentDeploymentJob",
+                        requesting_user=getattr(self, "user", None),
                         intent_id=intent.intent_id,
                         commit_sha="reconciliation-remediation",
                     )
@@ -1261,6 +1282,7 @@ def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
         "urpf": "urpf.j2",
         "dot1x": "dot1x.j2",
         "aaa": "aaa.j2",
+        "aaa_device": "aaa_device.j2",
         "ra_guard": "ra_guard.j2",
         "ssl_inspection": "ssl_inspection.j2",
         # WAN
@@ -1395,7 +1417,7 @@ def _render_removal_configs(plan: ResolutionPlan, job_logger=None) -> dict:
     return rendered
 
 
-def _enqueue_job(job_class_name: str, **job_kwargs) -> None:
+def _enqueue_job(job_class_name: str, *, requesting_user=None, **job_kwargs) -> None:
     """Look up a Job in the DB by class name and enqueue it via JobResult."""
     from django.contrib.auth import get_user_model  # noqa: PLC0415
 
@@ -1409,9 +1431,12 @@ def _enqueue_job(job_class_name: str, **job_kwargs) -> None:
         return
 
     User = get_user_model()
-    user = User.objects.filter(is_superuser=True).first()
+    user = requesting_user
+    if user is None:
+        # Dedicated service account — never grab an arbitrary superuser
+        user = User.objects.filter(username="intent-engine-svc").first()
     if not user:
-        logger.error("No superuser found — cannot enqueue '%s'.", job_class_name)
+        logger.error("No service account 'intent-engine-svc' found — cannot enqueue '%s'.", job_class_name)
         return
 
     JobResult.enqueue_job(job_model, user, **job_kwargs)

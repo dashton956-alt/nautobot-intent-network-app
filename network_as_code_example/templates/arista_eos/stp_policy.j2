@@ -1,0 +1,14 @@
+{# stp_policy — Arista EOS Spanning Tree configuration #}
+spanning-tree mode {{ mode | default('rapid-pvst') }}
+
+{% if priority is defined %}
+{% for vlan_range in root_vlans | default([]) %}
+spanning-tree vlan-id {{ vlan_range }} priority {{ priority }}
+{% endfor %}
+{% endif %}
+
+{% if diameter is defined and diameter %}
+spanning-tree vlan-id 1-4094 max-age {{ max_age | default(20) }}
+spanning-tree vlan-id 1-4094 hello-time {{ hello_time | default(2) }}
+spanning-tree vlan-id 1-4094 forward-time {{ forward_delay | default(15) }}
+{% endif %}

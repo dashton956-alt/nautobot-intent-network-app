@@ -1,0 +1,29 @@
+{# ospf — Cisco NX-OS OSPFv2 configuration #}
+feature ospf
+
+router ospf {{ process_id | default(1) }}
+{% if router_id is defined %}
+ router-id {{ router_id }}
+{% endif %}
+{% if reference_bandwidth is defined %}
+ auto-cost reference-bandwidth {{ reference_bandwidth }}
+{% endif %}
+{% if log_adjacency_changes | default(true) %}
+ log-adjacency-changes detail
+{% endif %}
+{% for intf in passive_interfaces | default([]) %}
+ passive-interface {{ intf }}
+{% endfor %}
+{% for intf in ospf_interfaces | default([]) %}
+interface {{ intf.name }}
+ ip router ospf {{ process_id | default(1) }} area {{ intf.area | default('0.0.0.0') }}
+{% if intf.network_type is defined %}
+ ip ospf network {{ intf.network_type }}
+{% endif %}
+{% if intf.cost is defined %}
+ ip ospf cost {{ intf.cost }}
+{% endif %}
+{% if intf.priority is defined %}
+ ip ospf priority {{ intf.priority }}
+{% endif %}
+{% endfor %}

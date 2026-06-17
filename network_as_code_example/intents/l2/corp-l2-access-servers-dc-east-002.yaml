@@ -1,0 +1,30 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: l2_access_port
+# Purpose:     Configure Ethernet2 as an untagged access port on VLAN 101
+#              (SERVERS-DEV) for all access-switches in DC East.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-l2-access-servers-dc-east-002  # MANDATORY
+  type: l2_access_port                    # MANDATORY
+  version: 1                              # MANDATORY
+  tenant: acme-corp                       # MANDATORY
+  change_ticket: CHG0012361               # MANDATORY (CHG + 7 digits)
+  description: "Configure server-facing access ports on DC East leaf switches — Ethernet2 on VLAN 101 (SERVERS-DEV)"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east                           # Apply to all devices at DC East
+    roles:
+      - access-switch                     # Restrict to access-switch role only
+
+  # ── Port identity ───────────────────────────────────────────────────────────
+  interface: Ethernet2                    # MANDATORY — exact interface name
+  vlan_id: 101                            # MANDATORY — untagged VLAN (SERVERS-DEV)
+  voice_vlan:                             # OPTIONAL — omit if no VoIP
+  interface_description: "Server DEV — VLAN 101"   # OPTIONAL — interface description on device
+
+  # ── Spanning tree ───────────────────────────────────────────────────────────
+  portfast: true                          # OPTIONAL (default: true) — safe for server ports
+  bpdu_guard: true                        # OPTIONAL (default: true) — err-disable on rogue BPDU

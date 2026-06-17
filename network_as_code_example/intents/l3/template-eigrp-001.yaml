@@ -1,0 +1,60 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: eigrp
+# Purpose:     Configure EIGRP named-mode on enterprise campus distribution and
+#              core routers. Named-mode provides per-AF configuration, better
+#              authentication support, and is required for modern EIGRP features.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-eigrp-001                 # MANDATORY
+  type: eigrp                            # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "EIGRP — configure EIGRP named-mode process on enterprise campus routers"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - campus-lon
+    roles:
+      - distribution-switch
+      - core-router
+
+  # ── EIGRP configuration ─────────────────────────────────────────────────────
+  routing:
+    protocol: eigrp                      # MANDATORY
+    as_number: 100                       # MANDATORY — EIGRP AS number (must match on all peers)
+    mode: named                          # MANDATORY — classic | named (named preferred for new deployments)
+    router_id: "10.255.0.1"             # OPTIONAL — explicit router-id
+    networks:                            # MANDATORY — networks to advertise
+      - "10.0.0.0/8"
+      - "192.168.0.0/16"
+    passive_interfaces:                  # OPTIONAL — suppress hellos on non-routing interfaces
+      - Loopback0
+      - GigabitEthernet0/0               # WAN-facing — don't send hellos toward ISP
+    authentication:
+      enabled: true                      # OPTIONAL — enable EIGRP MD5/HMAC authentication
+      type: hmac-sha-256                 # OPTIONAL — hmac-sha-256 | md5
+      key_ref: vault:secret/eigrp/auth-key  # OPTIONAL — Vault reference to auth key
+    stub: false                          # OPTIONAL — set true on spoke/branch routers to limit queries
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify EIGRP process configured"
+        expected:
+          - config_snippet: "router eigrp"
