@@ -1199,6 +1199,36 @@ def _nautobot_url() -> str:
     return os.environ.get("NAUTOBOT_URL", "http://localhost:8080")
 
 
+# Nautobot Platform.network_driver (machine name) -> template-dir platform slug.
+# Devices are commonly named "Arista EOS" in the UI while their network_driver
+# carries the stable machine identifier — resolve templates off the driver.
+_DRIVER_TO_SLUG = {
+    "arista_eos": "arista-eos",
+    "cisco_ios": "cisco-ios-xe",
+    "cisco_xe": "cisco-ios-xe",
+    "cisco_iosxe": "cisco-ios-xe",
+    "cisco_xr": "cisco-ios-xr",
+    "cisco_iosxr": "cisco-ios-xr",
+    "cisco_nxos": "cisco-nxos",
+    "juniper_junos": "juniper-junos",
+    "nokia_sros": "nokia-sros",
+    "aruba_aoscx": "aruba-aos-cx",
+}
+
+
+def _platform_slug(device) -> str:
+    """Resolve a canonical platform slug, preferring the machine-readable
+    ``Platform.network_driver`` over the human-facing ``Platform.name``."""
+    plat = getattr(device, "platform", None)
+    if not plat:
+        return "cisco-ios-xe"
+    driver = (getattr(plat, "network_driver", "") or "").strip().lower()
+    if driver in _DRIVER_TO_SLUG:
+        return _DRIVER_TO_SLUG[driver]
+    name = (plat.name or "").strip().lower()
+    return _DRIVER_TO_SLUG.get(name, name) or "cisco-ios-xe"
+
+
 def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
     """Render all device configs from a resolution plan.
 
@@ -1330,7 +1360,7 @@ def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
 
     rendered = {}
     for device in plan.affected_devices.all():
-        platform = device.platform.name if device.platform else "cisco-ios-xe"
+        platform = _platform_slug(device)
         platform_dir = platform_map.get(platform, "cisco/ios-xe")
         template_path = Path(templates_dir) / platform_dir
 
@@ -1384,7 +1414,7 @@ def _render_removal_configs(plan: ResolutionPlan, job_logger=None) -> dict:
 
     rendered = {}
     for device in plan.affected_devices.all():
-        platform = device.platform.name if device.platform else "cisco-ios-xe"
+        platform = _platform_slug(device)
         platform_dir = platform_map.get(platform, "cisco/ios-xe")
         template_path = Path(templates_dir) / platform_dir
 
