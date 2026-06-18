@@ -1,3 +1,4 @@
+---
 # intent.schema.yml
 # pykwalify schema for all intent YAML files.
 # Validates structure and required fields before intents reach Nautobot.
@@ -713,7 +714,7 @@ mapping:
   lag_mode:
     type: str
     required: false
-    enum: [active, passive, on, static]
+    enum: [active, passive, "on", static]
   lag_members:
     type: seq
     required: false
