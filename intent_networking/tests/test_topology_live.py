@@ -24,6 +24,8 @@ def _device(name=None, network_driver=None):
 
 
 class PlatformSlugTest(SimpleTestCase):
+    """Platform slug resolution prefers network_driver over the display name."""
+
     def test_resolves_from_network_driver(self):
         # Human-named platform, but network_driver is canonical.
         self.assertEqual(_platform_slug(_device(name="Arista EOS", network_driver="arista_eos")), "arista-eos")
@@ -39,6 +41,8 @@ class PlatformSlugTest(SimpleTestCase):
 
 
 class NormaliseRoutesTest(SimpleTestCase):
+    """Routing-table normalisation: structured rows and raw-text fallback."""
+
     def test_parses_structured_eos_rows(self):
         rows = [
             {"network": "10.1.1.0", "prefix_length": "24", "protocol": "O",
@@ -69,6 +73,8 @@ class NormaliseRoutesTest(SimpleTestCase):
 
 
 class NormaliseStringSafetyTest(SimpleTestCase):
+    """VRF/BGP normalisation must not char-iterate raw TextFSM-miss strings."""
+
     def test_vrfs_string_safe(self):
         self.assertEqual(_normalise_vrfs("VRF: default\n", "arista-eos"), [])
 

@@ -896,7 +896,7 @@ class EOSMiscRemovalTest(SimpleTestCase):
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class EOSCoreRoutingProvisionTest(SimpleTestCase):
+class EOSCoreRoutingProvisionTest(SimpleTestCase):  # pylint: disable=too-many-public-methods
     """Render tests for Arista EOS core routing provision templates."""
 
     def test_bgp_neighbor_renders(self):

@@ -199,7 +199,7 @@ def _devices_by_ip(intent, ip: str) -> list:
     """
     if not ip:
         return []
-    bare = str(ip).split("/")[0]
+    bare = str(ip).split("/", maxsplit=1)[0]
     qs = (
         Device.objects.filter(
             tenant=intent.tenant,
