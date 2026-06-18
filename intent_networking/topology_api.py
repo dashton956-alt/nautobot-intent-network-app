@@ -830,8 +830,11 @@ def _normalise_arp(rows, _platform) -> list:
 
 
 def _parse_routes_text(text: str) -> list:
-    """Parse ``show ip route`` output as raw text when TextFSM has no/failed
-    template (mirrors the ARP raw-text fallback). Handles IOS and EOS formats."""
+    """Parse ``show ip route`` output as raw text.
+
+    Used when TextFSM has no or a failed template (mirrors the ARP raw-text
+    fallback). Handles IOS and EOS formats.
+    """
     import re as _re
 
     out = []

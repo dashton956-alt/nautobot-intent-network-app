@@ -1170,9 +1170,7 @@ class EOSCoreRoutingProvisionTest(SimpleTestCase):  # pylint: disable=too-many-p
             {
                 "intent_id": "t-001",
                 "local_asn": 65001,
-                "dci_neighbors": [
-                    {"ip": "10.0.0.2", "remote_asn": 65002, "update_source": "Loopback0"}
-                ],
+                "dci_neighbors": [{"ip": "10.0.0.2", "remote_asn": 65002, "update_source": "Loopback0"}],
                 "site_id": 1,
             },
         )
@@ -1220,9 +1218,7 @@ class EOSCoreRoutingProvisionTest(SimpleTestCase):  # pylint: disable=too-many-p
             {
                 "intent_id": "t-001",
                 "policy_name": "PBR-OUT",
-                "entries": [
-                    {"action": "permit", "seq": 10, "set_next_hop": "10.0.0.1", "match_acl": "ACL-PBR"}
-                ],
+                "entries": [{"action": "permit", "seq": 10, "set_next_hop": "10.0.0.1", "match_acl": "ACL-PBR"}],
                 "apply_interfaces": ["Ethernet1"],
             },
         )
@@ -1807,7 +1803,10 @@ class EOSSecurityTunnelingProvisionTest(SimpleTestCase):
             "zbf.j2",
             {
                 "intent_id": "t-001",
-                "zones": [{"name": "INSIDE", "interfaces": ["Ethernet1"]}, {"name": "OUTSIDE", "interfaces": ["Ethernet2"]}],
+                "zones": [
+                    {"name": "INSIDE", "interfaces": ["Ethernet1"]},
+                    {"name": "OUTSIDE", "interfaces": ["Ethernet2"]},
+                ],
                 "class_maps": [{"name": "PERMIT-INSIDE", "match": []}],
                 "zone_pairs": [{"source": "INSIDE", "destination": "OUTSIDE", "policy": "ZBF-POL"}],
             },
@@ -2021,7 +2020,13 @@ class EOSDhcpDnsProvisionTest(SimpleTestCase):
                 "intent_id": "t-001",
                 "radius_group": "radius",
                 "interfaces": [
-                    {"name": "Ethernet1", "port_control": "auto", "host_mode": "single-host", "reauth_period": None, "mab": False}
+                    {
+                        "name": "Ethernet1",
+                        "port_control": "auto",
+                        "host_mode": "single-host",
+                        "reauth_period": None,
+                        "mab": False,
+                    }
                 ],
             },
         )
@@ -2043,7 +2048,19 @@ class EOSQoSProvisionTest(SimpleTestCase):
             {
                 "intent_id": "t-001",
                 "policy_map": "QOS-IN",
-                "class_maps": [{"name": "VOICE", "dscp": "ef", "acl": None, "rules": [], "set_dscp": None, "set_cos": None, "police_rate": None, "cos": None, "protocol": None}],
+                "class_maps": [
+                    {
+                        "name": "VOICE",
+                        "dscp": "ef",
+                        "acl": None,
+                        "rules": [],
+                        "set_dscp": None,
+                        "set_cos": None,
+                        "police_rate": None,
+                        "cos": None,
+                        "protocol": None,
+                    }
+                ],
                 "apply_interfaces": ["Ethernet1"],
                 "direction": "input",
             },
@@ -2100,7 +2117,15 @@ class EOSQoSProvisionTest(SimpleTestCase):
             {
                 "intent_id": "t-001",
                 "policy_map": "QUEUE-POL",
-                "queues": [{"class_name": "VOICE", "bandwidth_percent": 30, "priority": True, "shape_rate": None, "queue_limit": None}],
+                "queues": [
+                    {
+                        "class_name": "VOICE",
+                        "bandwidth_percent": 30,
+                        "priority": True,
+                        "shape_rate": None,
+                        "queue_limit": None,
+                    }
+                ],
                 "apply_interfaces": ["Ethernet1"],
                 "direction": "output",
             },
@@ -2224,7 +2249,16 @@ class EOSWanMulticastMiscProvisionTest(SimpleTestCase):
                 "classes": [
                     {
                         "acl_name": "COPP-MGMT",
-                        "rules": [{"seq": 10, "action": "permit", "protocol": "tcp", "source": "any", "destination": "any", "port": "22"}],
+                        "rules": [
+                            {
+                                "seq": 10,
+                                "action": "permit",
+                                "protocol": "tcp",
+                                "source": "any",
+                                "destination": "any",
+                                "port": "22",
+                            }
+                        ],
                     }
                 ],
             },
@@ -2326,7 +2360,9 @@ class EOSWanMulticastMiscProvisionTest(SimpleTestCase):
             {
                 "intent_id": "t-001",
                 "ipv6_unicast_routing": True,
-                "interfaces": [{"name": "Ethernet1", "ipv6_address": "2001:db8::1/64", "link_local": None, "ra_suppress": True}],
+                "interfaces": [
+                    {"name": "Ethernet1", "ipv6_address": "2001:db8::1/64", "link_local": None, "ra_suppress": True}
+                ],
             },
         )
         self.assertIn("ipv6 unicast-routing", out)

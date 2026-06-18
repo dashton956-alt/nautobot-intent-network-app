@@ -45,8 +45,14 @@ class NormaliseRoutesTest(SimpleTestCase):
 
     def test_parses_structured_eos_rows(self):
         rows = [
-            {"network": "10.1.1.0", "prefix_length": "24", "protocol": "O",
-             "next_hop": ["10.0.0.2"], "interface": ["Ethernet1"], "vrf": "default"},
+            {
+                "network": "10.1.1.0",
+                "prefix_length": "24",
+                "protocol": "O",
+                "next_hop": ["10.0.0.2"],
+                "interface": ["Ethernet1"],
+                "vrf": "default",
+            },
         ]
         out = _normalise_routes(rows, "arista-eos")
         self.assertEqual(out[0]["network"], "10.1.1.0")

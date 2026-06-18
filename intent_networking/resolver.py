@@ -147,9 +147,7 @@ def _get_scope_devices(intent, scope_key: str = "scope") -> list:
     if platform:
         qs = qs.filter(platform__name__iexact=platform)
 
-    qs = qs.prefetch_related(
-        "interfaces", "interfaces__ip_addresses", "tags", "platform"
-    ).distinct()
+    qs = qs.prefetch_related("interfaces", "interfaces__ip_addresses", "tags", "platform").distinct()
 
     if not qs.exists():
         raise ValueError(
@@ -228,12 +226,12 @@ def _mgmt_view(intent_data: dict, *subtypes: str) -> dict:
     """
     mgmt = intent_data.get("management", {})
     mgmt = mgmt if isinstance(mgmt, dict) else {}
-    merged = dict(intent_data)        # legacy top-level (lowest precedence)
-    merged.update(mgmt)               # management.* flat keys + subtype dicts
+    merged = dict(intent_data)  # legacy top-level (lowest precedence)
+    merged.update(mgmt)  # management.* flat keys + subtype dicts
     for sub in subtypes:
         block = mgmt.get(sub)
         if isinstance(block, dict):
-            merged.update(block)      # canonical subtype fields (highest)
+            merged.update(block)  # canonical subtype fields (highest)
     return merged
 
 
@@ -1112,9 +1110,7 @@ def resolve_ospf(intent) -> dict:
             nssa_areas.append(area_id)
 
     if not interfaces and not networks:
-        raise ValueError(
-            f"Intent {intent.intent_id}: 'interfaces' or 'routing.areas'/'networks' required for ospf."
-        )
+        raise ValueError(f"Intent {intent.intent_id}: 'interfaces' or 'routing.areas'/'networks' required for ospf.")
 
     devices = _get_scope_devices(intent)
     primitives = []
@@ -1176,7 +1172,8 @@ def resolve_bgp_ebgp(intent) -> dict:
                 "local_asn": local_asn,
                 "neighbor_ip": neighbor_ip,
                 "neighbor_asn": neighbor_asn,
-                "neighbor_description": intent_data.get("neighbor_description") or intent_data.get("description", f"eBGP-{neighbor_asn}"),
+                "neighbor_description": intent_data.get("neighbor_description")
+                or intent_data.get("description", f"eBGP-{neighbor_asn}"),
                 "vrf_name": intent_data.get("vrf", ""),
                 "route_map_in": intent_data.get("route_map_in", ""),
                 "route_map_out": intent_data.get("route_map_out", ""),
@@ -1224,7 +1221,8 @@ def resolve_bgp_ibgp(intent) -> dict:
                 "local_asn": local_asn,
                 "neighbor_ip": neighbor_ip,
                 "neighbor_asn": local_asn,
-                "neighbor_description": intent_data.get("neighbor_description") or intent_data.get("description", "iBGP-peer"),
+                "neighbor_description": intent_data.get("neighbor_description")
+                or intent_data.get("description", "iBGP-peer"),
                 "vrf_name": intent_data.get("vrf", ""),
                 "update_source": intent_data.get("update_source", "Loopback0"),
                 "next_hop_self": intent_data.get("next_hop_self", True),
@@ -2168,9 +2166,7 @@ def resolve_evpn_vxlan_fabric(intent) -> dict:
                 "primitive_type": "bgp_evpn_af",
                 "device": device.name,
                 "local_asn": (
-                    intent_data.get("local_asn")
-                    or fabric.get("overlay_asn")
-                    or _get_plugin_config("default_bgp_asn")
+                    intent_data.get("local_asn") or fabric.get("overlay_asn") or _get_plugin_config("default_bgp_asn")
                 ),
                 "advertise_all_vni": True,
                 "route_target_auto": True,
@@ -2345,7 +2341,9 @@ def resolve_vtep(intent) -> dict:
     ingress_replication = vtep.get("ingress_replication", {}).get("enabled")
     replication_mode = intent_data.get("replication_mode")
     if not replication_mode:
-        replication_mode = "ingress-replication" if ingress_replication else (vtep.get("flood_mode") or "ingress-replication")
+        replication_mode = (
+            "ingress-replication" if ingress_replication else (vtep.get("flood_mode") or "ingress-replication")
+        )
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
@@ -4062,7 +4060,9 @@ def resolve_mgmt_dns_dhcp(intent) -> dict:
     """Resolve a DNS/DHCP intent."""
     intent_data = intent.intent_data
     # Canonical wrapped form nests config under management.dns / management.dhcp.
-    dns_block = intent_data.get("management", {}).get("dns", {}) if isinstance(intent_data.get("management"), dict) else {}
+    dns_block = (
+        intent_data.get("management", {}).get("dns", {}) if isinstance(intent_data.get("management"), dict) else {}
+    )
     dns_servers = dns_block.get("servers") or intent_data.get("dns_servers", [])
     dns_domain = dns_block.get("domain_name") or intent_data.get("domain_name", "")
     dns_domain_list = dns_block.get("search_domains") or intent_data.get("domain_list", [])
@@ -4322,7 +4322,11 @@ def resolve_mgmt_interface(intent) -> dict:
     """Resolve a loopback / management interface intent."""
     intent_data = intent.intent_data
     # Canonical wrapped form: management.interfaces.{loopback, oob_management}
-    interfaces = intent_data.get("management", {}).get("interfaces", {}) if isinstance(intent_data.get("management"), dict) else {}
+    interfaces = (
+        intent_data.get("management", {}).get("interfaces", {})
+        if isinstance(intent_data.get("management"), dict)
+        else {}
+    )
     loopback = interfaces.get("loopback") or intent_data.get("loopback")
     oob = interfaces.get("oob_management") or intent_data.get("mgmt_interface")
 
@@ -4785,7 +4789,8 @@ def resolve_service_lb_vip(intent) -> dict:
                 "protocol": intent_data.get("protocol", "tcp"),
                 "pool_name": intent_data.get("pool_name", ""),
                 "pool_members": members,
-                "health_check": intent_data.get("health_monitor") or intent_data.get("health_check", {"type": "tcp", "interval": 30}),
+                "health_check": intent_data.get("health_monitor")
+                or intent_data.get("health_check", {"type": "tcp", "interval": 30}),
                 "persistence": intent_data.get("persistence", "source-ip"),
                 "algorithm": intent_data.get("load_balancing_method") or intent_data.get("algorithm", "round-robin"),
                 "ssl_offload": intent_data.get("ssl_offload", False),

@@ -9,11 +9,10 @@ Focuses on the testable utilities and data structures in jobs.py:
 """
 
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
-
-from types import SimpleNamespace
 
 from intent_networking.jobs import (
     IntentConfigPreviewJob,
@@ -45,6 +44,7 @@ class PlatformSlugTest(SimpleTestCase):
 
     def test_no_platform_defaults_to_ios_xe(self):
         self.assertEqual(_platform_slug(self._dev()), "cisco-ios-xe")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Job registration

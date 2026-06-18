@@ -1217,8 +1217,11 @@ _DRIVER_TO_SLUG = {
 
 
 def _platform_slug(device) -> str:
-    """Resolve a canonical platform slug, preferring the machine-readable
-    ``Platform.network_driver`` over the human-facing ``Platform.name``."""
+    """Resolve a canonical platform slug.
+
+    Prefers the machine-readable ``Platform.network_driver`` over the
+    human-facing ``Platform.name``.
+    """
     plat = getattr(device, "platform", None)
     if not plat:
         return "cisco-ios-xe"

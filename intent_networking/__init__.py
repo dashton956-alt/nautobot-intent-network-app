@@ -79,8 +79,9 @@ class IntentNetworkingConfig(NautobotAppConfig):
         Django "database access during app initialization" warning).
         """
         super().ready()
-        import intent_networking.job_buttons  # noqa: F401  pylint:disable=unused-import,import-outside-toplevel
         from nautobot.core.signals import nautobot_database_ready  # noqa: PLC0415
+
+        import intent_networking.job_buttons  # noqa: F401  pylint:disable=unused-import,import-outside-toplevel
 
         nautobot_database_ready.connect(_ensure_reconciliation_schedule, sender=self)
 

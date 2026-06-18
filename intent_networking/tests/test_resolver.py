@@ -324,9 +324,7 @@ class GetScopeDevicesTest(TestCase):
 
     def test_scope_sites_and_roles_intersection(self):
         """sites + roles resolves the intersection."""
-        devices = _get_scope_devices(
-            self._mock_intent({"sites": ["Scope-Site-HQ"], "roles": ["Scope Role"]})
-        )
+        devices = _get_scope_devices(self._mock_intent({"sites": ["Scope-Site-HQ"], "roles": ["Scope Role"]}))
         self.assertIn("scope-rtr-01", [d.name for d in devices])
 
     def test_fabric_spines_leaves_fallback(self):
@@ -400,9 +398,7 @@ class NestedBlockResolverTest(TestCase):
                 "routing": {
                     "as_number": 65001,
                     "router_id": "10.255.0.1",
-                    "address_families": {
-                        "l2vpn_evpn": {"neighbors": [{"ip": "10.255.0.100", "remote_as": 65001}]}
-                    },
+                    "address_families": {"l2vpn_evpn": {"neighbors": [{"ip": "10.255.0.100", "remote_as": 65001}]}},
                 }
             }
         )
@@ -474,9 +470,7 @@ class NestedBlockResolverTest(TestCase):
     def test_eigrp_reads_routing_block(self):
         from intent_networking.resolver import resolve_eigrp
 
-        intent = self._intent(
-            {"routing": {"as_number": 100, "networks": ["10.0.0.0/8"], "router_id": "10.255.0.1"}}
-        )
+        intent = self._intent({"routing": {"as_number": 100, "networks": ["10.0.0.0/8"], "router_id": "10.255.0.1"}})
         prim = resolve_eigrp(intent)["primitives"][0]
         self.assertEqual(prim["as_number"], 100)
         self.assertEqual(prim["networks"], ["10.0.0.0/8"])
@@ -714,9 +708,7 @@ class NestedBlockResolverTest(TestCase):
     def test_mgmt_dns_dhcp_wrapped_dns_block(self):
         from intent_networking.resolver import resolve_mgmt_dns_dhcp
 
-        intent = self._intent(
-            {"management": {"dns": {"servers": ["10.1.1.10"], "domain_name": "acme.internal"}}}
-        )
+        intent = self._intent({"management": {"dns": {"servers": ["10.1.1.10"], "domain_name": "acme.internal"}}})
         prims = resolve_mgmt_dns_dhcp(intent)["primitives"]
         dns = [p for p in prims if p["primitive_type"] == "dns"][0]
         self.assertEqual(dns["servers"], ["10.1.1.10"])
@@ -858,14 +850,10 @@ class GapResolutionTest(TestCase):
 
         # IPAM: assign 203.0.113.10/24 to an interface on the device.
         ns, _ = Namespace.objects.get_or_create(name="Global")
-        prefix, _ = Prefix.objects.get_or_create(
-            prefix="203.0.113.0/24", defaults={"namespace": ns, "status": active}
-        )
+        prefix, _ = Prefix.objects.get_or_create(prefix="203.0.113.0/24", defaults={"namespace": ns, "status": active})
         ip = IPAddress(address="203.0.113.10/24", parent=prefix, status=active)
         ip.validated_save()
-        intf = Interface.objects.create(
-            device=cls.device, name="Ethernet1", type="10gbase-x-sfpp", status=active
-        )
+        intf = Interface.objects.create(device=cls.device, name="Ethernet1", type="10gbase-x-sfpp", status=active)
         IPAddressToInterface.objects.get_or_create(ip_address=ip, interface=intf)
 
     def _intent(self, intent_data):

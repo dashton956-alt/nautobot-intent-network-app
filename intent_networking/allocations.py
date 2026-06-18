@@ -149,11 +149,7 @@ def allocate_route_target(intent: Intent) -> tuple[str, str]:
 
     with transaction.atomic():
         # Lock then check — prevents two concurrent resolutions allocating the same RT
-        existing = (
-            NautobotRouteTarget.objects.select_for_update()
-            .filter(description=rt_description)
-            .first()
-        )
+        existing = NautobotRouteTarget.objects.select_for_update().filter(description=rt_description).first()
         if existing:
             logger.info("Reusing existing RT %s for %s", existing.name, intent.intent_id)
             return existing.name, existing.name
