@@ -1,0 +1,12 @@
+{# aaa_device_removal.j2 — junos #}
+! Remove device-management AAA
+! Intent: {{ intent_id }}
+!
+{% for s in tacacs_servers | default([]) %}
+delete system tacplus-server {{ s.host | default(s.ip) }}
+{% endfor %}
+{% if local_fallback %}
+delete system login user {{ local_fallback.username | default('admin') }}
+{% endif %}
+delete system authentication-order
+!

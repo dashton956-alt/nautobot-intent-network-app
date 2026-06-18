@@ -1,0 +1,24 @@
+{# aaa_device.j2 — aos-cx — device-management AAA (TACACS+) #}
+! AAA (device management)
+! Intent: {{ intent_id }}
+!
+{% for s in tacacs_servers | default([]) %}
+tacacs-server host {{ s.host | default(s.ip) }} port {{ s.port | default(49) }}
+{% endfor %}
+{% if server_group %}
+aaa group server tacacs {{ server_group }}
+{% for s in tacacs_servers | default([]) %}
+ server {{ s.host | default(s.ip) }}
+{% endfor %}
+{% endif %}
+aaa authentication login default group {{ server_group | default('tacacs') }} local
+{% if authorization %}
+aaa authorization commands default group {{ server_group | default('tacacs') }} local
+{% endif %}
+{% if accounting %}
+aaa accounting all-mgmt default start-stop group {{ server_group | default('tacacs') }}
+{% endif %}
+{% if local_fallback %}
+user {{ local_fallback.username | default('admin') }} group administrators password ciphertext {{ local_fallback.password_ref | default('CHANGEME') }}
+{% endif %}
+!

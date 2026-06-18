@@ -97,6 +97,9 @@ def _get_scope_devices(intent, scope_key: str = "scope") -> list:
     if not scope and scope_key == "scope":
         fabric = intent_data.get("fabric", {}) or {}
         fabric_devices = list(fabric.get("spines", [])) + list(fabric.get("leaves", []))
+        # Fabric referenced by name (e.g. l2vni/l3vni) — look up the fabric intent.
+        if not fabric_devices and fabric.get("name"):
+            fabric_devices = _fabric_member_names(intent, fabric["name"])
         if fabric_devices:
             scope = {"devices": fabric_devices}
 
@@ -162,6 +165,49 @@ def _get_scope_devices(intent, scope_key: str = "scope") -> list:
         qs.count(),
         intent.intent_id,
         scope_key,
+    )
+    return list(qs)
+
+
+def _fabric_member_names(intent, fabric_name: str) -> list:
+    """Resolve device names belonging to a named EVPN/VXLAN fabric.
+
+    Looks up the ``evpn_vxlan_fabric`` intent (same tenant) whose
+    ``fabric.name`` matches and returns its leaf (VTEP) devices — falling back
+    to spines+leaves when no leaves are listed. Lets ``l2vni``/``l3vni`` intents
+    reference a fabric by name instead of repeating the device list.
+    """
+    from intent_networking.models import Intent  # noqa: PLC0415
+
+    fabric_intent = (
+        Intent.objects.filter(tenant=intent.tenant, intent_type="evpn_vxlan_fabric")
+        .filter(intent_data__fabric__name=fabric_name)
+        .first()
+    )
+    if not fabric_intent:
+        return []
+    fab = fabric_intent.intent_data.get("fabric", {}) or {}
+    leaves = list(fab.get("leaves", []))
+    return leaves or (list(fab.get("spines", [])) + leaves)
+
+
+def _devices_by_ip(intent, ip: str) -> list:
+    """Resolve active, same-tenant device(s) that own a given IP address.
+
+    Used by endpoint-addressed intents (e.g. ipsec_s2s ``tunnel.local_endpoint``)
+    that identify the device by its address rather than a scope block.
+    """
+    if not ip:
+        return []
+    bare = str(ip).split("/")[0]
+    qs = (
+        Device.objects.filter(
+            tenant=intent.tenant,
+            status__name__iexact="Active",
+            interfaces__ip_addresses__host=bare,
+        )
+        .prefetch_related("interfaces", "interfaces__ip_addresses", "tags", "platform")
+        .distinct()
     )
     return list(qs)
 
@@ -1950,6 +1996,7 @@ def resolve_sr_mpls(intent) -> dict:
                 "prefix_sid": intent_data.get("prefix_sids", {}).get(device.name),
                 "adjacency_sids": intent_data.get("adjacency_sids", {}).get(device.name, []),
                 "ti_lfa": intent_data.get("ti_lfa", True),
+                "ti_lfa_mode": intent_data.get("ti_lfa_mode", ""),
                 "intent_id": intent.intent_id,
             }
         )
@@ -2115,13 +2162,19 @@ def resolve_evpn_vxlan_fabric(intent) -> dict:
         )
 
         # BGP EVPN address family
+        fabric = intent_data.get("fabric", {})
         primitives.append(
             {
                 "primitive_type": "bgp_evpn_af",
                 "device": device.name,
-                "local_asn": intent_data.get("local_asn", _get_plugin_config("default_bgp_asn")),
+                "local_asn": (
+                    intent_data.get("local_asn")
+                    or fabric.get("overlay_asn")
+                    or _get_plugin_config("default_bgp_asn")
+                ),
                 "advertise_all_vni": True,
                 "route_target_auto": True,
+                "neighbors": intent_data.get("evpn_neighbors", []),
                 "intent_id": intent.intent_id,
             }
         )
@@ -2547,7 +2600,19 @@ def resolve_ipsec_s2s(intent) -> dict:
             f"Intent {intent.intent_id}: 'remote_peer' (or 'tunnel.remote_endpoint') required for ipsec_s2s."
         )
 
-    devices = _get_scope_devices(intent)
+    # Devices come from an explicit scope, or — for endpoint-addressed tunnels —
+    # the device that owns tunnel.local_endpoint.
+    if intent_data.get("scope"):
+        devices = _get_scope_devices(intent)
+    else:
+        local_endpoint = intent_data.get("local_endpoint") or tunnel.get("local_endpoint")
+        devices = _devices_by_ip(intent, local_endpoint)
+        if not devices:
+            raise ValueError(
+                f"Intent {intent.intent_id}: no 'scope' set and no active device owns "
+                f"tunnel.local_endpoint '{local_endpoint}'. Set scope.devices or register "
+                f"the endpoint IP on a device interface in Nautobot."
+            )
     primitives = []
     affected = []
 
@@ -3430,6 +3495,8 @@ def resolve_cloud_vpc_peer(intent) -> dict:
             "accepter_vpc": accepter_vpc,
             "requester_account": intent_data.get("requester_account", ""),
             "accepter_account": intent_data.get("accepter_account", ""),
+            "requester_region": intent_data.get("requester_region", ""),
+            "accepter_region": intent_data.get("accepter_region", ""),
             "auto_accept": intent_data.get("auto_accept", True),
             "dns_resolution": intent_data.get("dns_resolution", False),
             "provider": intent_data.get("provider", "aws"),
@@ -4722,6 +4789,8 @@ def resolve_service_lb_vip(intent) -> dict:
                 "persistence": intent_data.get("persistence", "source-ip"),
                 "algorithm": intent_data.get("load_balancing_method") or intent_data.get("algorithm", "round-robin"),
                 "ssl_offload": intent_data.get("ssl_offload", False),
+                "ssl_cert": intent_data.get("ssl_cert", ""),
+                "ssl_key": intent_data.get("ssl_key", ""),
                 "intent_id": intent.intent_id,
             }
         )

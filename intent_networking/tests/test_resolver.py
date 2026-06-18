@@ -805,3 +805,89 @@ class NestedBlockResolverTest(TestCase):
         intent = self._intent({"ssid_name": "CORP-WIFI", "security_mode": "wpa2-psk", "psk": "s3cret-pass"})
         prim = resolve_wireless_ssid(intent)["primitives"][0]
         self.assertEqual(prim["psk"], "s3cret-pass")
+
+
+class GapResolutionTest(TestCase):
+    """Fabric-name registry and endpoint-IP device resolution (gap #1)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from django.contrib.contenttypes.models import ContentType
+        from nautobot.dcim.models import Device, DeviceType, Interface, Location, LocationType, Manufacturer
+        from nautobot.extras.models import Role, Status
+        from nautobot.ipam.models import IPAddress, IPAddressToInterface, Namespace, Prefix
+        from nautobot.tenancy.models import Tenant
+
+        from intent_networking.models import Intent
+
+        device_ct = ContentType.objects.get_for_model(Device)
+        intf_ct = ContentType.objects.get_for_model(Interface)
+        loc_ct = ContentType.objects.get_for_model(Location)
+        ip_ct = ContentType.objects.get_for_model(IPAddress)
+        prefix_ct = ContentType.objects.get_for_model(Prefix)
+        intent_ct = ContentType.objects.get_for_model(Intent)
+        active, _ = Status.objects.get_or_create(name="Active")
+        active.content_types.add(device_ct, intf_ct, loc_ct, ip_ct, prefix_ct, intent_ct)
+        draft, _ = Status.objects.get_or_create(name="Draft")
+        draft.content_types.add(intent_ct)
+
+        cls.tenant, _ = Tenant.objects.get_or_create(name="Gap Tenant")
+        mfr, _ = Manufacturer.objects.get_or_create(name="Gap Mfr")
+        dt, _ = DeviceType.objects.get_or_create(manufacturer=mfr, model="Gap Model")
+        role, _ = Role.objects.get_or_create(name="leaf-switch")
+        role.content_types.add(device_ct)
+        lt, _ = LocationType.objects.get_or_create(name="Gap Site Type")
+        lt.content_types.add(device_ct)
+        site, _ = Location.objects.get_or_create(name="gap-dc", location_type=lt, status=active)
+        cls.device = Device.objects.create(
+            name="gap-leaf-01", device_type=dt, role=role, location=site, status=active, tenant=cls.tenant
+        )
+
+        # Fabric registry: an evpn_vxlan_fabric intent that names this leaf.
+        Intent.objects.create(
+            intent_id="gap-fabric-001",
+            version=1,
+            intent_type="evpn_vxlan_fabric",
+            tenant=cls.tenant,
+            status=draft,
+            intent_data={
+                "type": "evpn_vxlan_fabric",
+                "fabric": {"name": "gap-fabric", "spines": [], "leaves": ["gap-leaf-01"]},
+            },
+        )
+
+        # IPAM: assign 203.0.113.10/24 to an interface on the device.
+        ns, _ = Namespace.objects.get_or_create(name="Global")
+        prefix, _ = Prefix.objects.get_or_create(
+            prefix="203.0.113.0/24", defaults={"namespace": ns, "status": active}
+        )
+        ip = IPAddress(address="203.0.113.10/24", parent=prefix, status=active)
+        ip.validated_save()
+        intf = Interface.objects.create(
+            device=cls.device, name="Ethernet1", type="10gbase-x-sfpp", status=active
+        )
+        IPAddressToInterface.objects.get_or_create(ip_address=ip, interface=intf)
+
+    def _intent(self, intent_data):
+        intent = MagicMock()
+        intent.intent_id = "gap-test"
+        intent.tenant = self.tenant
+        intent.intent_data = intent_data
+        return intent
+
+    def test_l2vni_fabric_name_resolves_to_fabric_leaves(self):
+        devices = _get_scope_devices(self._intent({"fabric": {"name": "gap-fabric"}}))
+        self.assertEqual(["gap-leaf-01"], [d.name for d in devices])
+
+    def test_unknown_fabric_name_raises(self):
+        with self.assertRaises(ValueError):
+            _get_scope_devices(self._intent({"fabric": {"name": "no-such-fabric"}}))
+
+    def test_devices_by_ip(self):
+        from intent_networking.resolver import _devices_by_ip
+
+        intent = self._intent({})
+        self.assertEqual(["gap-leaf-01"], [d.name for d in _devices_by_ip(intent, "203.0.113.10")])
+        # accepts CIDR form and unknown IP returns empty
+        self.assertEqual(["gap-leaf-01"], [d.name for d in _devices_by_ip(intent, "203.0.113.10/24")])
+        self.assertEqual([], _devices_by_ip(intent, "9.9.9.9"))

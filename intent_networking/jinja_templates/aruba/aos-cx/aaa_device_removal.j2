@@ -1,0 +1,14 @@
+{# aaa_device_removal.j2 — aos-cx #}
+! Remove device-management AAA
+! Intent: {{ intent_id }}
+!
+{% if server_group %}
+no aaa group server tacacs {{ server_group }}
+{% endif %}
+{% for s in tacacs_servers | default([]) %}
+no tacacs-server host {{ s.host | default(s.ip) }}
+{% endfor %}
+{% if local_fallback %}
+no user {{ local_fallback.username | default('admin') }}
+{% endif %}
+!
