@@ -4,6 +4,7 @@ All published release notes are listed below. Patch releases are included within
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [v2.0.12](version_2.0.12.md) | 2026-06-24 | Correctness release: resolvers aligned to the documented schema (`dc.*`/`routing.*`/`tunnel.*`/`management.<subtype>`); canonical wrapped management form; Arista/multi-vendor platform resolution via `network_driver` for live collection, verification and rendering; `aaa_device` templates for all 6 platforms; full scope contract; schema + example hardening (108 intents valid) |
 | [v2.0.11](version_2.0.11.md) | 2026-05-07 | Feature release: multi-port `l2_access_port` and `l2_trunk_port` — configure many ports in one intent; backward-compatible with existing single-port form |
 | [v2.0.10](version_2.0.10.md) | 2026-05-06 | Feature release: 33 documented example YAML intent files covering all 14 domains; Bootstrap 5 fix for grouped intent view; OPA warn/deny split; OPA PCI-DSS ipsec_ikev2 blind spot fix |
 | [v2.0.9](version_2.0.9.md) | 2026-05-01 | Bug-fix release: VNI Pools list view crash on Nautobot 3.1.1 — missing filterset_class/filterset_form_class on VxlanVniPoolUIViewSet |

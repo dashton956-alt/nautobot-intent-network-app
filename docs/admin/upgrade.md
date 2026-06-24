@@ -28,6 +28,31 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.12 (schema alignment and multi-vendor fixes)
+
+v2.0.12 is a **correctness release** — no database migrations are included.
+
+```bash
+pip install --upgrade nautobot-app-intent-networking==2.0.12
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+Existing flat-form management and Layer 2 intents continue to work unchanged.
+Review these behaviour changes before upgrading:
+
+- **Empty/unrecognised `scope` now fails fast** instead of silently targeting
+  every active tenant device — set an explicit scope (`all_tenant_devices: true`
+  for fleet-wide intents).
+- **Controller-adapter deployments fail hard** when no vendor implementation
+  exists, instead of reporting success with no change.
+- **OPA unreachable blocks resolution by default** — set
+  `opa_fail_open_on_resolution: true` to restore fail-open behaviour.
+- **Platform is resolved from `network_driver`** for live collection,
+  verification, and rendering — ensure your Nautobot Platforms set
+  `network_driver` (e.g. `arista_eos`, `cisco_ios`).
+
+See the [v2.0.12 release notes](../admin/release_notes/version_2.0.12.md) for full details.
+
 ### Upgrading to v2.0.11 (multi-port Layer 2 support)
 
 v2.0.11 is a **feature release** — no database migrations are included.
