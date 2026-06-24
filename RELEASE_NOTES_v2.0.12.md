@@ -33,6 +33,7 @@ under *Behaviour Changes* below — review them before upgrading.
 ## What's New
 
 ### Schema-aligned resolvers
+
 - L3 routing intents read the nested `routing.*` block: `ospf` (areas/networks +
   passive/stub/nssa/default-originate tuning), `ospfv3`, `eigrp`, `isis`,
   `bgp_ipv6_af`, `bgp_evpn_af`, `route_redistribution` (list form), and
@@ -44,23 +45,27 @@ under *Behaviour Changes* below — review them before upgrading.
   and renders per-device.
 
 ### Canonical `management.<subtype>` form
+
 - All 15 `mgmt_*` resolvers read config via `management.<subtype>` with fallback
   to flat-under-`management` and legacy top-level fields.
 - The example management corpus was migrated to the wrapped form.
 
 ### Device-management AAA (`aaa_device`)
+
 - New structured `aaa_device` primitive (TACACS+/RADIUS, server groups,
   authentication/authorization/accounting, local fallback) with templates for
   all six platforms (cisco ios-xe / ios-xr / nxos, arista eos, juniper junos,
   aruba aos-cx), plus removal templates.
 
 ### Indirect device resolution
+
 - `l2vni` / `l3vni` may reference a fabric by name (`fabric.name`) — devices are
   resolved from the matching `evpn_vxlan_fabric` intent's leaves.
 - `ipsec_s2s` without an explicit `scope` resolves the device that owns
   `tunnel.local_endpoint` via Nautobot IPAM.
 
 ### Full scope contract
+
 - `scope` now supports `all_tenant_devices`, `devices`/`device`, `sites`/`site`,
   `roles`/`role`, `tags`, and `platform`, with the documented resolution order.
 
