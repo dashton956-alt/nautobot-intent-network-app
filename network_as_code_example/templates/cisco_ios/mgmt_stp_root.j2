@@ -1,0 +1,17 @@
+{# mgmt_stp_root — Cisco IOS-XE STP root bridge management configuration #}
+spanning-tree mode {{ stp_mode | default('rapid-pvst') }}
+{% for v in root_vlans | default([]) %}
+spanning-tree vlan {{ v }} root primary
+{% endfor %}
+{% for v in secondary_vlans | default([]) %}
+spanning-tree vlan {{ v }} root secondary
+{% endfor %}
+{% if hello_time is defined %}
+spanning-tree hello-time {{ hello_time }}
+{% endif %}
+{% if max_age is defined %}
+spanning-tree max-age {{ max_age }}
+{% endif %}
+{% if forward_delay is defined %}
+spanning-tree forward-time {{ forward_delay }}
+{% endif %}

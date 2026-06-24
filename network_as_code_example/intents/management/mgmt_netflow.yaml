@@ -1,0 +1,95 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_netflow
+# Purpose:     Configure NetFlow v9 (or IPFIX) export to central flow collectors.
+#              Provides network traffic visibility for capacity planning, security
+#              analysis, and billing. Sampling reduces CPU/memory overhead.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-netflow-all-devices-001        # MANDATORY
+type: mgmt_netflow                      # MANDATORY
+version: 1                              # MANDATORY
+tenant: acme-corp                       # MANDATORY
+description: "NetFlow v9 export to central collectors — all devices — sampled 1:1000"  # MANDATORY
+change_ticket: CHG0030109               # MANDATORY (CHG + 7 digits)
+approved_by: ""                         # OPTIONAL here
+
+scope:
+  all_tenant_devices: true              # MANDATORY — flow data from every device
+
+management:
+  netflow:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  NETFLOW VERSION (MANDATORY)                                           ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    version: 9                              # MANDATORY — 5 | 9 | ipfix
+                                            #   5     — legacy fixed-format (limited fields)
+                                            #   9     — template-based, flexible (recommended)
+                                            #   ipfix — IETF standard (superset of v9)
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  COLLECTORS (MANDATORY — at least one)                                 ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    collectors:
+      - ip: "10.1.2.10"                     # MANDATORY — collector IP (Elastic/Logstash/nfdump/etc.)
+        port: 2055                          # OPTIONAL (default: 2055) — UDP destination port
+        description: "Primary NetFlow collector"
+      - ip: "10.1.2.11"
+        port: 2055
+        description: "Secondary NetFlow collector"
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  FLOW CACHE (OPTIONAL)                                                 ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    flow_cache:
+      max_entries: 16000                    # OPTIONAL (default: 4096) — max concurrent flows in cache
+                                            #   Increase for high-traffic devices; watch memory usage
+      active_timeout_mins: 1                # OPTIONAL (default: 1) — export active (long-lived) flows
+      inactive_timeout_secs: 15             # OPTIONAL (default: 15) — export idle flows after N seconds
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  SAMPLING (OPTIONAL)                                                   ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    sampling:
+      mode: deterministic                   # OPTIONAL — deterministic | random
+                                            #   deterministic — sample every N-th packet (consistent)
+                                            #   random        — probabilistic (statistically equivalent)
+      rate: 1000                            # OPTIONAL — 1 in every N packets is sampled
+                                            #   1     — full sampling (high CPU on busy links)
+                                            #   100   — 1:100 (10Gbps links)
+                                            #   1000  — 1:1000 (40/100Gbps links)
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  INTERFACE APPLICATION (MANDATORY)                                     ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    interfaces:
+      - name: GigabitEthernet0/0            # MANDATORY per entry — interface to monitor
+        direction: input                    # OPTIONAL — input | output (default: input)
+      - name: GigabitEthernet0/1
+        direction: input
+        direction_output: true              # OPTIONAL — also capture egress flows on this interface
+
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: NONE
+  encryption: none
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                     # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: nuts
+  trigger: on_deploy
+  fail_action: alert
+  tests:
+    - test_class: TestNapalmRunningConfigContains
+      label: "Verify NetFlow export destination configured"
+      expected:
+        - config_snippet: "ip flow-export destination 10.1.2.10 2055"

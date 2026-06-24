@@ -1,0 +1,31 @@
+{# fhrp — Cisco IOS-XE HSRP/VRRP first-hop redundancy configuration #}
+{% for vip in vip_interfaces | default([]) %}
+interface {{ vip.interface }}
+{% if vip.protocol | default('hsrp') == 'vrrp' %}
+ vrrp {{ vip.group | default(1) }} ip {{ vip.virtual_ip }}
+{% if vip.priority is defined %}
+ vrrp {{ vip.group | default(1) }} priority {{ vip.priority }}
+{% endif %}
+{% if vip.preempt | default(false) %}
+ vrrp {{ vip.group | default(1) }} preempt
+{% endif %}
+{% if vip.track is defined %}
+ vrrp {{ vip.group | default(1) }} track {{ vip.track }} decrement {{ vip.track_decrement | default(20) }}
+{% endif %}
+{% else %}
+ standby version 2
+ standby {{ vip.group | default(1) }} ip {{ vip.virtual_ip }}
+{% if vip.priority is defined %}
+ standby {{ vip.group | default(1) }} priority {{ vip.priority }}
+{% endif %}
+{% if vip.preempt | default(false) %}
+ standby {{ vip.group | default(1) }} preempt
+{% endif %}
+{% if vip.track is defined %}
+ standby {{ vip.group | default(1) }} track {{ vip.track }} decrement {{ vip.track_decrement | default(20) }}
+{% endif %}
+{% if vip.hello_interval is defined %}
+ standby {{ vip.group | default(1) }} timers {{ vip.hello_interval }} {{ vip.hold_time | default(10) }}
+{% endif %}
+{% endif %}
+{% endfor %}

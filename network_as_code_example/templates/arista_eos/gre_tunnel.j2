@@ -1,0 +1,20 @@
+{# gre_tunnel — Arista EOS GRE tunnel interface configuration #}
+interface Tunnel{{ tunnel_id | default(0) }}
+   description GRE to {{ tunnel_destination }}
+   tunnel source {{ tunnel_source }}
+   tunnel destination {{ tunnel_destination }}
+{% if tunnel_ip is defined and tunnel_ip %}
+   ip address {{ tunnel_ip }}
+{% endif %}
+{% if tunnel_vrf is defined and tunnel_vrf %}
+   tunnel vrf {{ tunnel_vrf }}
+{% endif %}
+{% if keepalive_interval is defined and keepalive_interval %}
+   keepalive {{ keepalive_interval }} {{ keepalive_retries | default(3) }}
+{% endif %}
+{% if mtu is defined and mtu %}
+   mtu {{ mtu }}
+{% else %}
+   mtu 1476
+{% endif %}
+   no shutdown

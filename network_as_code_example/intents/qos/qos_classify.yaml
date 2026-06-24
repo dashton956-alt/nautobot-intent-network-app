@@ -1,0 +1,67 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: qos_classify
+# Purpose:     Create traffic classification class-maps used by queuing and
+#              marking policies. Match traffic by DSCP, ACL, protocol, or CoS.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-qos-classify-voice-001       # MANDATORY
+type: qos_classify                    # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "Traffic classification class-maps — voice, video, critical data"  # MANDATORY
+change_ticket: CHG0030081             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL
+
+scope:
+  sites: [dc-east]                    # MANDATORY
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  CLASS MAPS — list of traffic classes (MANDATORY — at least one)      ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+class_maps:
+  - name: VOICE                       # MANDATORY per class — class-map name
+    match_type: match-any             # OPTIONAL (default: match-any)
+                                      #   match-any — match if ANY condition is true
+                                      #   match-all — match only if ALL conditions are true
+    match:
+      - type: dscp                    # MANDATORY per match — dscp | acl | protocol | cos | ip rtp
+        value: ef                     # MANDATORY per match — value depends on type:
+                                      #   dscp:    ef | cs1–cs7 | af11–af43 | 0–63
+                                      #   acl:     ACL name
+                                      #   protocol: rtp | sip | http | ftp | etc.
+                                      #   cos:     0–7
+      - type: dscp
+        value: cs5                    # SIP signalling also in the VOICE class
+
+  - name: VIDEO
+    match_type: match-any
+    match:
+      - type: dscp
+        value: af41                   # Video conferencing
+      - type: dscp
+        value: af42
+
+  - name: CRITICAL-DATA
+    match_type: match-any
+    match:
+      - type: dscp
+        value: af31
+      - type: acl
+        value: ACL-CRITICAL-DATA      # Match by ACL for application-specific classification
+
+  - name: BULK-DATA
+    match_type: match-any
+    match:
+      - type: dscp
+        value: af11
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

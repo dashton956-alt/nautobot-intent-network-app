@@ -1,0 +1,10 @@
+{# static_route — Cisco IOS-XE static route configuration #}
+{% for route in static_routes | default([]) %}
+{% if route.vrf is defined and route.vrf %}
+ip route vrf {{ route.vrf }} {{ route.prefix | replace('/', ' /') | replace('/','') }} {{ route.next_hop | default(route.exit_interface) }}{% if route.admin_distance is defined %} {{ route.admin_distance }}{% endif %}{% if route.track is defined %} track {{ route.track }}{% endif %}{% if route.permanent is defined and route.permanent %} permanent{% endif %}{% if route.description is defined %} name {{ route.description | replace(' ', '_') }}{% endif %}
+
+{% else %}
+ip route {{ route.prefix | replace('/', ' /') | replace('/','') }} {{ route.next_hop | default(route.exit_interface) }}{% if route.admin_distance is defined %} {{ route.admin_distance }}{% endif %}{% if route.track is defined %} track {{ route.track }}{% endif %}{% if route.permanent is defined and route.permanent %} permanent{% endif %}{% if route.description is defined %} name {{ route.description | replace(' ', '_') }}{% endif %}
+
+{% endif %}
+{% endfor %}

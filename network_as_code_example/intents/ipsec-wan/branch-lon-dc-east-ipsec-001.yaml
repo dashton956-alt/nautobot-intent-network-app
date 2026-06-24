@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: ipsec_s2s
+# Purpose:     Establish an IKEv2 IPSec site-to-site tunnel from London branch
+#              to DC East. AES-256-GCM provides AEAD encryption; iBGP over the
+#              tunnel provides dynamic routing between the sites.
+# HIGH-IMPACT TYPE — approved_by required when OPA enforce is enabled.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: branch-lon-dc-east-ipsec-001       # MANDATORY
+  type: ipsec_s2s                        # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG0012350              # MANDATORY (CHG + 7 digits)
+  description: "IPSec IKEv2 site-to-site tunnel — London branch to DC East"  # MANDATORY
+
+  # ── Tunnel parameters ───────────────────────────────────────────────────────
+  tunnel:
+    local_endpoint: "203.0.113.10"       # MANDATORY — local WAN IP (London branch)
+    remote_endpoint: "198.51.100.50"     # MANDATORY — remote WAN IP (DC East edge)
+    tunnel_type: ipsec_s2s               # MANDATORY — ipsec_s2s | gre | dmvpn
+    ike_version: 2                       # MANDATORY — IKEv2 preferred (IKEv1 is deprecated)
+    auth_method: psk                     # MANDATORY — psk | certificate
+    encryption: aes-256-gcm              # MANDATORY — AEAD cipher (GCM provides integrity)
+    integrity: sha256                    # OPTIONAL — hash for IKE SA (not needed for AEAD ESP)
+    dh_group: 14                         # MANDATORY — Diffie-Hellman group (14 = MODP 2048)
+    lifetime_seconds: 86400              # OPTIONAL (default: 86400) — IKE SA lifetime
+    pfs_group: 14                        # OPTIONAL — Perfect Forward Secrecy DH group
+
+  # ── Routing over tunnel ─────────────────────────────────────────────────────
+  routing:
+    protocol: bgp                        # OPTIONAL — dynamic routing over the IPSec tunnel
+    as_number: 65001
+    neighbors:
+      - ip: "10.200.0.2"                 # MANDATORY — BGP peer IP (tunnel inner address)
+        remote_as: 65001                 # iBGP — same AS on both ends
+        description: "iBGP over IPSec tunnel"
+        update_source: Tunnel0           # OPTIONAL — source BGP from tunnel interface
+
+  policy:
+    compliance: NONE
+    encryption: required                 # Encryption is mandatory for this intent type
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: canary                     # Canary deployment for WAN changes
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: both
+    schedule: "*/10 * * * *"             # Check every 10 minutes for tunnel health
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmBgpNeighbors
+        label: "Verify iBGP over IPSec tunnel"
+        expected:
+          - peer: 10.200.0.2
+            remote_as: 65001
+            state: Established
+      - test_class: TestNapalmPing
+        label: "Verify tunnel endpoint reachability"
+        expected:
+          - destination: 198.51.100.50
+            success: true

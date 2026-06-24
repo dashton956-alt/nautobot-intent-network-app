@@ -1,0 +1,67 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: bgp_ibgp
+# Purpose:     Configure iBGP sessions with route-reflector cluster. PE routers
+#              are RR clients; this device acts as the route reflector to avoid
+#              full-mesh iBGP requirements across the AS.
+# HIGH-IMPACT TYPE — approved_by required when OPA enforce is enabled.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-bgp-ibgp-001              # MANDATORY
+  type: bgp_ibgp                         # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "BGP Peering (iBGP) — configure full-mesh or route-reflector iBGP sessions"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    roles:
+      - pe-router                        # Apply to all PE routers
+
+  # ── iBGP / Route Reflector configuration ────────────────────────────────────
+  routing:
+    protocol: bgp                        # MANDATORY
+    as_number: 65001                     # MANDATORY — AS number (all iBGP peers share this)
+    router_id: "10.255.0.1"             # MANDATORY — router-id (usually Loopback0 IP)
+    route_reflector: true                # OPTIONAL — true = this device is a route reflector
+    cluster_id: "10.255.0.1"            # OPTIONAL — RR cluster ID (usually same as router-id)
+    neighbors:
+      - ip: "10.255.0.2"                 # MANDATORY — peer loopback IP
+        remote_as: 65001                 # MANDATORY — same AS for iBGP
+        description: "iBGP to PE2"
+        update_source: Loopback0         # OPTIONAL — source iBGP updates from loopback for stability
+        route_reflector_client: true     # OPTIONAL — designate peer as RR client
+        bfd: true                        # OPTIONAL — use BFD for fast failure detection
+      - ip: "10.255.0.3"
+        remote_as: 65001
+        description: "iBGP to PE3"
+        update_source: Loopback0
+        route_reflector_client: true
+        bfd: true
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: both                        # both = on_deploy + scheduled checks
+    schedule: "*/30 * * * *"
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmBgpNeighbors
+        label: "Verify iBGP sessions established"
+        expected:
+          - peer: 10.255.0.2
+            remote_as: 65001
+            state: Established
+          - peer: 10.255.0.3
+            remote_as: 65001
+            state: Established

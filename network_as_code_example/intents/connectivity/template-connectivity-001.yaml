@@ -1,0 +1,64 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: connectivity
+# Purpose:     Generic hub-and-spoke Layer 3 routed connectivity between the
+#              London branch site and DC East over MPLS transport. OSPF area 1
+#              (stub) carries branch routes; hub-spoke topology prevents
+#              direct spoke-to-spoke traffic.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-connectivity-001          # MANDATORY
+  type: connectivity                     # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Connectivity — generic site-to-site connectivity provisioning (legacy type)"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - branch-lon                       # MANDATORY — spoke site
+      - dc-east                          # MANDATORY — hub site
+
+  # ── Connectivity parameters ─────────────────────────────────────────────────
+  connectivity:
+    type: layer3-routed                  # MANDATORY — layer2-bridged | layer3-routed
+    description: "Branch London to DC East connectivity"
+    transport: mpls                      # MANDATORY — mpls | internet | direct
+    topology: hub-spoke                  # MANDATORY — hub-spoke | full-mesh | point-to-point
+    hub_site: dc-east                    # MANDATORY — hub site for hub-spoke topology
+    spoke_site: branch-lon               # MANDATORY — spoke site
+    addressing:
+      hub_ip: "10.1.0.1/30"             # MANDATORY — hub-side P2P IP
+      spoke_ip: "10.1.0.2/30"           # MANDATORY — spoke-side P2P IP
+    routing:
+      protocol: ospf                     # OPTIONAL — routing protocol for the connectivity
+      process_id: 1
+      area: "0.0.0.1"                    # OPTIONAL — OSPF stub area for branch
+    sla:
+      latency_max_ms: 10                 # OPTIONAL — maximum one-way latency SLA
+      jitter_max_ms: 5                   # OPTIONAL — maximum jitter SLA
+      availability_pct: 99.9             # OPTIONAL — availability SLA percentage
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: both
+    schedule: "*/5 * * * *"              # Verify connectivity every 5 minutes
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmPing
+        label: "Verify hub to spoke connectivity"
+        expected:
+          - source: "10.1.0.1"
+            destination: "10.1.0.2"
+            success: true

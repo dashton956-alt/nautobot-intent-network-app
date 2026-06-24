@@ -1,0 +1,25 @@
+{# eigrp — Arista EOS EIGRP configuration (named mode) #}
+router eigrp {{ autonomous_system }}
+{% if router_id is defined and router_id %}
+   router-id {{ router_id }}
+{% endif %}
+{% for net in eigrp_networks | default([]) %}
+   network {{ net }}
+{% endfor %}
+{% if variance is defined and variance %}
+   variance {{ variance }}
+{% endif %}
+{% if stub is defined and stub %}
+   stub {{ stub }}
+{% endif %}
+{% if passive_interfaces is defined %}
+{% for intf in passive_interfaces %}
+   passive-interface {{ intf }}
+{% endfor %}
+{% endif %}
+{% if redistribute is defined %}
+{% for redist in redistribute %}
+   redistribute {{ redist.protocol }}{% if redist.metric is defined %} metric {{ redist.metric }}{% endif %}
+
+{% endfor %}
+{% endif %}

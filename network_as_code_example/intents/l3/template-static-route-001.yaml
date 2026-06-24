@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: static_route
+# Purpose:     Configure static routes on a branch router. The default route
+#              points to the ISP; summary routes for corporate ranges point to
+#              the DC edge router. Admin distance 1 ensures static routes
+#              take precedence over dynamic routing protocols.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-static-route-001          # MANDATORY
+  type: static_route                     # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Static Route — configure static IP routes on edge and branch devices"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    devices:
+      - branch-lon-rtr-01                # MANDATORY — static routes are per-device
+
+  # ── Static routes ───────────────────────────────────────────────────────────
+  routing:
+    protocol: static                     # MANDATORY
+    routes:
+      - destination: "0.0.0.0/0"         # MANDATORY — destination prefix
+        next_hop: "192.168.1.1"           # MANDATORY — next-hop IP or interface
+        description: "Default route to ISP"
+        admin_distance: 1                 # OPTIONAL (default: 1) — lower = preferred
+      - destination: "10.0.0.0/8"
+        next_hop: "192.168.10.1"
+        description: "Corporate LAN summary"
+        admin_distance: 1
+      - destination: "172.16.0.0/12"
+        next_hop: "192.168.10.1"
+        description: "Private range via DC"
+        admin_distance: 1
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: all_at_once
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify static routes in running config"
+        expected:
+          - config_snippet: "ip route 0.0.0.0 0.0.0.0 192.168.1.1"
+          - config_snippet: "ip route 10.0.0.0 255.0.0.0 192.168.10.1"

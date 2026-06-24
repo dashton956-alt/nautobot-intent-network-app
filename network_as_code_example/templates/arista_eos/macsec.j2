@@ -1,0 +1,21 @@
+{# macsec — Arista EOS MACsec (802.1AE) per-interface MKA configuration #}
+{% if macsec_policy_name is defined %}
+mac security profile {{ macsec_policy_name }}
+   cipher {{ cipher_suite | default('gcm-aes-256') }}
+{% if key_server_priority is defined %}
+   key-server priority {{ key_server_priority }}
+{% endif %}
+{% if include_icv_indicator | default(false) %}
+   include-icv-indicator
+{% endif %}
+{% if replay_protection | default(false) %}
+   replay-protection window {{ replay_window | default(0) }}
+{% endif %}
+{% endif %}
+
+{% for intf in macsec_interfaces | default([]) %}
+interface {{ intf }}
+{% if macsec_policy_name is defined %}
+   mac security profile {{ macsec_policy_name }}
+{% endif %}
+{% endfor %}

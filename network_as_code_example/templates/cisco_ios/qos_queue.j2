@@ -1,0 +1,25 @@
+{# qos_queue — Cisco IOS-XE QoS policy-map queuing configuration #}
+policy-map {{ policy_map_name | default('QOS-POLICY') }}
+{% for cls in queues | default([]) %}
+ class {{ cls.name }}
+{% if cls.priority is defined %}
+  priority percent {{ cls.priority }}
+{% elif cls.bandwidth is defined %}
+  bandwidth percent {{ cls.bandwidth }}
+{% endif %}
+{% if cls.police_rate is defined %}
+  police rate percent {{ cls.police_rate }}
+{% endif %}
+{% if cls.queue_limit is defined %}
+  queue-limit {{ cls.queue_limit }} packets
+{% endif %}
+{% if cls.dscp_set is defined %}
+  set dscp {{ cls.dscp_set }}
+{% endif %}
+{% endfor %}
+ class class-default
+  fair-queue
+{% for intf in apply_interfaces | default([]) %}
+interface {{ intf.name }}
+ service-policy output {{ policy_map_name | default('QOS-POLICY') }}
+{% endfor %}

@@ -1,0 +1,5 @@
+{# urpf — Arista EOS Unicast Reverse Path Forwarding configuration #}
+{% for intf in urpf_interfaces | default([]) %}
+interface {{ intf }}
+   ip verify unicast source reachable-via {{ urpf_mode | default('loose') }}
+{% endfor %}

@@ -1,0 +1,13 @@
+{# dhcp_snooping — Cisco NX-OS DHCP snooping configuration #}
+feature dhcp
+ip dhcp snooping
+{% for vlan_range in snooping_vlans | default([]) %}
+ip dhcp snooping vlan {{ vlan_range }}
+{% endfor %}
+{% if arp_validation | default(false) %}
+ip dhcp snooping verify mac-address
+{% endif %}
+{% for intf in trusted_interfaces | default([]) %}
+interface {{ intf }}
+ ip dhcp snooping trust
+{% endfor %}

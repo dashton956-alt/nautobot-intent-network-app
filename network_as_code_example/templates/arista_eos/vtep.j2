@@ -1,0 +1,15 @@
+{# vtep — Arista EOS VTEP / NVE interface configuration #}
+interface {{ vtep_loopback | default('Loopback1') }}
+   description VTEP Source Loopback
+{% if vtep_loopback_pool is defined %}
+   {# IP allocated from {{ vtep_loopback_pool }} by Nautobot IPAM #}
+{% endif %}
+   no shutdown
+
+interface {{ nve_interface | default('Vxlan1') }}
+   description VXLAN Network Virtualisation Engine
+   vxlan source-interface {{ vtep_loopback | default('Loopback1') }}
+   vxlan udp-port 4789
+{% if replication_mode | default('ingress-replication') == 'multicast' %}
+   vxlan flood vtep {{ mcast_group }}
+{% endif %}

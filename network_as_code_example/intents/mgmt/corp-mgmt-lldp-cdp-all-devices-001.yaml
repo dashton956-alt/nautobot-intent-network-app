@@ -1,0 +1,63 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_lldp_cdp
+# Purpose:     Enable LLDP globally and disable CDP globally on all devices.
+#              LLDP is vendor-neutral (IEEE 802.1AB); CDP is Cisco-proprietary.
+#              Disabling CDP reduces information leakage on non-Cisco environments.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-mgmt-lldp-cdp-all-devices-001  # MANDATORY
+  type: mgmt_lldp_cdp                    # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG0012410              # MANDATORY (CHG + 7 digits)
+  description: "Enable LLDP globally, disable CDP globally — all network devices"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    all_tenant_devices: true             # MANDATORY — applies to every device
+
+  management:
+    lldp_cdp:
+      # ── LLDP / CDP configuration ────────────────────────────────────────────────
+      lldp_global: true                      # MANDATORY — enable LLDP on all interfaces
+      cdp_global: false                      # MANDATORY — disable CDP globally
+
+      lldp_interfaces:                       # OPTIONAL — per-interface LLDP overrides
+        - interface: Ethernet1
+          enabled: true
+        - interface: Ethernet2
+          enabled: true
+
+      cdp_interfaces: []                     # OPTIONAL — per-interface CDP overrides (empty = none)
+
+      disable_on:                            # OPTIONAL — suppress LLDP on management interfaces
+        - Management0
+
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmLldpNeighbors
+        label: "Verify LLDP is active on Ethernet1 and Ethernet2"
+        test_data:
+          - host: lab-arista-sw01
+            expected:
+              - local_port: Ethernet1
+                neighbor: lab-spine-01
+          - host: lab-arista-sw02
+            expected:
+              - local_port: Ethernet1
+                neighbor: lab-spine-02

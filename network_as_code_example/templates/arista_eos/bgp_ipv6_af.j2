@@ -1,0 +1,18 @@
+{# bgp_ipv6_af — Arista EOS BGP IPv6 address family #}
+router bgp {{ local_asn }}
+   address-family ipv6
+{% for nbr in neighbors | default([]) %}
+      neighbor {{ nbr.ip }} activate
+{% if nbr.route_map_in is defined %}
+      neighbor {{ nbr.ip }} route-map {{ nbr.route_map_in }} in
+{% endif %}
+{% if nbr.route_map_out is defined %}
+      neighbor {{ nbr.ip }} route-map {{ nbr.route_map_out }} out
+{% endif %}
+{% if nbr.max_prefix is defined %}
+      neighbor {{ nbr.ip }} maximum-routes {{ nbr.max_prefix }}
+{% endif %}
+{% endfor %}
+{% for net in bgp_networks | default([]) %}
+      network {{ net.prefix }}
+{% endfor %}

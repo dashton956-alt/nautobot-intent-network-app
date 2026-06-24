@@ -1,0 +1,56 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: dai
+# Purpose:     Enable Dynamic ARP Inspection on server/storage VLANs to
+#              validate ARP packets against the DHCP snooping binding table.
+#              Prevents ARP poisoning / man-in-the-middle attacks.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-dai-001                   # MANDATORY
+  type: dai                              # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Dynamic ARP Inspection — validate ARP packets against DHCP snooping bindings"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    roles:
+      - access-switch                    # Apply to all access-switches in tenant
+
+  # ── DAI policy ──────────────────────────────────────────────────────────────
+  dai:
+    enabled: true                        # MANDATORY — enable DAI globally
+    vlans:                               # MANDATORY — VLANs to inspect
+      - 100
+      - 101
+      - 200
+    trusted_ports:                       # MANDATORY — uplink ports exempt from ARP inspection
+      - interface: GigabitEthernet0/1
+        desc: "Uplink to distribution — trusted"
+    rate_limit_untrusted: 100            # OPTIONAL — ARP packets per second on untrusted ports
+    rate_limit_trusted: 500              # OPTIONAL — ARP packets per second on trusted ports
+    validation:                          # OPTIONAL — additional ARP packet checks
+      src_mac: true                      # Validate sender MAC matches Ethernet header
+      dst_mac: true                      # Validate target MAC in replies
+      ip: true                           # Drop ARPs with invalid IP addresses
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify DAI enabled on server VLANs"
+        expected:
+          - config_snippet: "ip arp inspection vlan 100"

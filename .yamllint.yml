@@ -6,8 +6,18 @@ rules:
   indentation:
     indent-sequences: "consistent"
   line-length: "disable"
-  quoted-strings:
-    quote-type: "double"
+  # Network-intent YAML is conventionally unquoted (interface names, VLAN
+  # names, descriptions). Forcing double-quotes on every value adds noise
+  # without value, so the quoted-strings style rule is disabled.
+  quoted-strings: "disable"
+  # GitHub Actions workflows use the `on:` key, which YAML resolves to a
+  # boolean — don't flag truthy *keys*, only truthy values.
+  truthy:
+    check-keys: false
 ignore: |
   .venv/
   compose.yaml
+  # Example intent corpus — validated structurally by pykwalify
+  # (intent.schema.yml / the validate-intents workflow), not by yamllint's
+  # code-style rules.
+  network_as_code_example/

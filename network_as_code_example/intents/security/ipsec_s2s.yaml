@@ -1,0 +1,90 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: ipsec_s2s
+# Purpose:     Configure an IPSec site-to-site VPN tunnel using IKEv1 or IKEv2.
+#              Allocates a tunnel interface ID from TunnelIdPool automatically.
+# HIGH-IMPACT TYPE — requires approved_by when OPA enforce is on.
+# NOTE: For IKEv2-specific features (proposals, profiles) use ipsec_ikev2 type.
+# OPA enforces: IKEv2 required, AES-256 minimum, SHA-1 blocked, DH >= 14 for PCI-DSS.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-ipsec-s2s-site-b-001         # MANDATORY
+type: ipsec_s2s                       # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "IPSec S2S tunnel — DC-East to Branch-B — encrypted WAN backup"  # MANDATORY
+change_ticket: CHG0030042             # MANDATORY (CHG + 7 digits)
+approved_by: "net.engineer"           # MANDATORY for ipsec_s2s (high-impact)
+
+scope:
+  devices: [router-01]               # MANDATORY — device that terminates the tunnel
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  TUNNEL ENDPOINT (MANDATORY)                                           ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+remote_peer: 203.0.113.50             # MANDATORY — remote peer's public IP address
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  IKE PHASE 1 (ISAKMP) — OPTIONAL with OPA-enforced minimums          ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+ike_version: 2                        # OPTIONAL (default: 2) — 1 | 2
+                                      #   OPA enforces IKEv2 for PCI-DSS/HIPAA intents
+                                      #   IKEv1 is legacy; avoid in new deployments
+
+encryption: aes-256-gcm               # OPTIONAL (default: aes-256-gcm)
+                                      #   Allowed: aes-256-gcm | aes-256-cbc | aes-192-cbc
+                                      #   OPA blocks weak ciphers (aes-128-*) for PCI-DSS/HIPAA
+                                      #   aes-256-gcm is preferred (AEAD — no separate integrity)
+
+integrity: sha256                     # OPTIONAL (default: sha256)
+                                      #   Allowed: sha256 | sha384 | sha512
+                                      #   OPA blocks SHA-1 for PCI-DSS/HIPAA
+                                      #   Not used with GCM ciphers (integrity built-in)
+
+dh_group: 14                          # OPTIONAL (default: 14) — Diffie-Hellman group
+                                      #   Minimum: 14 (2048-bit) for PCI-DSS/HIPAA (OPA enforced)
+                                      #   Recommended: 19 (ECDH 256-bit) or 20 (ECDH 384-bit)
+                                      #   Avoid: 1, 2, 5 (weak; broken)
+
+lifetime: 86400                       # OPTIONAL (default: 86400) — IKE SA lifetime in seconds
+                                      #   86400 = 24 hours; reduce to 28800 (8h) for compliance
+
+psk: ""                               # OPTIONAL — pre-shared key; use Nautobot Secrets in prod
+                                      #   Certificate-based auth preferred for production
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  IPSEC PHASE 2 — OPTIONAL                                              ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+pfs_group: 14                         # OPTIONAL (default: 14) — PFS DH group for phase 2
+                                      #   Perfect Forward Secrecy prevents past-session decryption
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  INTERESTING TRAFFIC DEFINITION — OPTIONAL                             ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+local_network: 10.0.0.0/8             # OPTIONAL — local protected subnet(s) for crypto ACL
+remote_network: 192.168.100.0/24      # OPTIONAL — remote protected subnet(s) for crypto ACL
+                                      #   If omitted, a default route-based VPN is assumed
+
+# ── OPA Compliance Policy ─────────────────────────────────────────────────────
+policy:
+  compliance: PCI-DSS                 # OPTIONAL — PCI-DSS | HIPAA | SOC2 | none
+  encryption: required                # MANDATORY when compliance: PCI-DSS or HIPAA
+
+tunnel:                               # OPTIONAL — OPA reads from here for PCI-DSS/HIPAA checks
+  ike_version: 2                      #   Mirrors ike_version above — kept here for OPA compatibility
+  encryption: aes-256-gcm             #   OPA checks tunnel.encryption for PCI-DSS AES-256 requirement
+  integrity: sha256                   #   OPA checks tunnel.integrity for SHA-1 block rule
+  dh_group: 14                        #   OPA checks tunnel.dh_group >= 14
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: canary                    # OPTIONAL — canary recommended; OPA enforces rolling/canary
+  save_config: true
+
+verification:
+  level: nuts                         # OPTIONAL — verifies tunnel UP, ESP traffic flowing
+  trigger: both                       # MANDATORY for PCI-DSS compliance (OPA enforced)
+  fail_action: rollback

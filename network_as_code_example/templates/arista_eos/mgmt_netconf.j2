@@ -1,0 +1,37 @@
+{# mgmt_netconf — Arista EOS NETCONF / RESTCONF / gNMI configuration #}
+{% if netconf_enabled | default(false) %}
+management api netconf
+   transport ssh default
+{% if netconf_vrf is defined and netconf_vrf %}
+   transport ssh {{ netconf_vrf }}
+      vrf {{ netconf_vrf }}
+{% endif %}
+   no shutdown
+{% endif %}
+
+{% if restconf_enabled | default(false) %}
+management api restconf
+   transport https default
+{% if netconf_vrf is defined and netconf_vrf %}
+   transport https {{ netconf_vrf }}
+      vrf {{ netconf_vrf }}
+{% endif %}
+   no shutdown
+{% endif %}
+
+{% if gnmi_enabled | default(false) %}
+management api gnmi
+   transport grpc default
+{% if netconf_vrf is defined and netconf_vrf %}
+   transport grpc {{ netconf_vrf }}
+      vrf {{ netconf_vrf }}
+      ip access-group ACL-GNMI-MGMT in
+{% endif %}
+{% if gnmi_transport | default('grpc') == 'grpc-tls' %}
+      ssl profile GNMI-SSL
+{% endif %}
+   no shutdown
+{% endif %}
+
+management api http-commands
+   no shutdown

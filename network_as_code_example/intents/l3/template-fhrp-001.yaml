@@ -1,0 +1,65 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: fhrp
+# Purpose:     Configure HSRP (or VRRP/GLBP) on distribution switch SVIs to
+#              provide a redundant default gateway for connected hosts.
+#              The active/standby pair is typically the two distribution switches.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-fhrp-001                  # MANDATORY
+  type: fhrp                             # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "HSRP / VRRP / GLBP — configure first-hop redundancy on gateway SVIs"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east
+    roles:
+      - distribution-switch              # Both distribution switches need this config
+
+  # ── FHRP groups ─────────────────────────────────────────────────────────────
+  fhrp:
+    protocol: hsrp                       # MANDATORY — hsrp | vrrp | glbp
+    version: 2                           # OPTIONAL — HSRPv2 supports IPv6 and millisecond timers
+    groups:
+      - vlan: 100                        # MANDATORY — SVI VLAN for this FHRP group
+        group_id: 100                    # MANDATORY — FHRP group number (matches VLAN for clarity)
+        virtual_ip: "10.100.0.1"         # MANDATORY — virtual gateway IP for hosts
+        active_priority: 110             # OPTIONAL (default: 100) — higher wins active role
+        standby_priority: 90             # OPTIONAL — lower priority for standby device
+        preempt: true                    # OPTIONAL — allow higher priority to reclaim active role
+        preempt_delay: 30                # OPTIONAL — delay (seconds) before preempting
+        authentication: HSRP-SECRET-REF  # OPTIONAL — MD5 auth key reference
+        track:                           # OPTIONAL — decrement priority if tracked object fails
+          - interface: GigabitEthernet0/0
+            decrement: 20                # Reduce priority by 20 if uplink fails
+      - vlan: 200
+        group_id: 200
+        virtual_ip: "10.200.0.1"
+        active_priority: 110
+        standby_priority: 90
+        preempt: true
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: all_at_once                # Both distribution switches must be configured together
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify HSRP groups configured on SVIs"
+        expected:
+          - config_snippet: "standby version 2"
+          - config_snippet: "standby 100 ip 10.100.0.1"

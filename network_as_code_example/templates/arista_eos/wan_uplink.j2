@@ -1,0 +1,20 @@
+{# wan_uplink — Arista EOS WAN interface and default route configuration #}
+{% for uplink in uplinks | default([]) %}
+interface {{ uplink.interface }}
+   description {{ uplink.description | default(uplink.isp_name | default('WAN-Uplink')) }}
+{% if uplink.ip_address is defined and uplink.ip_address %}
+{% if uplink.ip_address == 'dhcp' %}
+   ip address dhcp
+{% else %}
+   ip address {{ uplink.ip_address }}
+{% endif %}
+{% endif %}
+{% if uplink.bfd is defined and uplink.bfd %}
+   bfd interval 300 min-rx 300 multiplier 3
+{% endif %}
+   no shutdown
+
+{% if uplink.default_route is defined and uplink.default_route %}
+ip route 0.0.0.0/0 {{ uplink.default_route }} {{ uplink.admin_distance | default(1) }} name {{ uplink.isp_name | default('WAN') }}
+{% endif %}
+{% endfor %}

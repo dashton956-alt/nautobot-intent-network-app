@@ -1,0 +1,24 @@
+{# bgp_ibgp — Cisco IOS-XE iBGP configuration #}
+router bgp {{ local_as }}
+ bgp router-id {{ router_id }}
+ bgp log-neighbor-changes
+{% for neighbor in ibgp_neighbors | default([]) %}
+ neighbor {{ neighbor.ip }} remote-as {{ local_as }}
+ neighbor {{ neighbor.ip }} description {{ neighbor.description | default('iBGP peer') }}
+ neighbor {{ neighbor.ip }} update-source {{ update_source | default('Loopback0') }}
+{% if neighbor.rr_client | default(false) %}
+ neighbor {{ neighbor.ip }} route-reflector-client
+{% endif %}
+{% if neighbor.next_hop_self | default(false) %}
+ neighbor {{ neighbor.ip }} next-hop-self
+{% endif %}
+{% endfor %}
+ !
+ address-family ipv4
+{% for neighbor in ibgp_neighbors | default([]) %}
+  neighbor {{ neighbor.ip }} activate
+{% if neighbor.rr_client | default(false) %}
+  neighbor {{ neighbor.ip }} route-reflector-client
+{% endif %}
+{% endfor %}
+ exit-address-family

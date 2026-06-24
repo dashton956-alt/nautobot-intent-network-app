@@ -1,0 +1,78 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_dns_dhcp
+# Purpose:     Configure DNS resolver settings and DHCP client behaviour on
+#              all devices. Internal DNS servers enable hostname resolution for
+#              automation tools. DHCP client is typically only used for the
+#              OOB management interface within the MGMT VRF.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-dns-all-devices-001            # MANDATORY
+type: mgmt_dns_dhcp                     # MANDATORY
+version: 1                              # MANDATORY
+tenant: acme-corp                       # MANDATORY
+description: "DNS resolver and DHCP client configuration — all devices"  # MANDATORY
+change_ticket: CHG0030110               # MANDATORY (CHG + 7 digits)
+approved_by: ""                         # OPTIONAL here
+
+scope:
+  all_tenant_devices: true              # MANDATORY — DNS needed on every device
+
+management:
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  DNS RESOLVER (MANDATORY)                                              ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+
+  dns:
+    servers:                              # MANDATORY — at least one DNS server
+      - "10.1.1.10"                       # Primary internal DNS server
+      - "10.1.1.11"                       # Secondary internal DNS server (redundancy)
+      # - "8.8.8.8"                       # External fallback — only if required by policy
+    search_domains:                       # OPTIONAL — domain search list for short-name resolution
+      - "acme-corp.internal"
+      - "mgmt.acme-corp.internal"
+    domain_name: "acme-corp.internal"     # OPTIONAL — primary DNS domain name
+                                          #   Used for SSH host key generation and FQDN building
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  DHCP CLIENT (OPTIONAL)                                                ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+  #
+  # Most network devices use static IPs. DHCP client is typically only
+  # enabled on the OOB management interface in lab/zero-touch environments.
+
+  dhcp:
+    client_id: hostname                   # OPTIONAL — DHCP client-id sent in DISCOVER
+                                          #   hostname | mac | none
+    default_gateway_override: false       # OPTIONAL (default: false) — accept default GW from DHCP
+                                          #   false = use static default route; ignore DHCP gateway
+                                          #   true  = use DHCP-provided default gateway (avoid in prod)
+    vrf: MGMT                             # OPTIONAL — VRF for DHCP client traffic
+
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  DNS CACHING (OPTIONAL)                                                ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# dns_cache_enabled: true               # OPTIONAL (default: true) — local DNS cache on device
+# dns_cache_ttl: 3600                   # OPTIONAL (default: 3600) — max cache TTL in seconds
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: NONE
+  encryption: none
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                     # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: nuts
+  trigger: on_deploy
+  fail_action: alert
+  tests:
+    - test_class: TestNapalmRunningConfigContains
+      label: "Verify DNS servers configured"
+      expected:
+        - config_snippet: "ip name-server 10.1.1.10"
+        - config_snippet: "ip domain-name acme-corp.internal"

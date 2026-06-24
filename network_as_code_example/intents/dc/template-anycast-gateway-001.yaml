@@ -1,0 +1,57 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: anycast_gateway
+# Purpose:     Configure a distributed anycast gateway on all VXLAN leaf
+#              switches. All leaves share the same virtual MAC and IP per SVI,
+#              allowing hosts to use any leaf as their default gateway without
+#              traffic tromboning through a centralised gateway.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-anycast-gateway-001       # MANDATORY
+  type: anycast_gateway                  # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Anycast Gateway — configure distributed anycast gateway on all VXLAN leaf switches"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east
+    roles:
+      - leaf-switch                      # Apply to all leaf VTEPs in the fabric
+
+  # ── Anycast gateway configuration ───────────────────────────────────────────
+  dc:
+    anycast_gateway:
+      mac: "00:00:00:00:00:01"           # MANDATORY — shared virtual MAC (identical on all leaves)
+      svls:                              # MANDATORY — SVI list with IP and VNI mapping
+        - vlan: 100                      # MANDATORY — VLAN for this SVI
+          ip: "10.100.0.1/24"            # MANDATORY — anycast gateway IP (same on all leaves)
+          vni: 10100                     # MANDATORY — L2VNI this SVI is bound to
+        - vlan: 101
+          ip: "10.101.0.1/24"
+          vni: 10101
+        - vlan: 200
+          ip: "10.200.0.1/24"
+          vni: 10200
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify anycast gateway MAC configured"
+        expected:
+          - config_snippet: "ip virtual-router mac-address 00:00:00:00:00:01"

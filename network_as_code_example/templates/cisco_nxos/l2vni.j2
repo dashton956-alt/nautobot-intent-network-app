@@ -1,0 +1,18 @@
+{# l2vni — Cisco NX-OS Layer 2 VNI (VXLAN segment) configuration #}
+vlan {{ vlan_id }}
+ name {{ vlan_name | default('VNI-' + vni_id | string) }}
+ vn-segment {{ vni_id }}
+
+{% if anycast_gateway_ip is defined %}
+interface Vlan{{ vlan_id }}
+ no shutdown
+ mtu {{ mtu | default(9216) }}
+ fabric forwarding mode anycast-gateway
+ ip address {{ anycast_gateway_ip }}
+{% endif %}
+
+evpn
+ vni {{ vni_id }} l2
+  rd {{ rd }}
+  route-target import {{ rt_import }}
+  route-target export {{ rt_export }}

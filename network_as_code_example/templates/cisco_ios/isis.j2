@@ -1,0 +1,27 @@
+{# isis — Cisco IOS-XE IS-IS routing configuration #}
+router isis {{ isis_instance | default('') }}
+ net {{ net }}
+ is-type {{ is_type | default('level-2-only') }}
+{% if router_id is defined %}
+ passive-interface Loopback0
+{% endif %}
+{% if metric_style | default('wide') == 'wide' %}
+ metric-style wide
+{% endif %}
+{% if log_adjacency_changes | default(true) %}
+ log-adjacency-changes
+{% endif %}
+{% for redist in redistribute | default([]) %}
+ redistribute {{ redist.protocol }}{% if redist.metric is defined %} metric {{ redist.metric }}{% endif %}{% if redist.route_map is defined %} route-map {{ redist.route_map }}{% endif %}
+
+{% endfor %}
+{% for intf in isis_interfaces | default([]) %}
+interface {{ intf.name }}
+ ip router isis {{ isis_instance | default('') }}
+{% if intf.metric is defined %}
+ isis metric {{ intf.metric }}
+{% endif %}
+{% if intf.network_type | default('') == 'point-to-point' %}
+ isis network point-to-point
+{% endif %}
+{% endfor %}

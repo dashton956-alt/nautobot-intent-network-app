@@ -1,0 +1,11 @@
+{# static_route — Cisco NX-OS static route configuration #}
+{% for route in static_routes | default([]) %}
+{% if route.vrf is defined %}
+vrf context {{ route.vrf }}
+ ip route {{ route.prefix }} {{ route.next_hop | default(route.exit_interface) }}{% if route.admin_distance is defined %} {{ route.admin_distance }}{% endif %}{% if route.track is defined %} track {{ route.track }}{% endif %}{% if route.description is defined %} name {{ route.description | replace(' ', '_') }}{% endif %}
+
+{% else %}
+ip route {{ route.prefix }} {{ route.next_hop | default(route.exit_interface) }}{% if route.admin_distance is defined %} {{ route.admin_distance }}{% endif %}{% if route.track is defined %} track {{ route.track }}{% endif %}{% if route.description is defined %} name {{ route.description | replace(' ', '_') }}{% endif %}
+
+{% endif %}
+{% endfor %}

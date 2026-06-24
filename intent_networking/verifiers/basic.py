@@ -323,8 +323,12 @@ class BasicVerifier:
             "ospf_neighbor_count": 0,
             "vlans": [],
         }
-        platform = device.platform.name if device.platform else ""
-        is_arista = platform == "arista-eos"
+        # Identify Arista by the stable network_driver first, falling back to the
+        # platform name/slug — devices are often named "Arista EOS" in the UI.
+        plat = device.platform
+        driver = (getattr(plat, "network_driver", "") or "").strip().lower() if plat else ""
+        platform = (plat.name if plat else "") or ""
+        is_arista = driver == "arista_eos" or platform.strip().lower() in ("arista-eos", "arista_eos", "arista eos")
 
         def _host_result(agg_result, host_name):
             """Safely retrieve a host's MultiResult from an AggregatedResult."""

@@ -1,0 +1,20 @@
+{# l2_trunk_port — Cisco IOS-XE trunk port configuration #}
+interface {{ interface }}
+{% if description is defined and description %}
+ description {{ description }}
+{% endif %}
+ switchport mode trunk
+{% if native_vlan is defined and native_vlan %}
+ switchport trunk native vlan {{ native_vlan }}
+{% endif %}
+{% if allowed_vlans is defined and allowed_vlans %}
+ switchport trunk allowed vlan {{ allowed_vlans }}
+{% endif %}
+{% if mtu is defined and mtu %}
+ mtu {{ mtu }}
+{% endif %}
+{% if shutdown | default(false) %}
+ shutdown
+{% else %}
+ no shutdown
+{% endif %}

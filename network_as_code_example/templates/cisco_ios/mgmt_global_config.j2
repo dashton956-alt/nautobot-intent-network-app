@@ -1,0 +1,50 @@
+{# mgmt_global_config — Cisco IOS-XE Day-0 global management configuration #}
+hostname {{ hostname | default(inventory_hostname) }}
+{% if domain_name is defined %}
+ip domain name {{ domain_name }}
+{% endif %}
+{% if dns_servers is defined %}
+{% for dns in dns_servers %}
+ip name-server {{ dns }}
+{% endfor %}
+{% endif %}
+{% if ntp_servers is defined %}
+{% for ntp in ntp_servers %}
+ntp server {{ ntp.address | default(ntp) }}{% if ntp.vrf is defined %} vrf {{ ntp.vrf }}{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if timezone is defined %}
+clock timezone {{ timezone }} {{ utc_offset | default(0) }}
+{% endif %}
+{% if syslog_servers is defined %}
+{% for host in syslog_servers %}
+logging host {{ host.address | default(host) }}
+{% endfor %}
+logging trap {{ syslog_level | default('informational') }}
+{% endif %}
+{% if snmp_community is defined %}
+snmp-server community {{ snmp_community }} RO
+{% endif %}
+{% if snmp_location is defined %}
+snmp-server location {{ snmp_location }}
+{% endif %}
+{% if snmp_contact is defined %}
+snmp-server contact {{ snmp_contact }}
+{% endif %}
+service timestamps log datetime msec localtime show-timezone
+service timestamps debug datetime msec localtime show-timezone
+no service password-encryption
+ip ssh version 2
+{% if banner_motd is defined %}
+banner motd ^
+{{ banner_motd }}
+^
+{% endif %}
+{% if lldp_enable | default(true) %}
+lldp run
+{% endif %}
+line vty 0 15
+ exec-timeout {{ vty_timeout | default(10) }} 0
+ transport input ssh
+ login local

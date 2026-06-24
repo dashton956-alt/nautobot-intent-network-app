@@ -1,0 +1,63 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_netflow
+# Purpose:     Configure NetFlow v9 (IPFIX-compatible) export on all devices
+#              to two central collectors. Sampling at 1:1000 reduces CPU load
+#              while providing statistically representative traffic data.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-mgmt-netflow-001          # MANDATORY
+  type: mgmt_netflow                     # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "NetFlow / IPFIX — configure flow export to central collector"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    all_tenant_devices: true             # MANDATORY — flow data from every device
+
+  # ── NetFlow configuration ───────────────────────────────────────────────────
+  management:
+    netflow:
+      version: 9                         # MANDATORY — 5 | 9 | ipfix
+      collectors:                        # MANDATORY — at least one collector
+        - ip: "10.1.2.10"
+          port: 2055                     # OPTIONAL (default: 2055) — UDP destination port
+          description: "Primary NetFlow collector"
+        - ip: "10.1.2.11"
+          port: 2055
+          description: "Secondary NetFlow collector"
+      flow_cache:
+        max_entries: 16000               # OPTIONAL — maximum concurrent flows in cache
+        active_timeout_mins: 1           # OPTIONAL — export active flows after N minutes
+        inactive_timeout_secs: 15        # OPTIONAL — export idle flows after N seconds
+      sampling:
+        mode: deterministic              # OPTIONAL — deterministic | random
+        rate: 1000                       # OPTIONAL — sample 1 in every 1000 packets
+      interfaces:                        # MANDATORY — interfaces to monitor
+        - name: GigabitEthernet0/0
+          direction: input               # OPTIONAL — input | output | both
+        - name: GigabitEthernet0/1
+          direction: input
+          direction_output: true         # OPTIONAL — also capture egress flows
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify NetFlow export configured"
+        expected:
+          - config_snippet: "ip flow-export destination 10.1.2.10 2055"

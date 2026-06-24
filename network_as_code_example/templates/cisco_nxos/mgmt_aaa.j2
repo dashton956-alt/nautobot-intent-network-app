@@ -1,0 +1,20 @@
+{# mgmt_aaa — Cisco NX-OS AAA and TACACS+ configuration #}
+feature tacacs+
+{% for server in tacacs_servers | default([]) %}
+tacacs-server host {{ server.host }} key {{ server.key }}{% if server.port is defined %} port {{ server.port }}{% endif %}{% if server.timeout is defined %} timeout {{ server.timeout }}{% endif %}
+
+{% endfor %}
+{% if tacacs_servers is defined %}
+aaa group server tacacs+ TACACS-GROUP
+{% for server in tacacs_servers %}
+ server {{ server.host }}
+{% endfor %}
+ use-vrf {{ tacacs_vrf | default('management') }}
+ source-interface {{ tacacs_source | default('mgmt0') }}
+{% endif %}
+aaa authentication login default group TACACS-GROUP local
+aaa authorization exec default group TACACS-GROUP local
+aaa accounting default group TACACS-GROUP
+{% for user in local_users | default([]) %}
+username {{ user.name }} privilege {{ user.privilege | default(15) }} role network-admin password {{ user.password }}
+{% endfor %}

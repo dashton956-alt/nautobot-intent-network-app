@@ -1,0 +1,71 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: sr_mpls
+# Purpose:     Enable Segment Routing MPLS on devices — configure SRGB range,
+#              prefix SIDs, adjacency SIDs, and TI-LFA fast reroute.
+# HIGH-IMPACT TYPE — requires approved_by when OPA enforce is on.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-sr-mpls-core-001             # MANDATORY
+type: sr_mpls                         # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "Segment Routing MPLS — DC core P/PE routers — SRGB 16000–23999"  # MANDATORY
+change_ticket: CHG0030020             # MANDATORY (CHG + 7 digits)
+approved_by: "net.engineer"           # MANDATORY for sr_mpls (high-impact)
+
+scope:
+  roles: [p-router, pe-router]        # MANDATORY — target all P and PE routers
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  SEGMENT ROUTING GLOBAL BLOCK (MANDATORY)                              ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+srgb_start: 16000                     # MANDATORY — start of the Segment Routing Global Block
+srgb_end: 23999                       # MANDATORY — end of the SRGB label range
+                                      #   IANA-reserved range: 16000–23999 (OSPF/IS-IS default)
+                                      #   Must be consistent across ALL SR-capable devices
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  PER-DEVICE PREFIX SIDs (OPTIONAL — keyed by device name)             ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+prefix_sids:                          # OPTIONAL — Node SIDs for loopback prefix advertisement
+  pe-01: 101                          #   Label = srgb_start + prefix_sid (16000+101 = 16101)
+  pe-02: 102                          #   Each device needs a unique SID within the SRGB
+  p-01: 201
+  p-02: 202
+  # Add one entry per device in scope
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  PER-DEVICE ADJACENCY SIDs (OPTIONAL)                                 ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+adjacency_sids:                       # OPTIONAL — static adjacency SIDs for specific links
+  pe-01:                              #   Keyed by device name; list of per-interface SIDs
+    - interface: GigabitEthernet0/0
+      sid: 9001                       #   Local label — must be in SRLB range (not SRGB)
+      protected: true                 #   Enable TI-LFA protection for this adjacency
+  pe-02:
+    - interface: GigabitEthernet0/0
+      sid: 9002
+      protected: true
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  FAST REROUTE (OPTIONAL)                                               ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+ti_lfa: true                          # OPTIONAL (default: true) — enable TI-LFA topology-independent
+                                      #   fast reroute; provides sub-50ms convergence
+ti_lfa_mode: node-protection          # OPTIONAL (default: node-protection)
+                                      #   link-protection — protect against link failures
+                                      #   node-protection — protect against node failures (stronger)
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling) — MANDATORY rolling/canary for SR
+  save_config: true
+
+verification:
+  level: nuts                         # OPTIONAL — nuts verifies label forwarding table
+  trigger: both                       # OPTIONAL — run on deploy AND scheduled
+  fail_action: rollback

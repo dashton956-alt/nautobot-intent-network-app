@@ -1,0 +1,13 @@
+{# mgmt_ntp — Cisco NX-OS NTP configuration #}
+{% for server in ntp_servers | default([]) %}
+ntp server {{ server.address | default(server) }}{% if server.prefer | default(false) %} prefer{% endif %}{% if server.use_vrf is defined %} use-vrf {{ server.use_vrf }}{% endif %}
+
+{% endfor %}
+{% if ntp_source_interface is defined %}
+ntp source-interface {{ ntp_source_interface }}
+{% endif %}
+{% if ntp_authenticate | default(false) %}
+ntp authenticate
+ntp trusted-key 1
+ntp authentication-key 1 md5 {{ ntp_auth_key }}
+{% endif %}

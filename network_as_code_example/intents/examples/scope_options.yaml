@@ -1,0 +1,135 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# SCOPE OPTIONS REFERENCE
+# ─────────────────────────────────────────────────────────────────────────────
+# This file is a REFERENCE ONLY — it is not a runnable intent.
+# It documents every way to define `scope:` in an intent, and the rules for
+# combining scope targets. Scope determines WHICH devices receive the config.
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+# ── Option 1: All tenant devices ──────────────────────────────────────────────
+# Targets every device registered under the tenant in Nautobot.
+# Use for: NTP, syslog, SNMP, SSH, banners, NETCONF, telemetry.
+#
+scope:
+  all_tenant_devices: true              # MANDATORY when using this option
+                                        # Cannot be combined with sites/roles/devices
+
+
+# ── Option 2: By site ─────────────────────────────────────────────────────────
+# Targets all devices located at one or more named sites.
+# Site names must match Nautobot site slugs exactly.
+#
+scope:
+  sites:
+    - dc-east                           # Primary data centre east
+    - dc-west                           # Primary data centre west
+    # - campus-lon                      # London campus
+    # - branch-lon                      # London branch office
+
+
+# ── Option 3: By role ─────────────────────────────────────────────────────────
+# Targets all devices assigned a specific device role in Nautobot.
+# Use for: policies that apply to a class of device (all access-switches, etc.)
+#
+scope:
+  roles:
+    - access-switch                     # Layer 2 access-layer switch
+    # - distribution-switch             # Layer 3 distribution switch
+    # - core-router                     # Core / backbone router
+    # - leaf-switch                     # DC fabric leaf (VTEP)
+    # - spine-switch                    # DC fabric spine (BGP RR)
+    # - pe-router                       # MPLS Provider Edge router
+    # - p-router                        # MPLS Provider core router
+    # - border-leaf                     # EVPN multi-site border leaf
+    # - firewall                        # Firewall device
+
+
+# ── Option 4: By site AND role (intersection) ─────────────────────────────────
+# Targets devices that are BOTH at the specified site AND have the specified role.
+# This is the most common combination for DC intents.
+#
+scope:
+  sites:
+    - dc-east
+  roles:
+    - leaf-switch                       # Only leaf-switches at dc-east
+
+
+# ── Option 5: Explicit device list ───────────────────────────────────────────
+# Targets named devices directly. Use when the change is device-specific
+# (e.g., a specific edge router, an MLAG pair, border leaves).
+#
+scope:
+  devices:
+    - lon-edge-rtr-01                   # Exact device hostname from Nautobot
+    - dc-east-spine-01
+    - dc-east-spine-02
+
+
+# ── Option 6: Single site + single role (alternative syntax) ─────────────────
+# Some intent types use singular `site:` and `role:` (without list).
+# Check the schema for the specific intent type.
+#
+scope:
+  site: dc-east                         # Singular — single string (not a list)
+  role: distribution                    # Singular — used by mgmt_dhcp_server
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCOPE SELECTION GUIDE
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#   Intent type                     Recommended scope target
+#   ─────────────────────────────   ──────────────────────────────────────────
+#   mgmt_ntp, mgmt_syslog           all_tenant_devices: true
+#   mgmt_snmp, mgmt_ssh             all_tenant_devices: true
+#   mgmt_global_config              all_tenant_devices: true
+#   mgmt_motd, mgmt_lldp_cdp        all_tenant_devices: true
+#   mgmt_netconf, mgmt_telemetry    all_tenant_devices: true
+#   mgmt_aaa_device, mgmt_dns_dhcp  all_tenant_devices: true
+#   mgmt_interface                  all_tenant_devices: true
+#   mgmt_netflow                    all_tenant_devices: true
+#
+#   vlan_provision                  sites + roles (access-switch)
+#   l2_access_port                  sites + roles (access-switch)
+#   l2_trunk_port                   sites + roles (access-switch)
+#   dhcp_snooping, dai              roles (access-switch)
+#   storm_control, port_security    roles (access-switch)
+#   stp_policy                      roles (access-switch)
+#   mgmt_stp_root                   sites + roles (distribution-switch)
+#
+#   ospf, eigrp, isis               sites + roles (distribution/core)
+#   fhrp                            sites + roles (distribution-switch)
+#   vrf_basic, ipv6_dual_stack      sites + roles (core-router)
+#   bfd                             roles (core-router, pe-router)
+#
+#   bgp_ebgp, bgp_ibgp              devices (per edge/PE router)
+#   bgp_ipv6_af, bgp_evpn_af        devices (per router)
+#   pbr, prefix_list, route_policy  devices (per router)
+#   static_route                    devices (per router/branch)
+#
+#   dc_underlay, bgp_evpn_af        sites + roles (leaf/spine)
+#   anycast_gateway, vtep           sites + roles (leaf-switch)
+#   dc_mlag, template-mlag          devices (explicit MLAG pair)
+#   l3vni, template-l3vni           sites + roles (leaf-switch)
+#   evpn_multisite                  devices (border leaves at both sites)
+#
+#   mlag, lag, macsec               devices (specific device)
+#   pvlan, qinq                     devices (specific device)
+#   ipsec_s2s, ipsec_ikev2          devices (endpoint routers)
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# SCOPE RESOLUTION ORDER (how Nautobot resolves the device list)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#   1. all_tenant_devices: true   → ALL devices under the tenant
+#   2. devices: [...]             → Explicit list (highest specificity)
+#   3. sites + roles              → Intersection of site membership AND role
+#   4. sites only                 → All devices at those sites
+#   5. roles only                 → All devices with that role (across all sites)
+#
+#   Rules:
+#   • devices: overrides sites/roles if both are specified
+#   • all_tenant_devices: cannot be combined with any other scope key
+#   • An empty scope block or missing scope is a schema validation error

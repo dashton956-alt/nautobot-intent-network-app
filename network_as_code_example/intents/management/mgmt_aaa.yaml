@@ -1,0 +1,112 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_aaa_device
+# Purpose:     Configure TACACS+ (or RADIUS) for device management login,
+#              exec authorisation, and command accounting. A local emergency
+#              account provides access when AAA servers are unreachable.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-aaa-all-devices-001            # MANDATORY
+type: mgmt_aaa_device                   # MANDATORY
+version: 1                              # MANDATORY
+tenant: acme-corp                       # MANDATORY
+description: "TACACS+ device login and command authorisation — all devices"  # MANDATORY
+change_ticket: CHG0030105               # MANDATORY (CHG + 7 digits)
+approved_by: ""                         # OPTIONAL here
+
+scope:
+  all_tenant_devices: true              # MANDATORY — AAA usually applies to all devices
+
+management:
+  aaa_device:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  TACACS+ SERVERS (MANDATORY — at least one)                            ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    tacacs_servers:
+      - host: "10.1.1.20"                   # MANDATORY — TACACS+ server IP or hostname
+        port: 49                            # OPTIONAL (default: 49) — TACACS+ TCP port
+        key_ref: vault:secret/tacacs/key    # MANDATORY — auth key (use Vault, never plaintext)
+        timeout: 5                          # OPTIONAL (default: 5) — server timeout in seconds
+        priority: 1                         # OPTIONAL — priority 1 = primary server (lower = preferred)
+
+      - host: "10.1.1.21"                   # Secondary TACACS+ server for redundancy
+        port: 49
+        key_ref: vault:secret/tacacs/key
+        timeout: 5
+        priority: 2                         # priority 2 = secondary / fallback
+
+    server_group: TACACS-CORP               # MANDATORY — named group referenced in AAA method lists
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  RADIUS (ALTERNATIVE TO TACACS+)                                       ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    # radius_servers:                       # OPTIONAL — use RADIUS instead of TACACS+
+    #   - host: "10.1.1.30"
+    #     auth_port: 1812                   # OPTIONAL (default: 1812) — RADIUS auth port
+    #     acct_port: 1813                   # OPTIONAL (default: 1813) — RADIUS accounting port
+    #     key_ref: vault:secret/radius/key
+    #     timeout: 5
+    #     priority: 1
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  AUTHENTICATION METHOD LISTS (MANDATORY)                               ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    authentication:
+      login: "group TACACS-CORP local"      # MANDATORY — try TACACS+ first, local as fallback
+                                            #   Always include 'local' as the last method
+                                            #   to retain access if AAA servers are unreachable
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  AUTHORISATION METHOD LISTS (OPTIONAL)                                 ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    authorization:
+      exec: "group TACACS-CORP local if-authenticated"  # OPTIONAL — exec shell authorisation
+      commands_15: "group TACACS-CORP none"             # OPTIONAL — priv-15 command authorisation
+                                                        #   'none' = allow if TACACS+ unreachable
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  ACCOUNTING METHOD LISTS (OPTIONAL)                                    ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    accounting:
+      commands_0: "start-stop group TACACS-CORP"   # OPTIONAL — log all commands (priv 0)
+      commands_15: "start-stop group TACACS-CORP"  # OPTIONAL — log priv-15 commands
+      exec: "start-stop group TACACS-CORP"         # OPTIONAL — log exec sessions
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  LOCAL FALLBACK ACCOUNT (MANDATORY)                                    ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    local_fallback:
+      username: emergency-admin             # MANDATORY — emergency local account
+      privilege: 15                         # MANDATORY — priv-15 for break-glass access
+      password_ref: vault:secret/local-accounts/emergency  # MANDATORY — Vault reference
+
+                                        #   Rotate this password at least annually
+                                        #   Store in password manager / Vault, not in this file
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: NONE
+  encryption: none
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                     # OPTIONAL (default: rolling)
+  save_config: true
+  # NOTE: do NOT use fail_action: rollback for AAA changes —
+  # a rollback could lock out all administrative access to the device.
+
+verification:
+  level: nuts
+  trigger: on_deploy
+  fail_action: alert                    # IMPORTANT: alert only — never rollback for AAA changes
+  tests:
+    - test_class: TestNapalmRunningConfigContains
+      label: "Verify TACACS+ server group configured"
+      expected:
+        - config_snippet: "tacacs server"
+        - config_snippet: "aaa authentication login"

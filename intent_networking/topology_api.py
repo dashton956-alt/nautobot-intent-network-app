@@ -605,6 +605,40 @@ def _get_interface_inventory(device):
     return ifaces
 
 
+# Nautobot Platform.network_driver (machine name) -> canonical platform slug.
+# Devices are commonly named "Arista EOS" / "Cisco IOS" in the UI while their
+# network_driver carries the stable machine identifier — key off the driver.
+_DRIVER_TO_SLUG = {
+    "arista_eos": "arista-eos",
+    "cisco_ios": "cisco-ios-xe",
+    "cisco_xe": "cisco-ios-xe",
+    "cisco_iosxe": "cisco-ios-xe",
+    "cisco_xr": "cisco-ios-xr",
+    "cisco_iosxr": "cisco-ios-xr",
+    "cisco_nxos": "cisco-nxos",
+    "juniper_junos": "juniper-junos",
+    "nokia_sros": "nokia-sros",
+    "aruba_aoscx": "aruba-aos-cx",
+}
+
+
+def _platform_slug(device) -> str:
+    """Resolve a canonical platform slug for a device.
+
+    Prefers the machine-readable ``Platform.network_driver`` (e.g. ``arista_eos``)
+    over the human-facing ``Platform.name`` (e.g. ``Arista EOS``), so live
+    collection works regardless of how the platform was named in Nautobot.
+    """
+    plat = getattr(device, "platform", None)
+    if not plat:
+        return ""
+    driver = (getattr(plat, "network_driver", "") or "").strip().lower()
+    if driver in _DRIVER_TO_SLUG:
+        return _DRIVER_TO_SLUG[driver]
+    name = (plat.name or "").strip().lower()
+    return _DRIVER_TO_SLUG.get(name, name)
+
+
 def _collect_live_data(device) -> dict:
     """Collect ARP table, routing table, VRFs, BGP neighbors from device via Nornir.
 
@@ -616,7 +650,7 @@ def _collect_live_data(device) -> dict:
     if device.status and device.status.name.lower() == "maintenance":
         return {"error": "Device is in maintenance mode — live collection skipped"}
 
-    platform = device.platform.name if device.platform else ""
+    platform = _platform_slug(device)
     supported = (
         "arista-eos",
         "cisco-ios-xe",
@@ -795,7 +829,48 @@ def _normalise_arp(rows, _platform) -> list:
     return out
 
 
+def _parse_routes_text(text: str) -> list:
+    """Parse ``show ip route`` output as raw text.
+
+    Used when TextFSM has no or a failed template (mirrors the ARP raw-text
+    fallback). Handles IOS and EOS formats.
+    """
+    import re as _re
+
+    out = []
+    for line in text.splitlines():
+        m = _re.match(r"^\s*([A-Z][A-Z0-9 *]{0,3}?)\s+(\d+\.\d+\.\d+\.\d+)/(\d+)\s+(.*)$", line)
+        if not m:
+            continue
+        proto, net, masklen, rest = m.group(1).strip(), m.group(2), m.group(3), m.group(4)
+        nexthop = ""
+        via = _re.search(r"via\s+(\d+\.\d+\.\d+\.\d+)", rest)
+        if via:
+            nexthop = via.group(1)
+        elif "directly connected" in rest:
+            nexthop = "directly connected"
+        # Interface is typically the last comma-separated token.
+        tail = rest.split(",")[-1].strip()
+        interface = tail if _re.match(r"^[A-Za-z][\w./-]*\d", tail) else ""
+        out.append(
+            {
+                "network": net,
+                "mask": masklen,
+                "nexthop": nexthop,
+                "protocol": proto,
+                "interface": interface,
+                "metric": "",
+                "distance": "",
+                "vrf": "default",
+            }
+        )
+    return out[:300]
+
+
 def _normalise_routes(rows, _platform) -> list:
+    # TextFSM miss/failure returns raw text — parse it rather than iterating chars.
+    if isinstance(rows, str):
+        return _parse_routes_text(rows)
     out = []
     for row in rows[:300]:
         if isinstance(row, dict):
@@ -821,6 +896,8 @@ def _normalise_routes(rows, _platform) -> list:
 
 
 def _normalise_vrfs(rows, _platform) -> list:
+    if isinstance(rows, str):  # TextFSM miss — avoid char iteration
+        return []
     out = []
     for row in rows[:50]:
         if isinstance(row, dict):
@@ -836,6 +913,8 @@ def _normalise_vrfs(rows, _platform) -> list:
 
 
 def _normalise_bgp(rows, _platform) -> list:
+    if isinstance(rows, str):  # TextFSM miss — avoid char iteration
+        return []
     out = []
     for row in rows[:100]:
         if isinstance(row, dict):

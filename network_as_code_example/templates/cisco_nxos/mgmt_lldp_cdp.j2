@@ -1,0 +1,22 @@
+{# mgmt_lldp_cdp — Cisco NX-OS LLDP and CDP configuration #}
+{% if lldp_enable | default(true) %}
+feature lldp
+{% if lldp_timer is defined %}
+lldp timer {{ lldp_timer }}
+{% endif %}
+{% if lldp_holdtime is defined %}
+lldp holdtime {{ lldp_holdtime }}
+{% endif %}
+{% for intf in lldp_disabled_interfaces | default([]) %}
+interface {{ intf }}
+ no lldp transmit
+ no lldp receive
+{% endfor %}
+{% else %}
+no feature lldp
+{% endif %}
+{% if cdp_enable | default(false) %}
+feature cdp
+{% else %}
+no cdp enable
+{% endif %}

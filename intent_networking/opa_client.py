@@ -51,6 +51,10 @@ logger = logging.getLogger(__name__)
 OPA_URL = os.environ.get("OPA_URL", "https://opa:8181")
 
 
+class OpaUnreachableError(RuntimeError):
+    """Raised when the OPA server cannot be contacted."""
+
+
 def _plugin_cfg(key: str, default=None):
     """Retrieve a value from the intent_networking plugin config."""
     return settings.PLUGINS_CONFIG.get("intent_networking", {}).get(key, default)
@@ -92,36 +96,43 @@ def check_intent_policy(intent, topology_context: dict) -> dict:
     violations = []
     warnings = []
 
-    # Common policies
-    for package in ["network.common", "network.compliance", "network.capacity"]:
-        result = _query_opa(package, input_data)
-        if result:
-            violations.extend(result.get("deny", []))
-            warnings.extend(result.get("warn", []))
-
-    # Customer-specific policy (if it exists)
-    customer_package = f"network.customers.{tenant_slug.replace('-', '_')}"
-    result = _query_opa(customer_package, input_data)
-    if result:
-        violations.extend(result.get("deny", []))
-        warnings.extend(result.get("warn", []))
-
-    # Per-intent-type policy (if it exists)
+    packages_to_check = [
+        "network.common",
+        "network.compliance",
+        "network.capacity",
+        f"network.customers.{tenant_slug.replace('-', '_')}",
+    ]
     intent_type = intent.intent_type
     if intent_type:
-        type_package = f"network.intent_types.{intent_type.replace('-', '_')}"
-        result = _query_opa(type_package, input_data)
-        if result:
-            violations.extend(result.get("deny", []))
-            warnings.extend(result.get("warn", []))
+        packages_to_check.append(f"network.intent_types.{intent_type.replace('-', '_')}")
+    packages_to_check.extend(_plugin_cfg("opa_custom_packages", []))
 
-    # User-configured custom policy packages
-    custom_packages = _plugin_cfg("opa_custom_packages", [])
-    for package in custom_packages:
-        result = _query_opa(package, input_data)
-        if result:
-            violations.extend(result.get("deny", []))
-            warnings.extend(result.get("warn", []))
+    try:
+        for package in packages_to_check:
+            result = _query_opa(package, input_data)
+            if result:
+                violations.extend(result.get("deny", []))
+                warnings.extend(result.get("warn", []))
+    except OpaUnreachableError as exc:
+        fail_open = _plugin_cfg("opa_fail_open_on_resolution", False)
+        if fail_open:
+            logger.warning(
+                "OPA unreachable during resolution of intent %s — failing open (opa_fail_open_on_resolution=True): %s",
+                intent.intent_id,
+                exc,
+            )
+            return {"allowed": True, "violations": [], "warnings": [], "opa_checked": False}
+        logger.error(
+            "OPA unreachable during resolution of intent %s — blocking (opa_fail_open_on_resolution=False): %s",
+            intent.intent_id,
+            exc,
+        )
+        return {
+            "allowed": False,
+            "violations": [f"OPA unreachable — resolution blocked (fail-closed): {exc}"],
+            "warnings": [],
+            "opa_checked": False,
+        }
 
     if warnings:
         logger.warning("OPA advisory warnings for intent %s: %s", intent.intent_id, warnings)
@@ -230,12 +241,10 @@ def _query_opa(package: str, input_data: dict) -> dict:
             return {}
         resp.raise_for_status()
         return resp.json().get("result", {})
-    except requests.exceptions.ConnectionError:
-        logger.error(
-            "Cannot connect to OPA at %s. Check OPA_URL environment variable and that OPA is running.",
-            OPA_URL,
-        )
-        return {}
+    except requests.exceptions.ConnectionError as exc:
+        raise OpaUnreachableError(
+            f"Cannot connect to OPA at {OPA_URL}. Check OPA_URL and ensure OPA is running."
+        ) from exc
     except Exception as exc:
         logger.error("OPA query failed for %s: %s", package, exc)
         return {}

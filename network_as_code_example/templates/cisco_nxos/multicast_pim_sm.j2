@@ -1,0 +1,22 @@
+{# multicast_pim_sm — Cisco NX-OS PIM Sparse Mode multicast configuration #}
+feature pim
+
+ip multicast-routing
+{% if rp_type | default('static') == 'static' %}
+{% for rp in rp_addresses | default([]) %}
+ip pim rp-address {{ rp.address }} group-list {{ rp.group_range | default('224.0.0.0/4') }}
+{% endfor %}
+{% elif rp_type == 'bsr' %}
+ip pim bsr forward listen
+interface {{ bsr_interface | default('loopback0') }}
+ ip pim bsr-candidate
+ ip pim rp-candidate
+{% elif rp_type == 'anycast' %}
+{% for rp in rp_addresses | default([]) %}
+ip pim anycast-rp {{ rp.address }} {{ rp.anycast_rp_peer }}
+{% endfor %}
+{% endif %}
+{% for intf in multicast_interfaces | default([]) %}
+interface {{ intf.name }}
+ ip pim sparse-mode
+{% endfor %}

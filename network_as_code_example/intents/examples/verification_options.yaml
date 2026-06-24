@@ -1,0 +1,290 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# VERIFICATION / TESTING OPTIONS REFERENCE
+# ─────────────────────────────────────────────────────────────────────────────
+# This file is a REFERENCE ONLY — it is not a runnable intent.
+# It documents every field available under the `verification:` block with all
+# valid values, all available test_class types with example usage, and when
+# to use each option.
+# ═════════════════════════════════════════════════════════════════════════════
+
+verification:
+
+  # ── Level ───────────────────────────────────────────────────────────────────
+  # Controls the depth of post-deployment verification.
+  #
+  level: basic                           # OPTIONAL (default: basic)
+                                         # Values:
+                                         #
+                                         #   basic  — config-only check
+                                         #            • confirms rendered config was pushed
+                                         #            • fast; no live state queried
+                                         #            • suitable for: mgmt bundles, banners,
+                                         #              DNS/NTP, simple access-port changes
+                                         #
+                                         #   nuts   — live state verification via NAPALM/pyATS
+                                         #            • queries device for operational state
+                                         #            • tests BGP neighbour state, VLANs,
+                                         #              interfaces, routes, and more
+                                         #            • required for: routing protocols, BGP,
+                                         #              EVPN, IPSec, FHRP, L3VNI, load balancers
+                                         #            • use for ALL high-impact intent types
+
+  # ── Trigger ─────────────────────────────────────────────────────────────────
+  # When verification tests are executed.
+  #
+  trigger: on_deploy                     # OPTIONAL (default: on_deploy)
+                                         # Values:
+                                         #
+                                         #   on_deploy  — run tests immediately after deployment
+                                         #                • default; catches immediate failures
+                                         #
+                                         #   scheduled  — run tests on the cron schedule only
+                                         #                • no post-deploy check; use when deploy
+                                         #                  is followed by manual verification
+                                         #
+                                         #   both       — on_deploy + scheduled recurring checks
+                                         #                • MANDATORY for PCI-DSS compliance
+                                         #                  (OPA enforces this)
+                                         #                • recommended for: BGP sessions, IPSec
+                                         #                  tunnels, FHRP gateways, EVPN fabrics
+
+  # ── Schedule ────────────────────────────────────────────────────────────────
+  # Cron expression for recurring verification. Required when trigger: scheduled
+  # or trigger: both.
+  #
+  schedule: "*/30 * * * *"              # OPTIONAL — standard cron format (UTC)
+                                         # Examples:
+                                         #   "*/5 * * * *"    — every 5 minutes
+                                         #   "*/10 * * * *"   — every 10 minutes (IPSec tunnels)
+                                         #   "*/15 * * * *"   — every 15 minutes (PCI-DSS paths)
+                                         #   "*/30 * * * *"   — every 30 minutes (BGP, OSPF)
+                                         #   "0 * * * *"      — every hour
+                                         #   "0 6 * * *"      — daily at 06:00 UTC
+
+  # ── Fail Action ─────────────────────────────────────────────────────────────
+  # What to do when a verification test fails.
+  #
+  fail_action: alert                     # OPTIONAL (default: alert)
+                                         # Values:
+                                         #
+                                         #   alert      — send notification only; leave config
+                                         #                • safe default for most intent types
+                                         #                • use when manual intervention needed
+                                         #
+                                         #   rollback   — revert to previous config automatically
+                                         #                • use for: BGP peerings, IPSec tunnels,
+                                         #                  trunk misconfigurations, FHRP, EVPN
+                                         #                • DO NOT use for: AAA/SSH changes
+                                         #                  (rollback could lock out access)
+                                         #
+                                         #   remediate  — attempt automatic self-healing
+                                         #                • experimental; use with caution
+                                         #                • only for idempotent intent types
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AVAILABLE TEST CLASSES
+  # ─────────────────────────────────────────────────────────────────────────
+  # All tests run via NAPALM getters or pyATS parsers.
+  # Each test_class entry requires a `label` and `expected` (or `test_data`).
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  tests:
+
+    # ── TestNapalmRunningConfigContains ───────────────────────────────────────
+    # Checks that specific config snippets are present in the running config.
+    # Use for: any config-level assertion (STP, storm-control, ACLs, NTP, etc.)
+    #
+    - test_class: TestNapalmRunningConfigContains
+      label: "Verify feature X is present in running config"
+      expected:
+        - config_snippet: "spanning-tree mode rapid-pvst"   # exact string match
+        - config_snippet: "ip dhcp snooping"
+        - config_snippet: "ip ssh version 2"
+
+    # ── TestNapalmBgpNeighbors ────────────────────────────────────────────────
+    # Verifies that specific BGP peers are in the Established state.
+    # Use for: bgp_ebgp, bgp_ibgp, bgp_evpn_af, ipsec_s2s (iBGP over tunnel)
+    #
+    - test_class: TestNapalmBgpNeighbors
+      label: "Verify BGP sessions are Established"
+      expected:                                  # Per-device list (no test_data wrapper)
+        - peer: 203.0.113.1                      # Peer IP address
+          remote_as: 64512                       # Expected remote AS
+          state: Established                     # Expected BGP FSM state
+        - peer: 10.255.0.2
+          remote_as: 65001
+          state: Established
+
+    # ── TestNapalmBgpNeighbors (with test_data — per-host assertions) ─────────
+    # Use test_data when each device in scope has DIFFERENT expected neighbours.
+    #
+    - test_class: TestNapalmBgpNeighbors
+      label: "Verify spine-leaf BGP overlay sessions"
+      test_data:
+        - host: dc-east-spine-01                 # Device hostname
+          expected:
+            - peer: dc-east-leaf-01
+              state: Established
+            - peer: dc-east-leaf-02
+              state: Established
+        - host: dc-east-spine-02
+          expected:
+            - peer: dc-east-leaf-01
+              state: Established
+
+    # ── TestNapalmBgpNeighborsCount ───────────────────────────────────────────
+    # Asserts the exact number of BGP peers on a device.
+    # Use for: edge routers where you want to detect spurious sessions.
+    #
+    - test_class: TestNapalmBgpNeighborsCount
+      label: "Verify exactly 2 BGP peers on edge router"
+      expected_count: 2                          # Exact peer count expected
+
+    # ── TestNapalmInterfaces ──────────────────────────────────────────────────
+    # Checks interface operational state (up/down, enabled/disabled).
+    # Use for: access ports, trunk ports, loopbacks, VXLAN interfaces, LAGs.
+    #
+    - test_class: TestNapalmInterfaces
+      label: "Verify interfaces are up and enabled"
+      expected:
+        - name: GigabitEthernet0/1               # Interface name (exact)
+          is_up: true                            # Operational state (line protocol)
+          is_enabled: true                       # Admin state (no shutdown)
+        - name: Loopback0
+          is_up: true
+          is_enabled: true
+        - name: Vxlan1                           # VXLAN interface
+          is_up: true
+          is_enabled: true
+
+    # ── TestNapalmInterfaces (with test_data — per-host) ──────────────────────
+    - test_class: TestNapalmInterfaces
+      label: "Verify fabric uplink interfaces per spine"
+      test_data:
+        - host: dc-east-spine-01
+          expected:
+            - name: Ethernet1
+              is_enabled: true
+              is_up: true
+            - name: Ethernet2
+              is_enabled: true
+              is_up: true
+
+    # ── TestNapalmVlans ───────────────────────────────────────────────────────
+    # Verifies that VLANs exist and have the correct name in the VLAN database.
+    # Use for: vlan_provision, l2vni.
+    #
+    - test_class: TestNapalmVlans
+      label: "Verify VLANs are provisioned with correct names"
+      expected:
+        - id: 100
+          name: SERVERS-PROD                     # Must match exactly
+        - id: 200
+          name: STORAGE
+        - id: 999
+          name: QUARANTINE
+
+    # ── TestNapalmLldpNeighbors ───────────────────────────────────────────────
+    # Confirms expected LLDP adjacencies are present (used for topology checks).
+    # Use for: LLDP/CDP config, fabric underlay validation, cabling verification.
+    #
+    - test_class: TestNapalmLldpNeighbors
+      label: "Verify LLDP adjacencies"
+      test_data:
+        - host: lab-arista-sw01
+          expected:
+            - local_port: Ethernet1              # Local interface name
+              neighbor: lab-spine-01             # Expected neighbour hostname
+
+    # ── TestNapalmPing ────────────────────────────────────────────────────────
+    # Sends an ICMP ping from the device and asserts success/failure.
+    # Use for: connectivity intents, IPSec tunnel endpoints, static routes.
+    #
+    - test_class: TestNapalmPing
+      label: "Verify reachability to destination"
+      expected:
+        - destination: 198.51.100.50             # Target IP
+          success: true                          # true = ping must succeed
+        - source: "10.1.0.1"                     # OPTIONAL — source IP for the ping
+          destination: "10.1.0.2"
+          success: true
+        - destination: "192.168.1.1"
+          success: true
+          count: 5                               # OPTIONAL — number of pings (default: 5)
+          timeout: 2                             # OPTIONAL — per-ping timeout in seconds
+
+    # ── TestNapalmUsers ───────────────────────────────────────────────────────
+    # Verifies local user accounts exist at the expected privilege level.
+    # Use for: mgmt_global_config, mgmt_aaa_device, aaa intents.
+    #
+    - test_class: TestNapalmUsers
+      label: "Verify management users are configured"
+      expected:
+        - username: admin
+          level: 15                             # Privilege level
+        - username: emergency-admin
+          level: 15
+
+    # ── TestNapalmNetworkInstances ────────────────────────────────────────────
+    # Verifies VRF / network instances exist and have the correct type.
+    # Use for: vrf_basic, l3vni, mpls_l3vpn, connectivity (PCI VRF).
+    #
+    - test_class: TestNapalmNetworkInstances
+      label: "Verify VRF instances are present"
+      expected:
+        - name: PROD
+          type: L3VRF                           # L3VRF | L2VSI | DEFAULT_INSTANCE
+        - name: PCI-FINANCE
+          type: L3VRF
+
+    # ── TestNapalmConfig ──────────────────────────────────────────────────────
+    # General-purpose running config assertion (looser than RunningConfigContains).
+    # Use for: banners (multi-line text), DHCP pool verification.
+    #
+    - test_class: TestNapalmConfig
+      label: "Verify banner text is present"
+      expected:
+        - config_snippet: "AUTHORIZED ACCESS ONLY"   # Substring match in running config
+        - config_snippet: "ip dhcp pool SERVER-MGMT-POOL"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# QUICK REFERENCE — test_class selection guide
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#   What you want to verify              test_class
+#   ──────────────────────────────────   ─────────────────────────────────
+#   Config line is present               TestNapalmRunningConfigContains
+#   Banner / multi-line config text      TestNapalmConfig
+#   BGP session is Established           TestNapalmBgpNeighbors
+#   BGP peer count on device             TestNapalmBgpNeighborsCount
+#   Interface is up/enabled              TestNapalmInterfaces
+#   VLAN exists with correct name        TestNapalmVlans
+#   LLDP neighbour is present            TestNapalmLldpNeighbors
+#   ICMP reachability / tunnel up        TestNapalmPing
+#   Local user account exists            TestNapalmUsers
+#   VRF / network-instance exists        TestNapalmNetworkInstances
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# QUICK REFERENCE — verification level and trigger by impact
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#   Intent type                    level    trigger       fail_action
+#   ─────────────────────────────  ──────   ───────────   ───────────
+#   l2_access_port                 basic    on_deploy     alert
+#   l2_trunk_port                  nuts     on_deploy     rollback
+#   vlan_provision                 nuts     on_deploy     alert
+#   dhcp_snooping, dai             nuts     on_deploy     alert
+#   lag, mlag                      nuts     on_deploy     rollback
+#   ospf, eigrp, isis              nuts     both          alert
+#   bgp_ebgp, bgp_ibgp             nuts     both          rollback
+#   evpn_vxlan_fabric              nuts     both          alert
+#   l2vni, l3vni, vtep             nuts     on_deploy     alert
+#   ipsec_s2s, ipsec_ikev2         nuts     both          alert
+#   fw_rule                        nuts     on_deploy     rollback
+#   acl                            nuts     on_deploy     alert
+#   fhrp (HSRP/VRRP)               nuts     on_deploy     rollback
+#   mgmt_ntp, mgmt_syslog          basic    on_deploy     alert
+#   mgmt_motd, mgmt_lldp_cdp       nuts     on_deploy     alert
+#   mgmt_ssh, mgmt_aaa_device      nuts     on_deploy     alert (NOT rollback)
+#   connectivity (PCI-DSS)         nuts     both          alert

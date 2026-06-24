@@ -1,0 +1,37 @@
+{# aaa — Cisco IOS-XE AAA configuration #}
+aaa new-model
+{% for server in tacacs_servers | default([]) %}
+tacacs server {{ server.name | default('TACACS-' + loop.index | string) }}
+ address ipv4 {{ server.host }}
+ key {{ server.key }}
+{% if server.port is defined %}
+ port {{ server.port }}
+{% endif %}
+{% if server.timeout is defined %}
+ timeout {{ server.timeout }}
+{% endif %}
+{% endfor %}
+{% if tacacs_servers is defined and tacacs_servers %}
+aaa group server tacacs+ TACACS-GROUP
+{% for server in tacacs_servers %}
+ server name {{ server.name | default('TACACS-' + loop.index | string) }}
+{% endfor %}
+{% endif %}
+{% if radius_servers is defined %}
+{% for server in radius_servers %}
+radius server {{ server.name | default('RADIUS-' + loop.index | string) }}
+ address ipv4 {{ server.host }} auth-port {{ server.auth_port | default(1812) }} acct-port {{ server.acct_port | default(1813) }}
+ key {{ server.key }}
+{% endfor %}
+aaa group server radius RADIUS-GROUP
+{% for server in radius_servers %}
+ server name {{ server.name | default('RADIUS-' + loop.index | string) }}
+{% endfor %}
+{% endif %}
+aaa authentication login default {{ auth_group | default('group TACACS-GROUP') }} local
+aaa authorization exec default {{ authz_group | default('group TACACS-GROUP') }} local
+aaa accounting exec default start-stop {{ acct_group | default('group TACACS-GROUP') }}
+aaa accounting commands 15 default start-stop {{ acct_group | default('group TACACS-GROUP') }}
+{% for user in local_users | default([]) %}
+username {{ user.name }} privilege {{ user.privilege | default(15) }} secret {{ user.secret }}
+{% endfor %}

@@ -1,0 +1,43 @@
+{# mgmt_aaa — Arista EOS AAA with TACACS+ / RADIUS — management type #}
+{# WARNING: Do NOT use fail_action: rollback for AAA changes — can lock out access #}
+
+{% if aaa is defined %}
+{% if aaa.tacacs_servers is defined %}
+{% for server in aaa.tacacs_servers %}
+tacacs-server host {{ server.host }}
+   port {{ server.port | default(49) }}
+   key {{ server.key | default('') }}
+{% if server.timeout is defined %}
+   timeout {{ server.timeout }}
+{% endif %}
+{% endfor %}
+aaa group server tacacs+ {{ aaa.server_group_name | default('TACACS-CORP') }}
+{% for server in aaa.tacacs_servers %}
+   server {{ server.host }}
+{% endfor %}
+{% endif %}
+
+{% if aaa.radius_servers is defined %}
+{% for server in aaa.radius_servers %}
+radius-server host {{ server.host }} auth-port {{ server.auth_port | default(1812) }} acct-port {{ server.acct_port | default(1813) }}
+   key {{ server.key | default('') }}
+{% endfor %}
+aaa group server radius {{ aaa.radius_group_name | default('RADIUS-CORP') }}
+{% for server in aaa.radius_servers %}
+   server {{ server.host }}
+{% endfor %}
+{% endif %}
+
+aaa authentication login default {{ aaa.auth_login_method | default('group TACACS-CORP local') }}
+{% if aaa.auth_enable is defined %}
+aaa authentication enable default {{ aaa.auth_enable }}
+{% endif %}
+aaa authorization exec default {{ aaa.authz_exec | default('group TACACS-CORP local') }}
+aaa authorization commands all default {{ aaa.authz_commands | default('group TACACS-CORP local') }}
+aaa accounting exec default start-stop {{ aaa.accounting | default('group TACACS-CORP') }}
+aaa accounting commands all default start-stop {{ aaa.accounting | default('group TACACS-CORP') }}
+
+{% for user in aaa.local_users | default([]) %}
+username {{ user.username }} privilege {{ user.privilege | default(15) }} role network-admin secret {{ user.secret | default('') }}
+{% endfor %}
+{% endif %}

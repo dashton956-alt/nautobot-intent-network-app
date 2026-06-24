@@ -1,0 +1,24 @@
+{# fhrp — Arista EOS HSRP / VRRP first-hop redundancy configuration #}
+{% for intf_entry in fhrp_interfaces | default([]) %}
+interface {{ intf_entry.interface }}
+{% if fhrp_protocol | default('vrrp') == 'vrrp' %}
+   vrrp {{ fhrp_group | default(intf_entry.group) | default(1) }} ipv4 {{ virtual_ip | default(intf_entry.virtual_ip) }}
+   vrrp {{ fhrp_group | default(intf_entry.group) | default(1) }} priority-level {{ fhrp_priority | default(intf_entry.priority) | default(100) }}
+{% if preempt | default(intf_entry.preempt) | default(false) %}
+   vrrp {{ fhrp_group | default(intf_entry.group) | default(1) }} preempt
+{% endif %}
+{% if track_interface is defined and track_interface %}
+   vrrp {{ fhrp_group | default(1) }} tracked-object {{ track_interface }} decrement {{ track_decrement | default(20) }}
+{% endif %}
+{% elif fhrp_protocol | default('vrrp') == 'hsrp' %}
+   standby version 2
+   standby {{ fhrp_group | default(intf_entry.group) | default(1) }} ip {{ virtual_ip | default(intf_entry.virtual_ip) }}
+   standby {{ fhrp_group | default(intf_entry.group) | default(1) }} priority {{ fhrp_priority | default(intf_entry.priority) | default(100) }}
+{% if preempt | default(intf_entry.preempt) | default(false) %}
+   standby {{ fhrp_group | default(intf_entry.group) | default(1) }} preempt
+{% endif %}
+{% if track_interface is defined and track_interface %}
+   standby {{ fhrp_group | default(1) }} track {{ track_interface }} decrement {{ track_decrement | default(20) }}
+{% endif %}
+{% endif %}
+{% endfor %}

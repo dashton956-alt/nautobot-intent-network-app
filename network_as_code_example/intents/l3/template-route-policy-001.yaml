@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: route_policy
+# Purpose:     Define route-maps used for redistribution between OSPF and BGP,
+#              and for applying BGP policy (community tagging, metric setting).
+#              Route-maps are referenced by redistribution and BGP peer intents.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-route-policy-001          # MANDATORY
+  type: route_policy                     # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Route Policy / Route Map — define route-maps used for redistribution and BGP policy"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    devices:
+      - lon-edge-rtr-01                  # MANDATORY — route-maps are per-device
+
+  # ── Route map definitions ───────────────────────────────────────────────────
+  route_policy:
+    route_maps:
+      - name: RM-OSPF-TO-BGP             # MANDATORY — route-map name
+        entries:
+          - sequence: 10                 # MANDATORY — sequence number
+            action: permit               # MANDATORY — permit | deny
+            match:
+              prefix_list: PL-OSPF-ROUTES  # OPTIONAL — match condition
+            set:
+              local_preference: 100      # OPTIONAL — set BGP local-preference
+              community: "65001:100"     # OPTIONAL — tag redistributed routes with community
+          - sequence: 20
+            action: deny                 # Implicit deny for everything else
+      - name: RM-BGP-TO-OSPF
+        entries:
+          - sequence: 10
+            action: permit
+            match:
+              community: "65001:200"     # Only redistribute routes tagged with this community
+            set:
+              metric: 50                 # OPTIONAL — OSPF external metric
+              metric_type: E1            # OPTIONAL — E1 (cumulative cost) | E2 (fixed cost)
+          - sequence: 20
+            action: deny
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: all_at_once
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify route-map RM-OSPF-TO-BGP exists"
+        expected:
+          - config_snippet: "route-map RM-OSPF-TO-BGP"
+          - config_snippet: "route-map RM-BGP-TO-OSPF"

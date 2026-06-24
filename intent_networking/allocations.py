@@ -147,16 +147,16 @@ def allocate_route_target(intent: Intent) -> tuple[str, str]:
     # Build a deterministic RT name from the intent ID
     rt_description = f"Auto-allocated for intent {intent.intent_id}"
 
-    # Check for existing RT tagged with this intent's description
-    existing = NautobotRouteTarget.objects.filter(description=rt_description).first()
-    if existing:
-        logger.info("Reusing existing RT %s for %s", existing.name, intent.intent_id)
-        return existing.name, existing.name
-
     with transaction.atomic():
+        # Lock then check — prevents two concurrent resolutions allocating the same RT
+        existing = NautobotRouteTarget.objects.select_for_update().filter(description=rt_description).first()
+        if existing:
+            logger.info("Reusing existing RT %s for %s", existing.name, intent.intent_id)
+            return existing.name, existing.name
+
         # Find the next available RT counter
         max_rt_num = 0
-        for rt in NautobotRouteTarget.objects.filter(name__startswith=f"{asn}:"):
+        for rt in NautobotRouteTarget.objects.select_for_update().filter(name__startswith=f"{asn}:"):
             try:
                 _, num_str = rt.name.rsplit(":", 1)
                 max_rt_num = max(max_rt_num, int(num_str))

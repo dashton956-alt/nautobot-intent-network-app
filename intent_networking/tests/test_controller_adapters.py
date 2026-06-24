@@ -11,6 +11,7 @@ from intent_networking.controller_adapters import (
     CloudAdapter,
     ControllerAdapter,
     FirewallControllerAdapter,
+    NotImplementedAdapterError,
     SdWanControllerAdapter,
     WirelessControllerAdapter,
     classify_primitives,
@@ -80,27 +81,23 @@ class WirelessControllerAdapterTest(SimpleTestCase):
         self.adapter = WirelessControllerAdapter("https://wlc.example.com")
 
     def test_push_filters_non_wireless(self):
-        """Non-wireless primitives are skipped."""
-        primitives = [
-            {"primitive_type": "static_route", "data": {}},
-            {"primitive_type": "wireless_ssid", "data": {"ssid_name": "Corp"}},
-        ]
+        """Non-wireless primitives are skipped (no dispatch, no raise)."""
+        primitives = [{"primitive_type": "static_route", "data": {}}]
         result = self.adapter.push(primitives, "test-001")
-        # Only 1 primitive processed (wireless_ssid)
-        self.assertEqual(len(result["details"]), 1)
+        # Nothing matched -> nothing dispatched.
+        self.assertEqual(len(result["details"]), 0)
 
-    def test_push_returns_failure_without_vendor_override(self):
-        """Base _dispatch_push returns ok=False (no vendor impl)."""
+    def test_push_raises_without_vendor_override(self):
+        """Base _dispatch_push raises (no vendor impl) — a hard failure."""
         primitives = [{"primitive_type": "wireless_ssid"}]
-        result = self.adapter.push(primitives, "test-001")
-        self.assertFalse(result["success"])
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.push(primitives, "test-001")
 
-    def test_verify_reports_drift_without_override(self):
-        """Base _check_present returns False, so verify finds drift."""
+    def test_verify_raises_without_override(self):
+        """Base _check_present raises (no vendor impl)."""
         primitives = [{"primitive_type": "wireless_ssid"}]
-        result = self.adapter.verify(primitives, "test-001")
-        self.assertFalse(result["verified"])
-        self.assertEqual(len(result["drift"]), 1)
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.verify(primitives, "test-001")
 
     def test_verify_ignores_non_wireless(self):
         """Non-wireless primitives don't produce drift."""
@@ -109,11 +106,11 @@ class WirelessControllerAdapterTest(SimpleTestCase):
         self.assertTrue(result["verified"])
         self.assertEqual(len(result["drift"]), 0)
 
-    def test_rollback_returns_failure_without_override(self):
-        """Base _dispatch_rollback returns ok=False."""
+    def test_rollback_raises_without_override(self):
+        """Base _dispatch_rollback raises (no vendor impl)."""
         primitives = [{"primitive_type": "wireless_vlan_map"}]
-        result = self.adapter.rollback(primitives, "test-001")
-        self.assertFalse(result["success"])
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.rollback(primitives, "test-001")
 
     def test_primitive_types_frozenset(self):
         """PRIMITIVE_TYPES is a frozenset with expected wireless types."""
@@ -136,32 +133,28 @@ class SdWanControllerAdapterTest(SimpleTestCase):
         self.adapter = SdWanControllerAdapter("https://vmanage.example.com")
 
     def test_push_filters_non_sdwan(self):
-        """Non-SDWAN primitives are skipped."""
-        primitives = [
-            {"primitive_type": "wireless_ssid"},
-            {"primitive_type": "sdwan_overlay"},
-        ]
+        """Non-SDWAN primitives are skipped (no dispatch, no raise)."""
+        primitives = [{"primitive_type": "wireless_ssid"}]
         result = self.adapter.push(primitives, "test-001")
-        self.assertEqual(len(result["details"]), 1)
+        self.assertEqual(len(result["details"]), 0)
 
-    def test_push_returns_failure_without_vendor_override(self):
-        """Base returns ok=False."""
+    def test_push_raises_without_vendor_override(self):
+        """Base raises (no vendor impl)."""
         primitives = [{"primitive_type": "sdwan_app_policy"}]
-        result = self.adapter.push(primitives, "test-001")
-        self.assertFalse(result["success"])
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.push(primitives, "test-001")
 
-    def test_verify_reports_drift(self):
-        """Drift reported for each sdwan primitive."""
+    def test_verify_raises_without_override(self):
+        """Verify raises on the first sdwan primitive (no vendor impl)."""
         primitives = [{"primitive_type": "sdwan_overlay"}, {"primitive_type": "sdwan_qos"}]
-        result = self.adapter.verify(primitives, "test-001")
-        self.assertFalse(result["verified"])
-        self.assertEqual(len(result["drift"]), 2)
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.verify(primitives, "test-001")
 
-    def test_rollback_returns_failure(self):
-        """Base returns ok=False."""
+    def test_rollback_raises_without_override(self):
+        """Base raises (no vendor impl)."""
         primitives = [{"primitive_type": "sdwan_dia"}]
-        result = self.adapter.rollback(primitives, "test-001")
-        self.assertFalse(result["success"])
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.rollback(primitives, "test-001")
 
     def test_primitive_types(self):
         """SDWAN adapter recognises correct primitive types."""
@@ -182,37 +175,35 @@ class CloudAdapterTest(SimpleTestCase):
         """Create adapter instance."""
         self.adapter = CloudAdapter("https://cloud-api.example.com")
 
-    def test_push_uses_provider_from_primitive(self):
-        """Provider is read from the primitive dict."""
+    def test_push_raises_with_provider_from_primitive(self):
+        """Provider is read from the primitive dict; base push raises."""
         primitives = [{"primitive_type": "cloud_vpc_peer", "provider": "azure"}]
-        result = self.adapter.push(primitives, "test-001")
-        self.assertFalse(result["success"])  # no vendor impl
-        self.assertEqual(len(result["details"]), 1)
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.push(primitives, "test-001")
 
-    def test_push_defaults_provider_to_aws(self):
-        """Provider defaults to 'aws' if not specified."""
+    def test_push_raises_default_provider_aws(self):
+        """Base push raises even when provider defaults to 'aws'."""
         primitives = [{"primitive_type": "cloud_transit_gw"}]
-        result = self.adapter.push(primitives, "test-001")
-        self.assertEqual(len(result["details"]), 1)
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.push(primitives, "test-001")
 
     def test_push_filters_non_cloud(self):
-        """Non-cloud primitives are skipped."""
-        primitives = [{"primitive_type": "ospf"}, {"primitive_type": "cloud_nat"}]
+        """Non-cloud primitives are skipped (no dispatch, no raise)."""
+        primitives = [{"primitive_type": "ospf"}]
         result = self.adapter.push(primitives, "test-001")
-        self.assertEqual(len(result["details"]), 1)
+        self.assertEqual(len(result["details"]), 0)
 
-    def test_verify_reports_drift(self):
-        """Drift detected for unimplemented check."""
+    def test_verify_raises(self):
+        """Verify raises for an unimplemented provider check."""
         primitives = [{"primitive_type": "cloud_security_group", "provider": "gcp"}]
-        result = self.adapter.verify(primitives, "test-001")
-        self.assertFalse(result["verified"])
-        self.assertIn("gcp", result["drift"][0])
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.verify(primitives, "test-001")
 
-    def test_rollback_returns_failure(self):
-        """Base returns ok=False."""
+    def test_rollback_raises(self):
+        """Base rollback raises (no vendor impl)."""
         primitives = [{"primitive_type": "cloud_route_table", "provider": "aws"}]
-        result = self.adapter.rollback(primitives, "test-001")
-        self.assertFalse(result["success"])
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.rollback(primitives, "test-001")
 
     def test_primitive_types(self):
         """Cloud adapter recognises correct primitive types."""
@@ -234,26 +225,22 @@ class FirewallControllerAdapterTest(SimpleTestCase):
         self.adapter = FirewallControllerAdapter("https://panorama.example.com")
 
     def test_push_filters_non_firewall(self):
-        """Non-firewall primitives are skipped."""
-        primitives = [
-            {"primitive_type": "static_route", "data": {}},
-            {"primitive_type": "fw_rule", "policy_name": "DENY-ALL"},
-        ]
+        """Non-firewall primitives are skipped (no dispatch, no raise)."""
+        primitives = [{"primitive_type": "static_route", "data": {}}]
         result = self.adapter.push(primitives, "test-001")
-        self.assertEqual(len(result["details"]), 1)
+        self.assertEqual(len(result["details"]), 0)
 
-    def test_push_returns_failure_without_vendor_override(self):
-        """Base _dispatch_push returns ok=False (no vendor impl)."""
+    def test_push_raises_without_vendor_override(self):
+        """Base _dispatch_push raises (no vendor impl)."""
         primitives = [{"primitive_type": "fw_rule"}]
-        result = self.adapter.push(primitives, "test-001")
-        self.assertFalse(result["success"])
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.push(primitives, "test-001")
 
-    def test_verify_reports_drift_without_override(self):
-        """Base _check_present returns False, so verify finds drift."""
+    def test_verify_raises_without_override(self):
+        """Base _check_present raises (no vendor impl)."""
         primitives = [{"primitive_type": "fw_rule", "policy_name": "TEST"}]
-        result = self.adapter.verify(primitives, "test-001")
-        self.assertFalse(result["verified"])
-        self.assertEqual(len(result["drift"]), 1)
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.verify(primitives, "test-001")
 
     def test_verify_ignores_non_firewall(self):
         """Non-firewall primitives don't produce drift."""
@@ -262,11 +249,11 @@ class FirewallControllerAdapterTest(SimpleTestCase):
         self.assertTrue(result["verified"])
         self.assertEqual(len(result["drift"]), 0)
 
-    def test_rollback_returns_failure_without_override(self):
-        """Base _dispatch_rollback returns ok=False."""
+    def test_rollback_raises_without_override(self):
+        """Base _dispatch_rollback raises (no vendor impl)."""
         primitives = [{"primitive_type": "fw_rule"}]
-        result = self.adapter.rollback(primitives, "test-001")
-        self.assertFalse(result["success"])
+        with self.assertRaises(NotImplementedAdapterError):
+            self.adapter.rollback(primitives, "test-001")
 
     def test_primitive_types_frozenset(self):
         """PRIMITIVE_TYPES is a frozenset with expected firewall types."""

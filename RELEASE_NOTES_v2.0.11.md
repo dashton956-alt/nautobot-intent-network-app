@@ -10,6 +10,8 @@ v2.0.11 adds multi-port support for `l2_access_port` and `l2_trunk_port` intents
 
 The change is fully backward-compatible. Existing intents using the single `interface` / `vlan_id` form continue to work without modification.
 
+On startup, Nautobot will log `WARNING` messages indicating that serializers for `VniAllocation`, `TunnelIdPool`, `TunnelIdAllocation`, `ManagedLoopbackPool`, `ManagedLoopback`, `WirelessVlanPool`, and `WirelessVlanAllocation` are not found. These warnings are cosmetic — the models function correctly and no data is affected. API serializers for these models are absent; they will be added in a future release.
+
 ## What's New
 
 - **Multi-port `l2_access_port`** — add a `ports` list where each entry has `interface`, `vlan_id`, and optional `voice_vlan`, `description`, `portfast`, `bpdu_guard`

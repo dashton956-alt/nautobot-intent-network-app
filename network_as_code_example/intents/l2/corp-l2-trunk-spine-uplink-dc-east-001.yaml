@@ -1,0 +1,33 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: l2_trunk_port
+# Purpose:     Configure Ethernet49 as a tagged trunk uplink toward the spine
+#              on all DC East access-switches, carrying all production VLANs.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-l2-trunk-spine-uplink-dc-east-001  # MANDATORY
+  type: l2_trunk_port                         # MANDATORY
+  version: 1                                  # MANDATORY
+  tenant: acme-corp                           # MANDATORY
+  change_ticket: CHG0012364                   # MANDATORY (CHG + 7 digits)
+  description: "Configure spine-facing trunk uplinks on DC East leaf switches — Ethernet49"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east                               # Apply to all devices at DC East
+    roles:
+      - access-switch                         # Restrict to access-switch role only
+
+  # ── Port identity ───────────────────────────────────────────────────────────
+  interface: Ethernet49                       # MANDATORY — spine uplink interface
+
+  # ── VLAN policy ─────────────────────────────────────────────────────────────
+  allowed_vlans:                              # MANDATORY — tagged VLANs permitted on trunk
+    - 100                                     # SERVERS-PROD
+    - 101                                     # SERVERS-DEV
+    - 200                                     # STORAGE
+    - 300                                     # MGMT
+    - 999                                     # QUARANTINE
+  native_vlan: 1                              # OPTIONAL — untagged VLAN (VLAN 1 = default)
+  interface_description: "Trunk uplink to spine — Ethernet49"  # OPTIONAL — interface description

@@ -1,0 +1,102 @@
+---
+name: Validate Intents
+
+on:
+  push:
+    paths:
+      - "network_as_code_example/intents/**"
+  pull_request:
+    paths:
+      - "network_as_code_example/intents/**"
+
+jobs:
+  validate:
+    name: YAML syntax & schema check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pykwalify pyyaml
+
+      - name: Detect changed intent files
+        id: changed
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.event.after }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            BASE="$PR_BASE_SHA"
+            HEAD="$PR_HEAD_SHA"
+          else
+            BASE="$PUSH_BEFORE"
+            HEAD="$PUSH_AFTER"
+          fi
+
+          # Fall back to all intent files when the before SHA is the null ref
+          # (e.g. a freshly pushed branch with no previous commit known).
+          # The intents/examples/ directory holds reference-only documentation
+          # (multiple illustrative blocks per file, not deployable intents) and
+          # is excluded from schema validation.
+          if [ "$BASE" = "0000000000000000000000000000000000000000" ] || [ -z "$BASE" ]; then
+            FILES=$(find network_as_code_example/intents -path '*/examples/*' -prune -o \( -name "*.yaml" -o -name "*.yml" \) -print | sort)
+          else
+            FILES=$(git diff --name-only "$BASE" "$HEAD" -- 'network_as_code_example/intents/**' | grep -E '\.(yaml|yml)$' | grep -v '/examples/' || true)
+          fi
+
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: YAML syntax check
+        run: |
+          set +e
+          FAILED=0
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            python3 - "$file" <<'PYEOF'
+          import sys, yaml
+          try:
+              with open(sys.argv[1], encoding="utf-8") as f:
+                  yaml.safe_load(f)
+              print("  OK  " + sys.argv[1])
+          except yaml.YAMLError as exc:
+              print(f"  FAIL  {sys.argv[1]}\n       {exc}", file=sys.stderr)
+              sys.exit(1)
+          PYEOF
+            if [ $? -ne 0 ]; then
+              FAILED=1
+            fi
+          done <<< "${{ steps.changed.outputs.files }}"
+          exit $FAILED
+
+      - name: Schema validation
+        run: |
+          set +e
+          FAILED=0
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "Validating $file"
+            pykwalify \
+              --data-file "$file" \
+              --schema-file network_as_code_example/schemas/intent.schema.yml
+            if [ $? -ne 0 ]; then
+              echo "  SCHEMA FAIL: $file"
+              FAILED=1
+            else
+              echo "  SCHEMA OK:   $file"
+            fi
+          done <<< "${{ steps.changed.outputs.files }}"
+          exit $FAILED

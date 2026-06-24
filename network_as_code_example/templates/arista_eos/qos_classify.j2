@@ -1,0 +1,18 @@
+{# qos_classify — Arista EOS QoS class-map traffic classification #}
+{% for cls in class_maps | default([]) %}
+class-map type qos {{ cls.match_type | default('match-any') }} {{ cls.name }}
+{% for match in cls.match | default([]) %}
+{% if match.type == 'dscp' %}
+   match dscp {{ match.value }}
+{% elif match.type == 'acl' %}
+   match ip access-group {{ match.value }}
+{% elif match.type == 'protocol' %}
+   match application {{ match.value }}
+{% elif match.type == 'cos' %}
+   match cos {{ match.value }}
+{% elif match.type == 'vlan' %}
+   match vlan {{ match.value }}
+{% endif %}
+{% endfor %}
+
+{% endfor %}

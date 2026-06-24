@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: storm_control
+# Purpose:     Rate-limit broadcast, multicast, and unknown-unicast traffic on
+#              all edge access ports to prevent traffic storms from degrading
+#              the network. Configures per-traffic-class thresholds and actions.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-storm-control-001         # MANDATORY
+  type: storm_control                    # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Storm Control — rate-limit broadcast, multicast, and unknown-unicast traffic on edge ports"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    roles:
+      - access-switch                    # Apply to all access-switches in tenant
+
+  # ── Storm control thresholds ────────────────────────────────────────────────
+  storm_control:
+    apply_to_all_access_ports: true      # MANDATORY — apply to every access port
+    broadcast:
+      level_pct: 10                      # OPTIONAL — percentage of available bandwidth
+      action: shutdown                   # OPTIONAL — shutdown | trap | none
+    multicast:
+      level_pct: 20
+      action: trap                       # OPTIONAL — send SNMP trap on threshold breach
+    unknown_unicast:
+      level_pct: 10
+      action: trap
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify storm-control configuration"
+        expected:
+          - config_snippet: "storm-control broadcast level 10"
+          - config_snippet: "storm-control multicast level 20"

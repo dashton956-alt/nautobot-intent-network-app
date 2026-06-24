@@ -1,0 +1,20 @@
+{# igmp_snooping — Arista EOS IGMP snooping configuration #}
+ip igmp snooping
+
+{% if igmp_version is defined and igmp_version %}
+ip igmp version {{ igmp_version }}
+{% endif %}
+{% if igmp_query_interval is defined and igmp_query_interval %}
+ip igmp query-interval {{ igmp_query_interval }}
+{% endif %}
+
+{% for vlan_entry in vlans | default([]) %}
+{% if vlan_entry.igmp_snooping | default(true) %}
+ip igmp snooping vlan {{ vlan_entry.id }}
+{% if vlan_entry.igmp_querier is defined %}
+ip igmp snooping vlan {{ vlan_entry.id }} querier address {{ vlan_entry.igmp_querier }}
+{% endif %}
+{% else %}
+no ip igmp snooping vlan {{ vlan_entry.id }}
+{% endif %}
+{% endfor %}

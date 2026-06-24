@@ -1,0 +1,23 @@
+{# aaa_device.j2 — junos — device-management AAA (TACACS+) #}
+! AAA (device management)
+! Intent: {{ intent_id }}
+!
+{% for s in tacacs_servers | default([]) %}
+set system tacplus-server {{ s.host | default(s.ip) }} port {{ s.port | default(49) }}
+{% if s.key_ref | default(s.key) %}
+set system tacplus-server {{ s.host | default(s.ip) }} secret "{{ s.key_ref | default(s.key) }}"
+{% endif %}
+{% if s.timeout is defined %}
+set system tacplus-server {{ s.host | default(s.ip) }} timeout {{ s.timeout }}
+{% endif %}
+{% endfor %}
+set system authentication-order [ tacplus password ]
+{% if accounting %}
+set system accounting events login
+set system accounting destination tacplus
+{% endif %}
+{% if local_fallback %}
+set system login user {{ local_fallback.username | default('admin') }} class super-user
+set system login user {{ local_fallback.username | default('admin') }} authentication encrypted-password "{{ local_fallback.password_ref | default('CHANGEME') }}"
+{% endif %}
+!

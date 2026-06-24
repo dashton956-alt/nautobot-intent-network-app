@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_interface
+# Purpose:     Configure the Loopback0 (router-id / BGP source) and dedicated
+#              OOB Management0 interface on all devices. Loopback IPs are
+#              allocated per-device from the defined range.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-mgmt-interface-001        # MANDATORY
+  type: mgmt_interface                   # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "Loopback / Management Interface — configure loopback0 and dedicated OOB management"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    all_tenant_devices: true             # MANDATORY — applies to every device
+
+  # ── Interface configuration ─────────────────────────────────────────────────
+  management:
+    interfaces:
+      loopback:
+        name: Loopback0                  # MANDATORY — loopback interface name
+        description: "Router ID / BGP Source"
+        ip_range: "10.255.0.0/24"        # MANDATORY — pool from which per-device IP is allocated
+        mtu: 65535                       # OPTIONAL — max MTU for loopback (no fragmentation concern)
+      oob_management:
+        name: Management0                # MANDATORY — OOB management interface name
+        description: "OOB management — connected to mgmt switch"
+        vrf: MGMT                        # OPTIONAL — dedicated VRF for management traffic
+        speed: 1000                      # OPTIONAL — interface speed in Mbps
+        duplex: full                     # OPTIONAL — full | half | auto
+        shutdown: false                  # OPTIONAL — ensure management interface is not shut down
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmInterfaces
+        label: "Verify loopback0 and management0 are up"
+        expected:
+          - name: Loopback0
+            is_up: true
+            is_enabled: true
+          - name: Management0
+            is_up: true
+            is_enabled: true

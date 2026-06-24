@@ -1,0 +1,14 @@
+{# stp_policy — Cisco NX-OS Spanning Tree configuration #}
+spanning-tree mode {{ stp_mode | default('rapid-pvst') }}
+{% if portfast_default | default(false) %}
+spanning-tree port type edge default
+{% endif %}
+{% if bpduguard_default | default(false) %}
+spanning-tree port type edge bpduguard default
+{% endif %}
+{% for v in vlan_priorities | default([]) %}
+spanning-tree vlan {{ v.vlan_id }} priority {{ v.priority }}
+{% endfor %}
+{% if loopguard_default | default(false) %}
+spanning-tree loopguard default
+{% endif %}

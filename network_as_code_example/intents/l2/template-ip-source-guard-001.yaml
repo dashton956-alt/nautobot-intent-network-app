@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: ip_source_guard
+# Purpose:     Filter traffic on access ports using the DHCP snooping binding
+#              table. Only packets matching the bound IP (and optionally MAC)
+#              are forwarded — prevents IP spoofing attacks.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-ip-source-guard-001       # MANDATORY
+  type: ip_source_guard                  # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "IP Source Guard — filter traffic based on DHCP snooping binding table"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    roles:
+      - access-switch                    # Apply to all access-switches in tenant
+
+  # ── IP Source Guard policy ──────────────────────────────────────────────────
+  ip_source_guard:
+    apply_to_access_ports: true          # MANDATORY — enable on all untrusted access ports
+    filter: ip-mac                       # OPTIONAL — ip | ip-mac (mac adds stricter binding check)
+    vlans:                               # OPTIONAL — restrict to specific VLANs
+      - 100
+      - 101
+    static_bindings:                     # OPTIONAL — static entries for servers without DHCP
+      - ip: "10.10.100.254"
+        mac: "00:1A:2B:3C:4D:5E"
+        vlan: 100
+        interface: GigabitEthernet0/48
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify IP source guard applied to access ports"
+        expected:
+          - config_snippet: "ip verify source"

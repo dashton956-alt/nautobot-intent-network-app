@@ -1,0 +1,21 @@
+{# multicast_pim_sm — Arista EOS PIM Sparse Mode multicast configuration #}
+ip multicast-routing
+
+{% if rp_type | default('static') == 'static' and rp_address is defined and rp_address %}
+ip pim rp-address {{ rp_address }}
+{% elif rp_type == 'bsr' %}
+ip pim bsr-candidate {% if bsr_candidate is defined %}{{ bsr_candidate }}{% endif %}
+
+{% elif rp_type == 'auto-rp' %}
+ip pim send-rp-announce {{ rp_address }} scope {{ scope_ttl | default(32) }}
+ip pim send-rp-discovery scope {{ scope_ttl | default(32) }}
+{% endif %}
+
+{% if ssm_range is defined and ssm_range %}
+ip pim ssm range {{ ssm_range }}
+{% endif %}
+
+{% for intf in interfaces | default([]) %}
+interface {{ intf.name }}
+   ip pim {{ intf.mode | default('sparse-mode') }}
+{% endfor %}

@@ -1,0 +1,32 @@
+{# aaa — Arista EOS device AAA (TACACS+/RADIUS) configuration #}
+{# WARNING: Do NOT use fail_action: rollback for AAA changes — can lock out access #}
+aaa authentication login default {{ auth_methods | default('group TACACS local') }}
+{% if enable_auth is defined and enable_auth %}
+aaa authentication enable default {{ enable_auth }}
+{% endif %}
+{% if authorization is defined and authorization %}
+aaa authorization exec default {{ authorization }}
+aaa authorization commands all default {{ authorization }}
+{% endif %}
+{% if accounting is defined and accounting %}
+aaa accounting exec default start-stop {{ accounting }}
+aaa accounting commands all default start-stop {{ accounting }}
+{% endif %}
+
+{% for server in tacacs_servers | default([]) %}
+tacacs-server host {{ server.host }}
+   port {{ server.port | default(49) }}
+   key {{ server.key | default('') }}
+{% if server.timeout is defined %}
+   timeout {{ server.timeout }}
+{% endif %}
+{% endfor %}
+
+{% for server in radius_servers | default([]) %}
+radius-server host {{ server.host }} auth-port {{ server.auth_port | default(1812) }} acct-port {{ server.acct_port | default(1813) }}
+   key {{ server.key | default('') }}
+{% endfor %}
+
+{% for user in local_users | default([]) %}
+username {{ user.username }} privilege {{ user.privilege | default(15) }} role network-admin secret {{ user.secret | default('') }}
+{% endfor %}

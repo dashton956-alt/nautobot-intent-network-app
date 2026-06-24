@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: wan_uplink
+# Purpose:     Configure one or more WAN uplinks with IP addressing and default
+#              routes. Supports dual-ISP / active-active or active-standby.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-wan-uplink-dc-east-001       # MANDATORY
+type: wan_uplink                      # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "Dual-ISP WAN uplinks — DC-East border router — active/standby"  # MANDATORY
+change_ticket: CHG0030050             # MANDATORY (CHG + 7 digits)
+approved_by: "net.engineer"           # OPTIONAL here; MANDATORY when OPA enforce is on
+
+scope:
+  devices: [border-01]               # MANDATORY — WAN uplink intents target specific border routers
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  WAN UPLINKS — list of ISP connections (MANDATORY — at least one)     ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+uplinks:
+  - interface: GigabitEthernet0/0    # MANDATORY per uplink — WAN-facing interface
+    ip_address: 203.0.113.2/30       # OPTIONAL — static IP; use "dhcp" for DHCP-assigned
+                                     #   Format: x.x.x.x/<prefix_length>
+    isp_name: "ISP-A"               # OPTIONAL — ISP name (used for interface description)
+    bandwidth: "1000Mbps"           # OPTIONAL — circuit bandwidth for documentation
+    default_route: 203.0.113.1      # OPTIONAL — next-hop for default route via this ISP
+                                     #   Set to true for DHCP-learned default, or IP for static
+    admin_distance: 1               # OPTIONAL (default: 1) — route preference; lower = preferred
+                                     #   Primary ISP: 1, Backup ISP: 5 for active/standby
+    description: "ISP-A 1Gbps primary WAN"  # OPTIONAL — interface description
+
+  - interface: GigabitEthernet0/1
+    ip_address: 198.51.100.2/30
+    isp_name: "ISP-B"
+    bandwidth: "100Mbps"
+    default_route: 198.51.100.1
+    admin_distance: 5               # Higher distance = standby/backup route
+    description: "ISP-B 100Mbps backup WAN"
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                  # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: nuts                        # OPTIONAL — verifies interface UP and default route present
+  trigger: both                      # OPTIONAL — scheduled checks detect ISP flaps
+  fail_action: rollback

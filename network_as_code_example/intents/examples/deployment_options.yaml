@@ -1,0 +1,103 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# DEPLOYMENT OPTIONS REFERENCE
+# ─────────────────────────────────────────────────────────────────────────────
+# This file is a REFERENCE ONLY — it is not a runnable intent.
+# It documents every field available under the `deployment:` block with all
+# valid values, defaults, and when to use each option.
+# ═════════════════════════════════════════════════════════════════════════════
+
+deployment:
+
+  # ── Controller ──────────────────────────────────────────────────────────────
+  # The automation engine that renders and pushes configuration to devices.
+  #
+  controller: nornir                     # OPTIONAL (default: nornir)
+                                         # Supported values:
+                                         #   nornir  — Python-based task runner (current default)
+                                         #   ansible — Ansible playbooks (future / optional)
+                                         #   nautobot — Nautobot Jobs (future / optional)
+
+  # ── Strategy ────────────────────────────────────────────────────────────────
+  # Controls how the configuration is applied across devices in the scope.
+  #
+  strategy: rolling                      # OPTIONAL (default: rolling)
+                                         # Values:
+                                         #
+                                         #   rolling     — push to devices one at a time
+                                         #                 • lowest blast radius
+                                         #                 • slowest; safe for all change types
+                                         #                 • default for most intent types
+                                         #
+                                         #   canary      — push to a single device first, pause for
+                                         #                 verification, then roll out to the rest
+                                         #                 • recommended for HIGH-IMPACT types
+                                         #                 • OPA enforces rolling/canary for BGP,
+                                         #                   EVPN, IPSec, and firewall intents
+                                         #                 • use for fabric bootstraps and WAN changes
+                                         #
+                                         #   all_at_once — push to all devices simultaneously
+                                         #                 • fastest; highest risk
+                                         #                 • only use when devices MUST be
+                                         #                   configured together (e.g. MLAG pairs,
+                                         #                   HSRP active/standby, EVPN VNI mappings)
+                                         #                 • never use for access-layer changes
+
+  # ── Save Config ─────────────────────────────────────────────────────────────
+  # Whether to write the running config to startup config after deployment.
+  #
+  save_config: true                      # OPTIONAL (default: true)
+                                         # Values:
+                                         #   true   — commit to startup-config (persistent)
+                                         #   false  — leave in running-config only (volatile)
+                                         #            Useful for dry-run / staged deployments
+                                         #            where you want to verify before persisting
+
+  # ── Canary percentage (future) ──────────────────────────────────────────────
+  # When strategy: canary, what percentage of devices receive the first wave.
+  #
+  # canary_percentage: 10                # OPTIONAL (default: one device / first in scope list)
+                                         # Not yet enforced — reserved for future OPA policy
+
+  # ── Maintenance window (future) ─────────────────────────────────────────────
+  # Restrict deployment to a scheduled maintenance window.
+  #
+  # maintenance_window:                  # OPTIONAL — omit to deploy immediately
+  #   start: "2025-06-01T22:00:00Z"      # ISO 8601 UTC
+  #   end:   "2025-06-01T23:59:00Z"
+
+  # ── Rollback timeout (future) ───────────────────────────────────────────────
+  # Automatically roll back if verification does not pass within this window.
+  #
+  # rollback_timeout_minutes: 10         # OPTIONAL — used when fail_action: rollback
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# QUICK REFERENCE — strategy decision guide
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#   Intent type                         Recommended strategy
+#   ──────────────────────────────────  ─────────────────────
+#   l2_access_port, l2_trunk_port       rolling
+#   vlan_provision                      rolling
+#   dhcp_snooping, dai, storm_control   rolling
+#   lag, mlag                           all_at_once   (both ends must match)
+#   ospf, eigrp, isis                   rolling
+#   bgp_ebgp, bgp_ibgp                  canary        (OPA may enforce)
+#   static_route                        all_at_once
+#   fhrp (HSRP/VRRP)                    all_at_once   (active/standby pair)
+#   evpn_vxlan_fabric                   canary        (OPA enforces)
+#   l2vni, l3vni                        canary
+#   vtep, anycast_gateway               rolling
+#   dc_underlay                         rolling
+#   dc_mlag                             all_at_once
+#   ipsec_s2s, ipsec_ikev2              canary        (OPA enforces)
+#   fw_rule                             canary        (OPA enforces)
+#   acl                                 rolling
+#   mgmt_ntp, mgmt_syslog               rolling
+#   mgmt_global_config                  rolling
+#   mgmt_motd, mgmt_lldp_cdp            rolling
+#   mgmt_ssh, mgmt_aaa_device           rolling
+#   mgmt_stp_root                       all_at_once
+#   qos_classify, qos_queue             rolling
+#   mpls_l3vpn, sr_mpls                 rolling
+#   connectivity (PCI-DSS)              all_at_once

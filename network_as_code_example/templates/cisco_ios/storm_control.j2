@@ -1,0 +1,21 @@
+{# storm_control — Cisco IOS-XE storm control configuration #}
+{% for intf in storm_control_interfaces | default([]) %}
+interface {{ intf.name }}
+{% if intf.broadcast_level is defined %}
+ storm-control broadcast level {{ intf.broadcast_level }}{% if intf.broadcast_level_low is defined %} {{ intf.broadcast_level_low }}{% endif %}
+
+{% endif %}
+{% if intf.multicast_level is defined %}
+ storm-control multicast level {{ intf.multicast_level }}{% if intf.multicast_level_low is defined %} {{ intf.multicast_level_low }}{% endif %}
+
+{% endif %}
+{% if intf.unicast_level is defined %}
+ storm-control unicast level {{ intf.unicast_level }}{% if intf.unicast_level_low is defined %} {{ intf.unicast_level_low }}{% endif %}
+
+{% endif %}
+{% if intf.action | default('') == 'shutdown' %}
+ storm-control action shutdown
+{% elif intf.action | default('') == 'trap' %}
+ storm-control action trap
+{% endif %}
+{% endfor %}

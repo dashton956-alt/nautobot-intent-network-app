@@ -1,0 +1,63 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: bgp_ebgp
+# Purpose:     Establish dual eBGP peering sessions to Telia (AS 1299) at the
+#              London edge router for primary internet connectivity.
+# HIGH-IMPACT TYPE — approved_by required when OPA enforce is enabled.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-isp-bgp-lon-001               # MANDATORY
+  type: bgp_ebgp                         # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG0012347              # MANDATORY (CHG + 7 digits)
+  description: "eBGP peering to primary ISP (AS 1299 Telia) at London edge router"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    devices:
+      - lon-edge-rtr-01                  # MANDATORY — eBGP sessions are per-device
+
+  # ── BGP configuration ───────────────────────────────────────────────────────
+  routing:
+    protocol: bgp                        # MANDATORY
+    as_number: 65001                     # MANDATORY — our BGP AS number
+    router_id: "10.255.0.1"             # MANDATORY — BGP router-id (usually Loopback0)
+    neighbors:
+      - ip: "195.12.0.1"                 # MANDATORY — ISP peer IP
+        remote_as: 1299                  # MANDATORY — Telia AS
+        description: "Telia — primary ISP"
+        update_source: Loopback0
+      - ip: "195.12.0.3"                 # Secondary peer for redundancy
+        remote_as: 1299
+        description: "Telia — secondary peer"
+        update_source: Loopback0
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: all_at_once                # Edge routers — apply all changes together
+    save_config: true
+
+  verification:
+    level: nuts                          # nuts verifies BGP neighbour state via pyATS
+    trigger: both                        # both = on_deploy + scheduled checks
+    schedule: "*/30 * * * *"             # Check every 30 minutes
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmBgpNeighbors
+        label: "Verify eBGP sessions to Telia"
+        expected:
+          - peer: 195.12.0.1
+            remote_as: 1299
+            state: Established
+          - peer: 195.12.0.3
+            remote_as: 1299
+            state: Established
+      - test_class: TestNapalmBgpNeighborsCount
+        label: "Verify exactly 2 BGP peers on edge router"
+        expected_count: 2

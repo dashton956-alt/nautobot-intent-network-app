@@ -1,0 +1,20 @@
+{# route_redistribution — Cisco IOS-XE route redistribution configuration #}
+{% if target_protocol | default('bgp') == 'bgp' %}
+router bgp {{ local_as }}
+{% for redist in redistribute | default([]) %}
+ redistribute {{ redist.protocol }}{% if redist.metric is defined %} metric {{ redist.metric }}{% endif %}{% if redist.route_map is defined %} route-map {{ redist.route_map }}{% endif %}
+
+{% endfor %}
+{% elif target_protocol == 'ospf' %}
+router ospf {{ process_id | default(1) }}
+{% for redist in redistribute | default([]) %}
+ redistribute {{ redist.protocol }}{% if redist.metric is defined %} metric {{ redist.metric }}{% endif %}{% if redist.route_map is defined %} route-map {{ redist.route_map }}{% endif %} subnets
+
+{% endfor %}
+{% elif target_protocol == 'isis' %}
+router isis {{ isis_instance | default('') }}
+{% for redist in redistribute | default([]) %}
+ redistribute {{ redist.protocol }}{% if redist.metric is defined %} metric {{ redist.metric }}{% endif %}{% if redist.route_map is defined %} route-map {{ redist.route_map }}{% endif %}
+
+{% endfor %}
+{% endif %}

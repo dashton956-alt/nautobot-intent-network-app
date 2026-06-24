@@ -1,0 +1,58 @@
+{# bgp_ebgp — Arista EOS eBGP neighbour configuration #}
+router bgp {{ local_asn }}
+{% if router_id is defined and router_id %}
+   router-id {{ router_id }}
+{% endif %}
+   neighbor {{ neighbor_ip }} remote-as {{ neighbor_asn }}
+{% if description is defined and description %}
+   neighbor {{ neighbor_ip }} description {{ description }}
+{% endif %}
+{% if vrf is defined and vrf %}
+   vrf {{ vrf }}
+      neighbor {{ neighbor_ip }} remote-as {{ neighbor_asn }}
+{% endif %}
+{% if password is defined and password %}
+   neighbor {{ neighbor_ip }} password 7 {{ password }}
+{% endif %}
+{% if timers_keepalive is defined %}
+   neighbor {{ neighbor_ip }} timers {{ timers_keepalive }} {{ timers_hold }}
+{% endif %}
+{% if multihop is defined and multihop %}
+   neighbor {{ neighbor_ip }} ebgp-multihop {{ multihop }}
+{% endif %}
+{% if update_source is defined and update_source %}
+   neighbor {{ neighbor_ip }} update-source {{ update_source }}
+{% endif %}
+{% if send_community is defined and send_community %}
+   neighbor {{ neighbor_ip }} send-community {{ send_community }}
+{% endif %}
+{% if maximum_paths is defined and maximum_paths %}
+   maximum-paths {{ maximum_paths }}
+{% endif %}
+{% if bfd | default(true) %}
+   neighbor {{ neighbor_ip }} bfd
+{% endif %}
+{% if graceful_restart | default(false) %}
+   neighbor {{ neighbor_ip }} graceful-restart
+{% endif %}
+   !
+   address-family ipv4
+      neighbor {{ neighbor_ip }} activate
+{% if route_map_in is defined and route_map_in %}
+      neighbor {{ neighbor_ip }} route-map {{ route_map_in }} in
+{% endif %}
+{% if route_map_out is defined and route_map_out %}
+      neighbor {{ neighbor_ip }} route-map {{ route_map_out }} out
+{% endif %}
+{% if prefix_list_in is defined and prefix_list_in %}
+      neighbor {{ neighbor_ip }} prefix-list {{ prefix_list_in }} in
+{% endif %}
+{% if prefix_list_out is defined and prefix_list_out %}
+      neighbor {{ neighbor_ip }} prefix-list {{ prefix_list_out }} out
+{% endif %}
+{% if max_prefix is defined and max_prefix %}
+      neighbor {{ neighbor_ip }} maximum-routes {{ max_prefix }}
+{% endif %}
+{% if default_originate | default(false) %}
+      neighbor {{ neighbor_ip }} default-originate
+{% endif %}

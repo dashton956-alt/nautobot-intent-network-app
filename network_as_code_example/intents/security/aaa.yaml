@@ -1,0 +1,76 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: aaa
+# Purpose:     Configure RADIUS / TACACS+ AAA for device login authentication,
+#              command authorization, and accounting.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-aaa-device-auth-001          # MANDATORY
+type: aaa                             # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "TACACS+ AAA for all network devices — auth, authz, accounting"  # MANDATORY
+change_ticket: CHG0030044             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL here
+
+scope:
+  all_tenant_devices: true            # MANDATORY — AAA usually applies to all devices
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  AUTHENTICATION METHODS                                                ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+auth_methods: "group TACACS-CORP local"  # MANDATORY — AAA method list for login
+                                          #   'group <name>' = use TACACS/RADIUS server group
+                                          #   'local'        = fall back to local user database
+                                          #   'none'         = allow without auth (NEVER in prod)
+
+enable_auth: "group TACACS-CORP enable"  # OPTIONAL — enable/privilege mode authentication
+authorization: "group TACACS-CORP local" # OPTIONAL — command authorization method list
+accounting: "group TACACS-CORP"          # OPTIONAL — accounting method list (exec + commands)
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  TACACS+ SERVERS (OPTIONAL — use if auth_methods references TACACS)   ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+tacacs_servers:
+  - ip: 10.10.10.10                   # MANDATORY per server — TACACS+ server IP
+    key: ""                           # OPTIONAL — shared secret; use Nautobot Secrets in prod
+    port: 49                          # OPTIONAL (default: 49) — TACACS+ TCP port
+    timeout: 5                        # OPTIONAL (default: 5) — seconds before timeout
+
+  - ip: 10.10.10.11                   # Secondary TACACS+ server for redundancy
+    key: ""
+    port: 49
+    timeout: 5
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  RADIUS SERVERS (OPTIONAL — use if auth_methods references RADIUS)    ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+radius_servers: []                    # OPTIONAL — list of RADIUS servers
+                                      # Example:
+                                      # - ip: 10.20.20.10
+                                      #   key: ""
+                                      #   auth_port: 1812   # OPTIONAL (default: 1812)
+                                      #   acct_port: 1813   # OPTIONAL (default: 1813)
+                                      #   timeout: 5
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  LOCAL CREDENTIALS — OPA enforces no plaintext passwords              ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# management:                         # OPTIONAL — local credentials (TACACS fallback)
+#   credentials:
+#     - username: admin
+#       encryption_type: 7            # MANDATORY: 0=plaintext (OPA blocks), 5=MD5, 7=type7, 9=scrypt
+#       password: "0822455D0A16"      # Type-7 encoded (use Nautobot Secrets in production)
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: basic                        # OPTIONAL — verifies AAA config present
+  trigger: on_deploy
+  fail_action: alert                  # OPTIONAL — alert only; rollback could lock out access

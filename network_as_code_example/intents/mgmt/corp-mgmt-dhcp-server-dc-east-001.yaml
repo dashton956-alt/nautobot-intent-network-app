@@ -1,0 +1,70 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_dhcp_server
+# Purpose:     Configure DHCP server pools on DC East distribution switches
+#              for server management and IPMI VLANs. Excludes gateway and
+#              reserved addresses from the pool range.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-mgmt-dhcp-server-dc-east-001  # MANDATORY
+  type: mgmt_dhcp_server                 # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG0012402              # MANDATORY (CHG + 7 digits)
+  description: "DHCP server pools on DC-East distribution switches for server management VLANs"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    site: dc-east                        # MANDATORY — apply to DC East devices
+    role: distribution                   # MANDATORY — distribution switches act as DHCP server
+
+  management:
+    dhcp_server:
+      # ── DHCP pools ──────────────────────────────────────────────────────────────
+      pools:                                 # MANDATORY — at least one DHCP pool
+        - name: SERVER-MGMT-POOL             # MANDATORY — pool name
+          network: "10.10.100.0/24"          # MANDATORY — network/mask for this pool
+          default_router: "10.10.100.1"      # MANDATORY — default gateway sent to clients
+          dns_servers:                       # OPTIONAL — DNS servers sent to clients
+            - "10.0.0.10"
+            - "10.0.0.11"
+          domain_name: "dc-east.acme-corp.local"  # OPTIONAL — DNS domain suffix
+          lease_time: 86400                  # OPTIONAL — lease duration in seconds (24h)
+        - name: IPMI-POOL
+          network: "10.10.101.0/24"
+          default_router: "10.10.101.1"
+          dns_servers:
+            - "10.0.0.10"
+          domain_name: "ipmi.dc-east.acme-corp.local"
+          lease_time: 43200                  # OPTIONAL — 12h lease for IPMI (shorter for discovery)
+
+      # ── Excluded addresses ──────────────────────────────────────────────────────
+      excluded_addresses:                    # OPTIONAL — reserve addresses outside the dynamic pool
+        - start: "10.10.100.1"
+          end: "10.10.100.10"
+        - start: "10.10.101.1"
+          end: "10.10.101.10"
+
+      lease_time: 86400                      # OPTIONAL — global default lease time (per-pool overrides)
+
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: all_at_once
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmConfig
+        label: "Verify DHCP pools in running config"
+        expected:
+          - config_snippet: "ip dhcp pool SERVER-MGMT-POOL"
+          - config_snippet: "network 10.10.100.0/24"

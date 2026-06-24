@@ -1,0 +1,21 @@
+{# fw_rule — Arista EOS stateful firewall policy (ZBF / ACL-based) #}
+{# Arista EOS uses ACLs with stateful tracking via 'ip access-list dynamic' or ACL logging #}
+{# For full ZBF, use a dedicated security appliance — this template implements ACL-based FW #}
+
+ip access-list {{ policy_name }}
+   remark {{ description | default('Intent-based firewall policy') }}
+{% for rule in rules | default([]) %}
+{% if rule.action == 'deny' %}
+   {{ loop.index * 10 }} deny {{ rule.protocol | default('ip') }} {{ rule.source | default('any') }} {{ rule.destination | default('any') }}{% if rule.port is defined %} eq {{ rule.port }}{% endif %}{% if rule.log | default(false) %} log{% endif %} {# {{ rule.description | default('') }} #}
+{% else %}
+   {{ loop.index * 10 }} permit {{ rule.protocol | default('ip') }} {{ rule.source | default('any') }} {{ rule.destination | default('any') }}{% if rule.port is defined %} eq {{ rule.port }}{% endif %}{% if rule.log | default(false) %} log{% endif %} {# {{ rule.description | default('') }} #}
+{% endif %}
+{% endfor %}
+{% if default_action | default('deny') == 'deny' %}
+   {{ (rules | default([]) | length + 1) * 10 }} deny ip any any log
+{% endif %}
+
+{% for intf in apply_interfaces | default([]) %}
+interface {{ intf }}
+   ip access-group {{ policy_name }} {{ direction | default('in') }}
+{% endfor %}

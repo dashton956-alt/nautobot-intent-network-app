@@ -1,0 +1,30 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: l2_access_port
+# Purpose:     Configure Ethernet4 as an untagged access port on VLAN 300
+#              (MGMT) for all access-switches in DC East.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-l2-access-mgmt-dc-east-001    # MANDATORY
+  type: l2_access_port                   # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG0012363              # MANDATORY (CHG + 7 digits)
+  description: "Configure management access ports on DC East leaf switches — Ethernet4 on VLAN 300 (MGMT)"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east                          # Apply to all devices at DC East
+    roles:
+      - access-switch                    # Restrict to access-switch role only
+
+  # ── Port identity ───────────────────────────────────────────────────────────
+  interface: Ethernet4                   # MANDATORY — exact interface name
+  vlan_id: 300                           # MANDATORY — untagged VLAN (MGMT)
+  voice_vlan:                            # OPTIONAL — omit if no VoIP
+  interface_description: "Management — VLAN 300"  # OPTIONAL — interface description on device
+
+  # ── Spanning tree ───────────────────────────────────────────────────────────
+  portfast: true                         # OPTIONAL (default: true) — safe for management ports
+  bpdu_guard: true                       # OPTIONAL (default: true) — err-disable on rogue BPDU

@@ -1,0 +1,30 @@
+{# bgp_ebgp — Cisco NX-OS eBGP configuration #}
+feature bgp
+
+router bgp {{ local_as }}
+ router-id {{ router_id }}
+ log-neighbor-changes
+ bestpath as-path multipath-relax
+{% for neighbor in ebgp_neighbors | default([]) %}
+ neighbor {{ neighbor.ip }}
+  remote-as {{ neighbor.remote_as }}
+  description {{ neighbor.description | default('eBGP peer') }}
+{% if neighbor.update_source is defined %}
+  update-source {{ neighbor.update_source }}
+{% endif %}
+  address-family ipv4 unicast
+   send-community
+   send-community extended
+{% if neighbor.route_map_in is defined %}
+   route-map {{ neighbor.route_map_in }} in
+{% endif %}
+{% if neighbor.route_map_out is defined %}
+   route-map {{ neighbor.route_map_out }} out
+{% endif %}
+{% if neighbor.max_prefix is defined %}
+   maximum-prefix {{ neighbor.max_prefix }}
+{% endif %}
+{% if neighbor.bfd | default(false) %}
+  bfd
+{% endif %}
+{% endfor %}

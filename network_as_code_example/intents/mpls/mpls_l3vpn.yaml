@@ -1,0 +1,64 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mpls_l3vpn
+# Purpose:     Provision a full MPLS L3VPN service — allocates RD/RT, creates
+#              VRF, configures BGP VPNv4 address family across PE routers.
+# HIGH-IMPACT TYPE — requires approved_by when OPA enforce is on.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-mpls-l3vpn-customer-a-001    # MANDATORY
+type: mpls_l3vpn                      # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "MPLS L3VPN for Customer-A — hub-spoke topology — 3 sites"  # MANDATORY
+change_ticket: CHG0030021             # MANDATORY (CHG + 7 digits)
+approved_by: "net.engineer"           # MANDATORY for mpls_l3vpn (high-impact)
+
+scope:
+  devices: [pe-01, pe-02, pe-03]      # MANDATORY — all PE routers carrying this VPN
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  SOURCE (customer-facing) SITE DEFINITION                              ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+source:
+  group: customer-a-pe-group          # OPTIONAL — Nautobot device tag for PE filtering
+  sites: [dc-east]                    # OPTIONAL — sites containing PE routers
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  VPN SERVICE PARAMETERS                                                ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+vrf_name: CUSTOMER-A                  # MANDATORY — VRF name on all PE routers
+local_asn: 65001                      # MANDATORY — provider BGP AS number
+
+# ── Resource allocation — auto-allocated from pools if omitted ────────────────
+rd: ""                                # OPTIONAL — Route Distinguisher (e.g. "65001:1001")
+                                      #   Nautobot auto-allocates from RD pool if blank
+rt_export: ""                         # OPTIONAL — export RT (e.g. "65001:1001")
+rt_import: ""                         # OPTIONAL — import RT; can differ for hub-spoke
+
+# ── CE-facing interface (per PE device) ──────────────────────────────────────
+# The resolver reads these from the connected interfaces in Nautobot ORM
+ce_interface: GigabitEthernet0/1      # OPTIONAL — CE-facing interface name (same across all PEs)
+ce_vlan: null                         # OPTIONAL — if CE connection is over a sub-interface
+
+# ── CE-PE routing ─────────────────────────────────────────────────────────────
+ce_routing_protocol: bgp              # OPTIONAL (default: bgp) — bgp | ospf | static | connected
+ce_neighbor_asn: 65100                # OPTIONAL — CE's BGP AS (required when ce_routing_protocol: bgp)
+redistribute_connected: false         # OPTIONAL — redistribute CE connected into VPNv4
+redistribute_static: false            # OPTIONAL — redistribute static routes into VPNv4
+
+# ── QoS / SLA ─────────────────────────────────────────────────────────────────
+policy:
+  compliance: none                    # OPTIONAL
+  max_latency_ms: null                # OPTIONAL — SLA latency target for this VPN (advisory)
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: canary                    # OPTIONAL — canary recommended for new VPN provisioning
+  save_config: true
+
+verification:
+  level: nuts                         # OPTIONAL — verifies VRF present, BGP VPNv4, prefix count
+  trigger: both
+  fail_action: rollback

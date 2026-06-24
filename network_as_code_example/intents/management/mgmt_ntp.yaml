@@ -1,0 +1,60 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_ntp
+# Purpose:     Configure NTP servers, authentication, and source interface
+#              across all devices. Ensures synchronized clocks for logging,
+#              certificates, and time-sensitive protocols.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-ntp-global-001               # MANDATORY
+type: mgmt_ntp                        # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "NTP configuration — corporate NTP servers — all devices"  # MANDATORY
+change_ticket: CHG0030100             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL here
+
+scope:
+  all_tenant_devices: true            # MANDATORY — NTP should apply to all devices
+
+management:
+  ntp:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  NTP SERVERS (MANDATORY — at least one)                                ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    servers:
+      - 10.10.10.1                        # MANDATORY — NTP server IP or hostname
+      - 10.10.10.2                        # Secondary server for redundancy
+
+    prefer: 10.10.10.1                    # OPTIONAL — designate this server as preferred
+                                          #   Device will prefer this source if all servers reachable
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  SOURCE INTERFACE (OPTIONAL)                                           ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    source_interface: Loopback0           # OPTIONAL — use this interface as NTP packet source
+                                          #   Best practice: use a loopback for stability
+                                          #   Omit to use the outgoing interface automatically
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  AUTHENTICATION (OPTIONAL)                                             ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    authentication: false                 # OPTIONAL (default: false) — enable NTP MD5 authentication
+
+                                      #   Set true and configure keys below for production
+                                      #   Prevents NTP spoofing attacks
+
+# auth_key_id: 1                      # OPTIONAL (required if authentication: true) — key ID (1–65535)
+# auth_key: ""                        # OPTIONAL — MD5 key; use Nautobot Secrets in production
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

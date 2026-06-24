@@ -1,0 +1,35 @@
+{# dc_mlag — Cisco NX-OS vPC (virtual Port-Channel) configuration #}
+feature vpc
+feature lacp
+
+vlan {{ keepalive_vlan | default(3967) }}
+ name VPC-KEEPALIVE
+
+vlan {{ peer_link_vlan | default(3968) }}
+ name VPC-PEER-LINK
+
+vpc domain {{ vpc_domain_id }}
+ peer-keepalive destination {{ peer_keepalive_ip }} source {{ local_keepalive_ip }}{% if keepalive_vrf is defined %} vrf {{ keepalive_vrf }}{% endif %}
+
+{% if auto_recovery | default(true) %}
+ auto-recovery reload-delay {{ auto_recovery_delay | default(360) }}
+{% endif %}
+{% if delay_restore is defined %}
+ delay restore {{ delay_restore }}
+{% endif %}
+{% if ipv6_nd_sync | default(false) %}
+ ipv6 nd synchronize
+{% endif %}
+
+interface port-channel{{ peer_link_portchannel | default(999) }}
+ description vPC Peer-Link
+ switchport mode trunk
+ spanning-tree port type network
+ vpc peer-link
+
+{% for member in peer_link_members | default([]) %}
+interface {{ member }}
+ description vPC Peer-Link member
+ channel-group {{ peer_link_portchannel | default(999) }} mode active
+ no shutdown
+{% endfor %}

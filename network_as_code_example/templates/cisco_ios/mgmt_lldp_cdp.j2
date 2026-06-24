@@ -1,0 +1,35 @@
+{# mgmt_lldp_cdp — Cisco IOS-XE LLDP and CDP global configuration #}
+{% if lldp_enabled | default(true) %}
+lldp run
+{% if lldp_timer is defined and lldp_timer %}
+lldp timer {{ lldp_timer }}
+{% endif %}
+{% if lldp_holdtime is defined and lldp_holdtime %}
+lldp holdtime {{ lldp_holdtime }}
+{% endif %}
+{% if lldp_reinit is defined and lldp_reinit %}
+lldp reinit {{ lldp_reinit }}
+{% endif %}
+{% else %}
+no lldp run
+{% endif %}
+
+{% if cdp_enabled | default(false) %}
+cdp run
+{% else %}
+no cdp run
+{% endif %}
+
+{% for intf_override in lldp_interface_overrides | default([]) %}
+interface {{ intf_override.interface }}
+{% if intf_override.lldp_transmit | default(true) %}
+ lldp transmit
+{% else %}
+ no lldp transmit
+{% endif %}
+{% if intf_override.lldp_receive | default(true) %}
+ lldp receive
+{% else %}
+ no lldp receive
+{% endif %}
+{% endfor %}

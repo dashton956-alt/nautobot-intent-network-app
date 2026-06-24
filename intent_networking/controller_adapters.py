@@ -206,32 +206,26 @@ class WirelessControllerAdapter(ControllerAdapter):
 
     # ----- internal dispatch (override in vendor-specific subclass) -----
 
-    def _dispatch_push(self, ptype: str, prim: dict, intent_id: str) -> dict:  # pylint: disable=unused-argument
+    def _dispatch_push(self, ptype: str, prim: dict, intent_id: str) -> dict:
         """Vendor-specific push logic — override in concrete subclass."""
-        logger.warning(
-            "WirelessControllerAdapter._dispatch_push not overridden; primitive '%s' for intent '%s' was NOT pushed.",
-            ptype,
-            intent_id,
+        raise NotImplementedAdapterError(
+            f"{self.__class__.__name__} has no vendor implementation for '{ptype}'. "
+            f"Subclass and override _dispatch_push before deploying intent '{intent_id}'."
         )
-        return {"ok": False, "reason": "no vendor implementation"}
 
-    def _check_present(self, ptype: str, prim: dict, intent_id: str) -> bool:  # pylint: disable=unused-argument
+    def _check_present(self, ptype: str, prim: dict, intent_id: str) -> bool:
         """Vendor-specific verify — override in concrete subclass."""
-        logger.warning(
-            "WirelessControllerAdapter._check_present not overridden; returning False for '%s'.",
-            ptype,
+        raise NotImplementedAdapterError(
+            f"{self.__class__.__name__} has no vendor implementation for '{ptype}'. "
+            f"Subclass and override _check_present before verifying intent '{intent_id}'."
         )
-        return False
 
-    def _dispatch_rollback(self, ptype: str, prim: dict, intent_id: str) -> dict:  # pylint: disable=unused-argument
+    def _dispatch_rollback(self, ptype: str, prim: dict, intent_id: str) -> dict:
         """Vendor-specific rollback — override in concrete subclass."""
-        logger.warning(
-            "WirelessControllerAdapter._dispatch_rollback not overridden; "
-            "primitive '%s' for intent '%s' was NOT rolled back.",
-            ptype,
-            intent_id,
+        raise NotImplementedAdapterError(
+            f"{self.__class__.__name__} has no vendor implementation for '{ptype}'. "
+            f"Subclass and override _dispatch_rollback before rolling back intent '{intent_id}'."
         )
-        return {"ok": False, "reason": "no vendor implementation"}
 
 
 # ---------------------------------------------------------------------------
@@ -308,29 +302,23 @@ class SdWanControllerAdapter(ControllerAdapter):
             "details": results,
         }
 
-    def _dispatch_push(self, ptype: str, prim: dict, intent_id: str) -> dict:  # pylint: disable=unused-argument
-        logger.warning(
-            "SdWanControllerAdapter._dispatch_push not overridden; primitive '%s' for intent '%s' was NOT pushed.",
-            ptype,
-            intent_id,
+    def _dispatch_push(self, ptype: str, prim: dict, intent_id: str) -> dict:
+        raise NotImplementedAdapterError(
+            f"{self.__class__.__name__} has no vendor implementation for '{ptype}'. "
+            f"Subclass and override _dispatch_push before deploying intent '{intent_id}'."
         )
-        return {"ok": False, "reason": "no vendor implementation"}
 
-    def _check_present(self, ptype: str, prim: dict, intent_id: str) -> bool:  # pylint: disable=unused-argument
-        logger.warning(
-            "SdWanControllerAdapter._check_present not overridden; returning False for '%s'.",
-            ptype,
+    def _check_present(self, ptype: str, prim: dict, intent_id: str) -> bool:
+        raise NotImplementedAdapterError(
+            f"{self.__class__.__name__} has no vendor implementation for '{ptype}'. "
+            f"Subclass and override _check_present before verifying intent '{intent_id}'."
         )
-        return False
 
-    def _dispatch_rollback(self, ptype: str, prim: dict, intent_id: str) -> dict:  # pylint: disable=unused-argument
-        logger.warning(
-            "SdWanControllerAdapter._dispatch_rollback not overridden; "
-            "primitive '%s' for intent '%s' was NOT rolled back.",
-            ptype,
-            intent_id,
+    def _dispatch_rollback(self, ptype: str, prim: dict, intent_id: str) -> dict:
+        raise NotImplementedAdapterError(
+            f"{self.__class__.__name__} has no vendor implementation for '{ptype}'. "
+            f"Subclass and override _dispatch_rollback before rolling back intent '{intent_id}'."
         )
-        return {"ok": False, "reason": "no vendor implementation"}
 
 
 # ---------------------------------------------------------------------------
@@ -415,32 +403,23 @@ class CloudAdapter(ControllerAdapter):
             "details": results,
         }
 
-    def _dispatch_push(self, provider: str, ptype: str, prim: dict, intent_id: str) -> dict:  # pylint: disable=unused-argument
-        logger.warning(
-            "CloudAdapter._dispatch_push not overridden; primitive '%s' for intent '%s' (provider=%s) was NOT pushed.",
-            ptype,
-            intent_id,
-            provider,
+    def _dispatch_push(self, provider: str, ptype: str, prim: dict, intent_id: str) -> dict:
+        raise NotImplementedAdapterError(
+            f"{self.__class__.__name__} has no implementation for '{ptype}' (provider={provider}). "
+            f"Subclass and override _dispatch_push before deploying intent '{intent_id}'."
         )
-        return {"ok": False, "reason": "no provider implementation"}
 
-    def _check_present(self, provider: str, ptype: str, prim: dict, intent_id: str) -> bool:  # pylint: disable=unused-argument
-        logger.warning(
-            "CloudAdapter._check_present not overridden; returning False for '%s' (provider=%s).",
-            ptype,
-            provider,
+    def _check_present(self, provider: str, ptype: str, prim: dict, intent_id: str) -> bool:
+        raise NotImplementedAdapterError(
+            f"{self.__class__.__name__} has no implementation for '{ptype}' (provider={provider}). "
+            f"Subclass and override _check_present before verifying intent '{intent_id}'."
         )
-        return False
 
-    def _dispatch_rollback(self, provider: str, ptype: str, prim: dict, intent_id: str) -> dict:  # pylint: disable=unused-argument
-        logger.warning(
-            "CloudAdapter._dispatch_rollback not overridden; "
-            "primitive '%s' for intent '%s' (provider=%s) was NOT rolled back.",
-            ptype,
-            intent_id,
-            provider,
+    def _dispatch_rollback(self, provider: str, ptype: str, prim: dict, intent_id: str) -> dict:
+        raise NotImplementedAdapterError(
+            f"{self.__class__.__name__} has no implementation for '{ptype}' (provider={provider}). "
+            f"Subclass and override _dispatch_rollback before rolling back intent '{intent_id}'."
         )
-        return {"ok": False, "reason": "no provider implementation"}
 
 
 # ---------------------------------------------------------------------------
@@ -521,32 +500,26 @@ class FirewallControllerAdapter(ControllerAdapter):
             "details": results,
         }
 
-    def _dispatch_push(self, ptype: str, prim: dict, intent_id: str) -> dict:  # pylint: disable=unused-argument
+    def _dispatch_push(self, ptype: str, prim: dict, intent_id: str) -> dict:
         """Vendor-specific push logic — override in concrete subclass."""
-        logger.warning(
-            "FirewallControllerAdapter._dispatch_push not overridden; primitive '%s' for intent '%s' was NOT pushed.",
-            ptype,
-            intent_id,
+        raise NotImplementedAdapterError(
+            f"{self.__class__.__name__} has no vendor implementation for '{ptype}'. "
+            f"Subclass and override _dispatch_push before deploying intent '{intent_id}'."
         )
-        return {"ok": False, "reason": "no vendor implementation"}
 
-    def _check_present(self, ptype: str, prim: dict, intent_id: str) -> bool:  # pylint: disable=unused-argument
+    def _check_present(self, ptype: str, prim: dict, intent_id: str) -> bool:
         """Vendor-specific verify — override in concrete subclass."""
-        logger.warning(
-            "FirewallControllerAdapter._check_present not overridden; returning False for '%s'.",
-            ptype,
+        raise NotImplementedAdapterError(
+            f"{self.__class__.__name__} has no vendor implementation for '{ptype}'. "
+            f"Subclass and override _check_present before verifying intent '{intent_id}'."
         )
-        return False
 
-    def _dispatch_rollback(self, ptype: str, prim: dict, intent_id: str) -> dict:  # pylint: disable=unused-argument
+    def _dispatch_rollback(self, ptype: str, prim: dict, intent_id: str) -> dict:
         """Vendor-specific rollback — override in concrete subclass."""
-        logger.warning(
-            "FirewallControllerAdapter._dispatch_rollback not overridden; "
-            "primitive '%s' for intent '%s' was NOT rolled back.",
-            ptype,
-            intent_id,
+        raise NotImplementedAdapterError(
+            f"{self.__class__.__name__} has no vendor implementation for '{ptype}'. "
+            f"Subclass and override _dispatch_rollback before rolling back intent '{intent_id}'."
         )
-        return {"ok": False, "reason": "no vendor implementation"}
 
 
 # ---------------------------------------------------------------------------
@@ -555,6 +528,10 @@ class FirewallControllerAdapter(ControllerAdapter):
 
 # Allowed controller values for YAML validation.
 VALID_CONTROLLER_TYPES = frozenset({"nornir", "catalyst_center", "meraki", "mist"})
+
+
+class NotImplementedAdapterError(NotImplementedError):
+    """Raised when a controller adapter has no vendor implementation for a dispatch method."""
 
 
 class UnsupportedIntentTypeError(ValueError):

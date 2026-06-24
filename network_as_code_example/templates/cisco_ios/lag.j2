@@ -1,0 +1,15 @@
+{# lag — Cisco IOS-XE Port-Channel (LAG) configuration #}
+interface Port-channel{{ lag_id }}
+{% if description is defined and description %}
+ description {{ description }}
+{% endif %}
+{% if min_links is defined and min_links %}
+ port-channel min-links {{ min_links }}
+{% endif %}
+ no shutdown
+
+{% for member in lag_members %}
+interface {{ member }}
+ channel-group {{ lag_id }} mode {{ lag_mode | default('active') }}
+ no shutdown
+{% endfor %}

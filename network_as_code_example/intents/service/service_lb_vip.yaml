@@ -1,0 +1,97 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: service_lb_vip
+# Purpose:     Provision a load balancer VIP — virtual IP, pool members,
+#              health checks, and persistence. Pushed via controller adapter.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-lb-vip-web-prod-001          # MANDATORY
+type: service_lb_vip                  # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "Load balancer VIP 10.100.0.100:443 — production web cluster"  # MANDATORY
+change_ticket: CHG0030120             # MANDATORY (CHG + 7 digits)
+approved_by: "app.owner"             # OPTIONAL here; MANDATORY when OPA enforce is on
+
+scope:
+  devices: [lb-01]                    # MANDATORY — load balancer device or cluster
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  VIRTUAL SERVER (MANDATORY)                                            ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+vip_name: VS-WEB-PROD-HTTPS           # MANDATORY — virtual server name on the LB
+
+vip_address: 10.100.0.100             # MANDATORY — virtual IP address
+vip_port: 443                         # MANDATORY — virtual port
+protocol: tcp                         # OPTIONAL (default: tcp) — tcp | udp
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  POOL / MEMBERS (MANDATORY — at least one pool member)                ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+pool_name: POOL-WEB-PROD              # OPTIONAL — backend pool name (auto-generated if omitted)
+
+load_balancing_method: round_robin    # OPTIONAL (default: round_robin)
+                                      #   round_robin         — distribute sequentially
+                                      #   least_connections   — fewest active connections
+                                      #   ip_hash             — sticky by client IP
+                                      #   weighted_round_robin — use weights below
+
+members:
+  - address: 10.100.1.10              # MANDATORY per member — backend server IP
+    port: 8443                        # OPTIONAL — backend port (default: same as vip_port)
+    weight: 1                         # OPTIONAL (default: 1) — relative weight for weighted methods
+    enabled: true                     # OPTIONAL (default: true) — set false to disable without remove
+
+  - address: 10.100.1.11
+    port: 8443
+    weight: 1
+    enabled: true
+
+  - address: 10.100.1.12
+    port: 8443
+    weight: 2                         # OPTIONAL — higher weight = more traffic
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  HEALTH MONITOR (OPTIONAL)                                             ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+health_monitor:
+  type: https                         # OPTIONAL (default: tcp) — tcp | http | https | icmp | custom
+  path: /health                       # OPTIONAL — URL path for HTTP/HTTPS monitors
+  expected_codes: [200, 204]          # OPTIONAL — HTTP status codes that indicate healthy
+  interval: 5                         # OPTIONAL (default: 5) — probe interval in seconds
+  timeout: 2                          # OPTIONAL (default: 2) — probe timeout in seconds
+  unhealthy_threshold: 2              # OPTIONAL (default: 2) — failures before marking down
+  healthy_threshold: 2                # OPTIONAL (default: 2) — successes before marking up
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  SESSION PERSISTENCE (OPTIONAL)                                        ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+persistence:
+  type: cookie                        # OPTIONAL — none | cookie | source_ip | ssl_session_id
+                                      #   none          — no persistence (stateless apps)
+                                      #   cookie        — LB inserts cookie (HTTP/HTTPS only)
+                                      #   source_ip     — hash on client IP
+                                      #   ssl_session_id — SSL session reuse
+  timeout: 3600                       # OPTIONAL — persistence timeout in seconds
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  SSL OFFLOAD (OPTIONAL)                                                ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+ssl_offload: true                     # OPTIONAL (default: false) — terminate TLS at LB;
+                                      #   send plain HTTP to backends (reduces server CPU)
+ssl_cert: ""                          # OPTIONAL — SSL certificate name on LB (use Secrets)
+ssl_key: ""                           # OPTIONAL — private key name on LB (use Secrets)
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: nuts                         # OPTIONAL — verifies VIP responds, pool members healthy
+  trigger: both
+  fail_action: rollback

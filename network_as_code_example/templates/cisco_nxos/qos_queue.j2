@@ -1,0 +1,17 @@
+{# qos_queue — Cisco NX-OS QoS policy-map queuing configuration #}
+policy-map type queuing {{ policy_map_name | default('QOS-QUEUING') }}
+{% for cls in queues | default([]) %}
+  class type queuing {{ cls.name }}
+{% if cls.priority is defined %}
+    priority level {{ cls.priority }}
+{% elif cls.bandwidth is defined %}
+    bandwidth percent {{ cls.bandwidth }}
+{% endif %}
+{% if cls.queue_limit is defined %}
+    queue-limit {{ cls.queue_limit }} packets
+{% endif %}
+{% endfor %}
+{% for intf in apply_interfaces | default([]) %}
+interface {{ intf.name }}
+ service-policy type queuing output {{ policy_map_name | default('QOS-QUEUING') }}
+{% endfor %}

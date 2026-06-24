@@ -1,0 +1,41 @@
+{# nat_pat — Arista EOS NAT overload (PAT) / pool / static NAT #}
+{% if nat_type == 'overload' %}
+ip access-list standard {{ acl | default('ACL-NAT-INSIDE') }}
+   permit 10.0.0.0/8
+   permit 172.16.0.0/12
+   permit 192.168.0.0/16
+
+interface {{ inside_interface }}
+   ip nat inside
+
+interface {{ outside_interface }}
+   ip nat outside
+
+ip nat inside source list {{ acl | default('ACL-NAT-INSIDE') }} interface {{ outside_interface }} overload
+
+{% elif nat_type == 'pool' %}
+ip nat pool {{ pool_name }} {{ pool_start }} {{ pool_end }} prefix-length {{ pool_prefix | default('29') }}
+
+interface {{ inside_interface }}
+   ip nat inside
+
+interface {{ outside_interface }}
+   ip nat outside
+
+ip nat inside source list {{ acl | default('ACL-NAT-INSIDE') }} pool {{ pool_name }}
+
+{% elif nat_type == 'static' %}
+interface {{ inside_interface }}
+   ip nat inside
+
+interface {{ outside_interface }}
+   ip nat outside
+
+{% for mapping in static_mappings | default([]) %}
+{% if mapping.protocol is defined %}
+ip nat inside source static {{ mapping.protocol }} {{ mapping.inside }} {{ mapping.inside_port }} {{ mapping.outside }} {{ mapping.outside_port }}
+{% else %}
+ip nat inside source static {{ mapping.inside }} {{ mapping.outside }}
+{% endif %}
+{% endfor %}
+{% endif %}

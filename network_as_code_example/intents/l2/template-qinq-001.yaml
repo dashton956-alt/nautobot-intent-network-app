@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: qinq
+# Purpose:     Configure QinQ (IEEE 802.1ad) double-tagging on a provider-edge
+#              port. Encapsulates customer VLANs (C-VLAN) inside a service VLAN
+#              (S-VLAN) for L2 VPN transport across the provider network.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-qinq-001                  # MANDATORY
+  type: qinq                             # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "QinQ / Double Tagging — provider-edge port encapsulating customer VLANs"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    devices:
+      - pe-router-lon-01                 # MANDATORY — QinQ is per provider-edge device
+
+  # ── QinQ configuration ──────────────────────────────────────────────────────
+  qinq:
+    interface: GigabitEthernet0/0/1      # MANDATORY — provider-edge customer-facing interface
+    description: "QinQ uplink to customer CPE"  # OPTIONAL
+    outer_vlan: 200                      # MANDATORY — service VLAN (S-VLAN) added by provider
+    dot1q_tunnel_ethertype: "0x88A8"     # OPTIONAL — 802.1ad ethertype (0x88A8 standard; 0x9100 legacy)
+    customer_vlans:                      # OPTIONAL — customer VLANs transparently forwarded
+      - 10
+      - 20
+      - 30
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify QinQ / dot1q tunnel configuration"
+        expected:
+          - config_snippet: "dot1q tunnel"

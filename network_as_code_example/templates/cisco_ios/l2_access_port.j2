@@ -1,0 +1,20 @@
+{# l2_access_port — Cisco IOS-XE access port configuration #}
+interface {{ interface }}
+ description {{ description | default('') }}
+ switchport mode access
+ switchport access vlan {{ vlan_id }}
+{% if voice_vlan is defined and voice_vlan %}
+ switchport voice vlan {{ voice_vlan }}
+{% endif %}
+{% if portfast | default(true) %}
+ spanning-tree portfast
+{% endif %}
+{% if bpdu_guard | default(true) %}
+ spanning-tree bpduguard enable
+{% endif %}
+ no cdp enable
+{% if shutdown | default(false) %}
+ shutdown
+{% else %}
+ no shutdown
+{% endif %}

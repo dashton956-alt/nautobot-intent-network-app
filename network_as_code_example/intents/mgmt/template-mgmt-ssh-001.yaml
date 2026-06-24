@@ -1,0 +1,67 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_ssh
+# Purpose:     Enforce SSHv2-only access on all devices with strong cipher
+#              suites and source ACL restriction. Disables telnet and limits
+#              VTY access to the ACL-defined management network.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-mgmt-ssh-001              # MANDATORY
+  type: mgmt_ssh                         # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "SSH Access Control — enforce SSHv2-only, set timeout and allowed source ACL"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    all_tenant_devices: true             # MANDATORY — SSH policy applies to every device
+
+  # ── SSH configuration ───────────────────────────────────────────────────────
+  management:
+    ssh:
+      version: 2                         # MANDATORY — SSHv2 only (v1 is broken and insecure)
+      enabled: true                      # MANDATORY — enable SSH server
+      authentication_retries: 3          # OPTIONAL — max failed auth attempts before disconnect
+      timeout_secs: 60                   # OPTIONAL — SSH negotiation timeout
+      idle_timeout_mins: 10              # OPTIONAL — disconnect idle sessions after N minutes
+      key_bits: 4096                     # OPTIONAL — RSA host key size (minimum 2048)
+      algorithms:
+        kex:                             # OPTIONAL — allowed key exchange algorithms
+          - ecdh-sha2-nistp256
+          - ecdh-sha2-nistp384
+          - diffie-hellman-group14-sha256
+        enc:                             # OPTIONAL — allowed encryption algorithms
+          - aes256-gcm@openssh.com
+          - aes128-gcm@openssh.com
+        mac:                             # OPTIONAL — allowed MAC algorithms
+          - hmac-sha2-256
+          - hmac-sha2-512
+      acl: ACL-SSH-SOURCES               # OPTIONAL — ACL restricting allowed source IPs
+      vty_lines:                         # OPTIONAL — VTY line configuration
+        - range: "0 4"
+          transport_in: ssh              # MANDATORY — ssh only; no telnet
+          transport_out: none            # OPTIONAL — disable outbound telnet
+          exec_timeout_mins: 10
+          access_class: ACL-SSH-SOURCES
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify SSHv2 configured"
+        expected:
+          - config_snippet: "ip ssh version 2"
+          - config_snippet: "transport input ssh"

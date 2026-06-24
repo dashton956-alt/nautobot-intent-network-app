@@ -1,0 +1,19 @@
+{# mgmt_telemetry — Arista EOS gRPC dial-out streaming telemetry #}
+management telemetry gnmi
+   transport grpc default
+{% if netconf_vrf is defined and netconf_vrf %}
+      vrf {{ netconf_vrf }}
+{% endif %}
+{% if telemetry_transport | default('grpc-tls') == 'grpc-tls' %}
+      ssl profile TELEMETRY-SSL
+{% endif %}
+
+daemon TerminAttr
+   exec /usr/bin/TerminAttr{% if telemetry_destination is defined %} -cvaddr={{ telemetry_destination }}:{{ telemetry_port | default(9910) }}{% endif %} -cvvrf={{ netconf_vrf | default('management') }} -cvcompression=gzip -smashexcludes=ale,flexCounter,hardware,kni,pulse,strata -ingestexclude=/Sysdb/cell/1/agent,/Sysdb/cell/2/agent -cvgnmi
+   no shutdown
+
+{% for sub in telemetry_subscriptions | default([]) %}
+{# Subscription: {{ sub.name | default('sub-' ~ loop.index) }} #}
+{# Path: {{ sub.path | default('') }} #}
+{# Interval: {{ sub.interval | default(30) }}s #}
+{% endfor %}

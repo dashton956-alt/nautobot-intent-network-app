@@ -1,0 +1,22 @@
+{# mgmt_dns_dhcp — Cisco IOS-XE DNS resolver configuration #}
+{% if dns is defined %}
+{% for server in dns.servers | default([]) %}
+ip name-server {{ server }}
+{% endfor %}
+{% if dns.domain_name is defined and dns.domain_name %}
+ip domain name {{ dns.domain_name }}
+{% endif %}
+{% for domain in dns.search_domains | default([]) %}
+ip domain list {{ domain }}
+{% endfor %}
+{% else %}
+{% for server in dns_servers | default([]) %}
+ip name-server {{ server }}
+{% endfor %}
+{% if domain_name is defined and domain_name %}
+ip domain name {{ domain_name }}
+{% endif %}
+{% for domain in dns_domain_list | default([]) %}
+ip domain list {{ domain }}
+{% endfor %}
+{% endif %}

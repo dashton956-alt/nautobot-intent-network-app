@@ -1,0 +1,9 @@
+{# mgmt_netconf — Cisco NX-OS NETCONF/RESTCONF/gNMI configuration #}
+feature netconf
+{% if restconf_enable | default(false) %}
+feature restconf
+{% endif %}
+feature grpc
+{% if gnmi_port is defined %}
+gnmi port {{ gnmi_port }}
+{% endif %}

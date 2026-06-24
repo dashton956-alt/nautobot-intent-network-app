@@ -1,0 +1,52 @@
+{# dc_underlay — Arista EOS spine-leaf BGP underlay configuration #}
+service routing protocols model multi-agent
+
+{% if underlay_protocol | default('bgp') == 'bgp' %}
+router bgp {{ local_asn }}
+{% if router_id is defined and router_id %}
+   router-id {{ router_id }}
+{% endif %}
+   no bgp default ipv4-unicast
+   maximum-paths 4 ecmp 4
+{% for link in underlay_links | default([]) %}
+   neighbor {{ link.peer_ip }} remote-as {{ link.peer_asn }}
+   neighbor {{ link.peer_ip }} description {{ link.peer_name | default(link.peer_ip) }}
+   neighbor {{ link.peer_ip }} send-community
+   neighbor {{ link.peer_ip }} maximum-routes 12000
+{% endfor %}
+   !
+   address-family ipv4
+{% for link in underlay_links | default([]) %}
+      neighbor {{ link.peer_ip }} activate
+{% endfor %}
+      redistribute connected route-map RM-LOOPBACK-ONLY
+
+{% elif underlay_protocol | default('bgp') == 'ospf' %}
+router ospf {{ process_id | default(1) }}
+{% if router_id is defined and router_id %}
+   router-id {{ router_id }}
+{% endif %}
+   passive-interface default
+{% for link in underlay_links | default([]) %}
+   no passive-interface {{ link.interface }}
+{% endfor %}
+   max-lsa 12000
+   !
+{% for link in underlay_links | default([]) %}
+interface {{ link.interface }}
+   ip ospf {{ process_id | default(1) }} area {{ area | default('0') }}
+   ip ospf network point-to-point
+{% if bfd | default(false) %}
+   ip ospf bfd
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% for link in underlay_links | default([]) %}
+interface {{ link.interface }}
+   description {{ link.description | default('Underlay to ' ~ link.peer_name | default(link.peer_ip)) }}
+   mtu 9214
+   no switchport
+   ip address {{ link.local_ip }}
+   no shutdown
+{% endfor %}

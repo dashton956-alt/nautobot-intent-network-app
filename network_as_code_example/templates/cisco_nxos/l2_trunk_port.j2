@@ -1,0 +1,17 @@
+{# l2_trunk_port — Cisco NX-OS trunk port configuration #}
+{% for intf in trunk_ports | default([]) %}
+interface {{ intf.name }}
+ description {{ intf.description | default('Trunk port') }}
+ switchport
+ switchport mode trunk
+{% if intf.allowed_vlans is defined %}
+ switchport trunk allowed vlan {{ intf.allowed_vlans | join(',') }}
+{% endif %}
+{% if intf.native_vlan is defined %}
+ switchport trunk native vlan {{ intf.native_vlan }}
+{% endif %}
+{% if intf.spanning_tree_port_type is defined %}
+ spanning-tree port type {{ intf.spanning_tree_port_type }}
+{% endif %}
+ no shutdown
+{% endfor %}

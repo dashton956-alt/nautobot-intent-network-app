@@ -1,0 +1,15 @@
+{# reachability_ip_sla — Cisco NX-OS IP SLA / object tracking configuration #}
+{% for probe in probes | default([]) %}
+ip sla {{ probe.id }}
+{% if probe.type | default('icmp-echo') == 'icmp-echo' %}
+  icmp-echo {{ probe.destination }}{% if probe.source_interface is defined %} source-interface {{ probe.source_interface }}{% endif %}
+
+{% endif %}
+{% if probe.frequency is defined %}
+  frequency {{ probe.frequency }}
+{% endif %}
+ip sla schedule {{ probe.id }} life forever start-time now
+{% if probe.track_id is defined %}
+track {{ probe.track_id }} ip sla {{ probe.id }} reachability
+{% endif %}
+{% endfor %}

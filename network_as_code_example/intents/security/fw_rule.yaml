@@ -1,0 +1,111 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: fw_rule
+# Purpose:     Declarative firewall policy — stateful or stateless rule set.
+#              Supports multi-vendor (IOS-XE, Juniper, Fortinet via adapters).
+# HIGH-IMPACT TYPE — requires approved_by when OPA enforce is on.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-fw-rule-pci-001              # MANDATORY
+type: fw_rule                         # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "PCI-DSS firewall policy — Finance zone to Payment gateway"  # MANDATORY (>=10 chars)
+change_ticket: CHG0030041             # MANDATORY (CHG + 7 digits)
+approved_by: "net.engineer"           # MANDATORY for fw_rule (high-impact)
+
+scope:
+  devices: [fw-01]                    # MANDATORY — target firewall device(s)
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  POLICY IDENTITY (MANDATORY)                                           ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+policy_name: POL-FINANCE-TO-PAYMENT   # MANDATORY — policy / rule-set name on the device
+
+firewall_type: stateful               # OPTIONAL (default: stateful)
+                                      #   stateful  — tracks connection state (recommended)
+                                      #   stateless — pure ACL matching; no state tracking
+
+default_action: deny                  # OPTIONAL (default: deny) — deny | permit
+                                      #   Best practice: always deny-by-default
+
+address_family: ipv4                  # OPTIONAL (default: ipv4) — ipv4 | ipv6 | dual
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  FIREWALL RULES — ordered list (MANDATORY — at least one rule)        ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+rules:
+  - name: ALLOW-HTTPS-TO-STRIPE       # OPTIONAL — rule name / label
+    action: permit                    # MANDATORY per rule — permit | deny | drop | reject
+                                      #   deny/drop silently discard; reject sends TCP RST/ICMP unreach
+    protocol: tcp                     # MANDATORY per rule — tcp | udp | icmp | ip | ...
+    source: 10.100.0.0/24             # MANDATORY per rule — source CIDR, IP, object-group, or "any"
+    destination: 54.182.0.0/16        # MANDATORY per rule — destination CIDR, IP, or "any"
+    port: 443                         # OPTIONAL — destination port (integer or service name)
+    source_port: null                 # OPTIONAL — source port matching (rarely needed)
+    log: true                         # OPTIONAL (default: false) — enable rule hit logging
+    description: "Finance servers to Stripe HTTPS"  # OPTIONAL — displayed in policy
+
+  - name: ALLOW-DNS
+    action: permit
+    protocol: udp
+    source: 10.100.0.0/24
+    destination: 8.8.8.8
+    port: 53
+    log: false
+    description: "DNS resolution for finance hosts"
+
+  - name: ALLOW-ICMP-ECHO
+    action: permit
+    protocol: icmp
+    source: 10.100.0.0/24
+    destination: any
+    log: false
+    description: "Allow outbound ping for diagnostics"
+
+  - name: DENY-TELNET                 # Explicit block for compliance (PCI-DSS: deny plaintext protocols)
+    action: deny
+    protocol: tcp
+    source: any
+    destination: any
+    port: 23
+    log: true
+    description: "Explicit telnet block — PCI-DSS requirement"
+
+  - name: DENY-ALL
+    action: deny
+    protocol: ip
+    source: any
+    destination: any
+    log: true
+    description: "Explicit default deny — log all drops for audit"
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  INTERFACE APPLICATION (OPTIONAL)                                      ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+apply_interfaces:                     # OPTIONAL — interfaces to bind this policy to
+  - GigabitEthernet0/1               #   Leave empty to create policy without applying it
+
+direction: in                         # OPTIONAL (default: in) — in | out | both
+
+# ── OPA Compliance Policy ─────────────────────────────────────────────────────
+policy:
+  compliance: PCI-DSS                 # OPTIONAL — PCI-DSS | HIPAA | SOC2 | none
+  encryption: required                # MANDATORY when compliance: PCI-DSS
+  max_latency_ms: 20                  # OPTIONAL — OPA enforces <= 20ms for PCI-DSS
+
+isolation:
+  deny_protocols: [telnet, http, ftp, snmpv1, snmpv2]  # OPTIONAL — OPA enforces telnet blocked
+                                                         # for PCI-DSS intent scopes
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: canary                    # OPTIONAL — canary recommended for firewall rule changes
+  save_config: true
+
+verification:
+  level: nuts                         # OPTIONAL — verifies policy applied, test traffic flows
+  trigger: both
+  fail_action: rollback

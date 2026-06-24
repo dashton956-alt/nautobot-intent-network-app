@@ -1,0 +1,22 @@
+{# ospf — Cisco IOS-XE OSPFv2 configuration #}
+router ospf {{ process_id | default(1) }}{% if vrf is defined and vrf %} vrf {{ vrf }}{% endif %}
+
+{% if router_id is defined and router_id %}
+ router-id {{ router_id }}
+{% endif %}
+{% if reference_bandwidth is defined and reference_bandwidth %}
+ auto-cost reference-bandwidth {{ reference_bandwidth }}
+{% endif %}
+{% for net in networks | default([]) %}
+ network {{ net.prefix | replace('/', ' ') }} area {{ net.area | default(area) | default('0') }}
+{% endfor %}
+{% for intf in passive_interfaces | default([]) %}
+ passive-interface {{ intf }}
+{% endfor %}
+{% if default_information_originate | default(false) %}
+ default-information originate always
+{% endif %}
+{% for redist in redistribute | default([]) %}
+ redistribute {{ redist.protocol }}{% if redist.metric is defined %} metric {{ redist.metric }}{% endif %}{% if redist.route_map is defined %} route-map {{ redist.route_map }}{% endif %} subnets
+
+{% endfor %}

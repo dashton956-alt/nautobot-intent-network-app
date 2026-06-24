@@ -1,0 +1,40 @@
+{# bgp_ibgp — Arista EOS iBGP neighbour / route-reflector configuration #}
+router bgp {{ local_asn }}
+{% if router_id is defined and router_id %}
+   router-id {{ router_id }}
+{% endif %}
+{% for nbr in neighbors | default([]) %}
+   neighbor {{ nbr.ip }} remote-as {{ nbr.remote_as | default(local_asn) }}
+{% if nbr.description is defined and nbr.description %}
+   neighbor {{ nbr.ip }} description {{ nbr.description }}
+{% endif %}
+{% if nbr.update_source is defined and nbr.update_source %}
+   neighbor {{ nbr.ip }} update-source {{ nbr.update_source }}
+{% endif %}
+{% if nbr.password is defined and nbr.password %}
+   neighbor {{ nbr.ip }} password 7 {{ nbr.password }}
+{% endif %}
+{% if send_community is defined and send_community %}
+   neighbor {{ nbr.ip }} send-community {{ send_community }}
+{% endif %}
+{% endfor %}
+   !
+   address-family ipv4
+{% for nbr in neighbors | default([]) %}
+      neighbor {{ nbr.ip }} activate
+{% if nbr.route_reflector_client | default(false) %}
+      neighbor {{ nbr.ip }} route-reflector-client
+{% endif %}
+{% if nbr.next_hop_self | default(false) %}
+      neighbor {{ nbr.ip }} next-hop-self
+{% endif %}
+{% if route_map_in is defined and route_map_in %}
+      neighbor {{ nbr.ip }} route-map {{ route_map_in }} in
+{% endif %}
+{% if route_map_out is defined and route_map_out %}
+      neighbor {{ nbr.ip }} route-map {{ route_map_out }} out
+{% endif %}
+{% endfor %}
+{% if maximum_paths is defined and maximum_paths %}
+      maximum-paths {{ maximum_paths }}
+{% endif %}

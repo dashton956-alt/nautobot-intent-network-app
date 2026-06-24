@@ -1,0 +1,90 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_interface
+# Purpose:     Configure the Loopback0 (router-id / BGP source / VTEP anchor)
+#              and the dedicated out-of-band Management0 interface on all
+#              devices. Loopback IPs are allocated per-device from the pool.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-mgmt-interface-all-devices-001  # MANDATORY
+type: mgmt_interface                    # MANDATORY
+version: 1                              # MANDATORY
+tenant: acme-corp                       # MANDATORY
+description: "Loopback0 and OOB Management0 interface configuration — all devices"  # MANDATORY
+change_ticket: CHG0030111               # MANDATORY (CHG + 7 digits)
+approved_by: ""                         # OPTIONAL here
+
+scope:
+  all_tenant_devices: true              # MANDATORY — applies to every device
+
+management:
+  interfaces:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  LOOPBACK INTERFACE (MANDATORY)                                        ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+    #
+    # Loopback0 is the anchor for BGP, OSPF router-id, VTEP source, and all
+    # management connectivity. It must always be up; never shut it down.
+    # Per-device IP is allocated from the ip_range by Nautobot IPAM.
+
+    loopback:
+      name: Loopback0                       # MANDATORY — loopback interface name
+      description: "Router ID / BGP Source / VTEP Source"  # OPTIONAL
+      ip_range: "10.255.0.0/24"            # MANDATORY — IPAM pool; per-device /32 allocated from here
+                                            #   Nautobot assigns the next available IP at deploy time
+      mtu: 65535                            # OPTIONAL — max MTU for loopback (no hardware MTU limit)
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  OOB MANAGEMENT INTERFACE (MANDATORY)                                  ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+    #
+    # The management interface connects to the out-of-band management network.
+    # It is in the MGMT VRF and is the only interface that remains accessible
+    # if the production network has an outage.
+
+    oob_management:
+      name: Management0                     # MANDATORY — OOB management interface name
+                                            #   Arista: Management0 or Management1
+                                            #   Cisco: GigabitEthernet0 or FastEthernet0
+      description: "OOB management — connected to out-of-band management switch"  # OPTIONAL
+      vrf: MGMT                             # OPTIONAL — isolate management in dedicated VRF
+      speed: 1000                           # OPTIONAL — interface speed in Mbps (1000 = 1G)
+      duplex: full                          # OPTIONAL — full | half | auto
+      shutdown: false                       # MANDATORY — ensure management interface is NEVER shut down
+
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  ADDITIONAL LOOPBACKS (OPTIONAL)                                       ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# additional_loopbacks:
+#   - name: Loopback1                   # OPTIONAL — VTEP source loopback (separate from router-id)
+#     description: "VTEP Source"
+#     ip_range: "10.255.1.0/24"
+#   - name: Loopback2                   # OPTIONAL — MPLS LDP transport address
+#     description: "LDP Transport"
+#     ip_range: "10.255.2.0/24"
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: NONE
+  encryption: none
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                     # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: nuts
+  trigger: on_deploy
+  fail_action: alert
+  tests:
+    - test_class: TestNapalmInterfaces
+      label: "Verify loopback0 and management0 are up"
+      expected:
+        - name: Loopback0
+          is_up: true
+          is_enabled: true
+        - name: Management0
+          is_up: true
+          is_enabled: true

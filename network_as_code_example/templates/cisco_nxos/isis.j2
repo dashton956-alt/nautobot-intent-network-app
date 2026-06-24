@@ -1,0 +1,25 @@
+{# isis — Cisco NX-OS IS-IS routing configuration #}
+feature isis
+
+router isis {{ isis_instance | default('CORE') }}
+ net {{ net }}
+ is-type {{ is_type | default('level-2') }}
+{% if metric_style | default('wide') == 'wide' %}
+ metric-style transition
+{% endif %}
+{% if log_adjacency_changes | default(true) %}
+ log-adjacency-changes
+{% endif %}
+{% if sr_mpls_enable | default(false) %}
+ segment-routing mpls
+{% endif %}
+{% for intf in isis_interfaces | default([]) %}
+interface {{ intf.name }}
+ ip router isis {{ isis_instance | default('CORE') }}
+{% if intf.metric is defined %}
+ isis metric {{ intf.metric }}
+{% endif %}
+{% if intf.network_type | default('') == 'point-to-point' %}
+ isis network point-to-point
+{% endif %}
+{% endfor %}

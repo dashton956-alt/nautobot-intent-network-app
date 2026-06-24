@@ -1,0 +1,5 @@
+{# prefix_list — Arista EOS IP prefix-list configuration #}
+{% for entry in prefixes | default([]) %}
+ip prefix-list {{ prefix_list_name }} seq {{ entry.seq }} {{ entry.action }} {{ entry.prefix }}{% if entry.le is defined %} le {{ entry.le }}{% endif %}{% if entry.ge is defined %} ge {{ entry.ge }}{% endif %}
+
+{% endfor %}

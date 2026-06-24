@@ -1,0 +1,30 @@
+{# ipsec_s2s — Arista EOS IPSec site-to-site VPN configuration #}
+{# Arista EOS uses tunnel interfaces with IPSec profiles #}
+
+crypto isakmp policy 10
+   encryption {{ encryption | default('aes-256-gcm') | replace('-gcm', '') | replace('-cbc', '') }}
+   hash {{ integrity | default('sha256') }}
+   group {{ dh_group | default(14) }}
+   lifetime {{ lifetime | default(86400) }}
+   authentication pre-share
+
+{% if auth_method | default('psk') == 'psk' %}
+crypto isakmp key {{ psk | default('') }} address {{ remote_peer }}
+{% endif %}
+
+crypto ipsec transform-set TS-{{ remote_peer | replace('.', '-') }} esp-{{ encryption | default('aes-256-gcm') }} esp-{{ integrity | default('sha256') }}-hmac
+   mode tunnel
+
+crypto map CM-{{ crypto_map_name | default('IPSEC-MAP') }} 10 ipsec-isakmp
+   set peer {{ remote_peer }}
+   set transform-set TS-{{ remote_peer | replace('.', '-') }}
+{% for selector in traffic_selectors | default([]) %}
+   match address {{ selector.acl | default('ACL-IPSEC-TRAFFIC') }}
+{% endfor %}
+   set pfs group{{ dh_group | default(14) }}
+   set security-association lifetime seconds {{ lifetime | default(3600) }}
+
+{% if local_endpoint is defined and local_endpoint %}
+interface {{ local_endpoint }}
+   crypto map CM-{{ crypto_map_name | default('IPSEC-MAP') }}
+{% endif %}

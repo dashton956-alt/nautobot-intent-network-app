@@ -1,0 +1,22 @@
+{# ospfv3 — Arista EOS OSPFv3 (IPv6) configuration #}
+ipv6 unicast-routing
+
+router ospfv3 {{ process_id | default(1) }}
+{% if router_id is defined and router_id %}
+   router-id {{ router_id }}
+{% endif %}
+   address-family ipv6
+{% for intf in passive_interfaces | default([]) %}
+      passive-interface {{ intf }}
+{% endfor %}
+{% if default_information_originate | default(false) %}
+      default-information originate always
+{% endif %}
+
+{% for intf in ospf_interfaces | default([]) %}
+interface {{ intf.name }}
+   ospfv3 {{ process_id | default(1) }} ipv6 area {{ intf.area | default(area) | default('0') }}
+{% if intf.cost is defined %}
+   ospfv3 cost {{ intf.cost }}
+{% endif %}
+{% endfor %}

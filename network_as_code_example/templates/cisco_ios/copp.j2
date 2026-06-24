@@ -1,0 +1,18 @@
+{# copp — Cisco IOS-XE Control Plane Policing configuration #}
+{% for class_entry in copp_classes | default([]) %}
+class-map match-any {{ class_entry.name }}
+{% for match in class_entry.match | default([]) %}
+ match access-group name {{ match }}
+{% endfor %}
+{% endfor %}
+
+policy-map {{ copp_policy | default('COPP-POLICY') }}
+{% for class_entry in copp_classes | default([]) %}
+ class {{ class_entry.name }}
+  police rate {{ class_entry.rate }} pps
+{% endfor %}
+ class class-default
+  police rate {{ default_rate | default('1000') }} pps
+
+control-plane
+ service-policy input {{ copp_policy | default('COPP-POLICY') }}

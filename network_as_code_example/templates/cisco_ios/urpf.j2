@@ -1,0 +1,6 @@
+{# urpf — Cisco IOS-XE Unicast Reverse Path Forwarding configuration #}
+{% for intf in urpf_interfaces | default([]) %}
+interface {{ intf.name }}
+ ip verify unicast source reachable-via {{ intf.mode | default('strict') }}{% if intf.acl is defined %} {{ intf.acl }}{% endif %}
+
+{% endfor %}

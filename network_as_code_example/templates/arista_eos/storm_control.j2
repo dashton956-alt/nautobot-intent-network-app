@@ -1,0 +1,18 @@
+{# storm_control — Arista EOS storm control per interface #}
+{% for intf in storm_interfaces | default([interface]) %}
+interface {{ intf }}
+{% if broadcast_level is defined and broadcast_level %}
+   storm-control broadcast level {{ broadcast_level }}
+{% endif %}
+{% if multicast_level is defined and multicast_level %}
+   storm-control multicast level {{ multicast_level }}
+{% endif %}
+{% if unicast_level is defined and unicast_level %}
+   storm-control unknown-unicast level {{ unicast_level }}
+{% endif %}
+{% if storm_action | default('none') == 'shutdown' %}
+   storm-control action shutdown
+{% elif storm_action | default('none') == 'trap' %}
+   storm-control action trap
+{% endif %}
+{% endfor %}

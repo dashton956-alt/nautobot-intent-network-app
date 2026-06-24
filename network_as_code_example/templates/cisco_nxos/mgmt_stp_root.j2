@@ -1,0 +1,11 @@
+{# mgmt_stp_root — Cisco NX-OS STP root bridge management configuration #}
+spanning-tree mode {{ stp_mode | default('rapid-pvst') }}
+{% for v in root_vlans | default([]) %}
+spanning-tree vlan {{ v }} priority 4096
+{% endfor %}
+{% for v in secondary_vlans | default([]) %}
+spanning-tree vlan {{ v }} priority 8192
+{% endfor %}
+{% if hello_time is defined %}
+spanning-tree vlan 1-3967,3969-4094 hello-time {{ hello_time }}
+{% endif %}

@@ -1,0 +1,19 @@
+{# port_security — Cisco NX-OS port security configuration #}
+feature port-security
+
+{% for intf in port_security_interfaces | default([]) %}
+interface {{ intf.name }}
+ switchport port-security
+{% if intf.max_mac_addresses is defined %}
+ switchport port-security maximum {{ intf.max_mac_addresses }}
+{% endif %}
+{% if intf.violation_action is defined %}
+ switchport port-security violation {{ intf.violation_action }}
+{% endif %}
+{% if intf.sticky | default(false) %}
+ switchport port-security mac-address sticky
+{% endif %}
+{% for mac in intf.static_macs | default([]) %}
+ switchport port-security mac-address {{ mac }}
+{% endfor %}
+{% endfor %}

@@ -1,0 +1,31 @@
+{# aaa_device.j2 — ios-xr — device-management AAA (TACACS+/RADIUS) #}
+! AAA (device management)
+! Intent: {{ intent_id }}
+!
+{% for s in tacacs_servers | default([]) %}
+tacacs-server host {{ s.host | default(s.ip) }} port {{ s.port | default(49) }}
+{% if s.key_ref | default(s.key) %}
+ key {{ s.key_ref | default(s.key) }}
+{% endif %}
+{% endfor %}
+{% if server_group %}
+aaa group server tacacs+ {{ server_group }}
+{% for s in tacacs_servers | default([]) %}
+ server {{ s.host | default(s.ip) }}
+{% endfor %}
+{% endif %}
+{% for method, value in (authentication | default({})).items() %}
+aaa authentication {{ method | replace('_', ' ') }} default {{ value }}
+{% endfor %}
+{% for kind, value in (authorization | default({})).items() %}
+aaa authorization {{ kind | replace('_', ' ') }} default {{ value }}
+{% endfor %}
+{% for kind, value in (accounting | default({})).items() %}
+aaa accounting {{ kind | replace('_', ' ') }} default {{ value }}
+{% endfor %}
+{% if local_fallback %}
+username {{ local_fallback.username | default('admin') }}
+ group root-lr
+ secret {{ local_fallback.password_ref | default('CHANGEME') }}
+{% endif %}
+!

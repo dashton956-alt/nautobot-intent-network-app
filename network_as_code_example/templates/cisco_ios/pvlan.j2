@@ -1,0 +1,25 @@
+{# pvlan — Cisco IOS-XE Private VLAN configuration #}
+{% for pvlan in pvlans | default([]) %}
+vlan {{ pvlan.primary_vlan }}
+ private-vlan primary
+{% for community in pvlan.community_vlans | default([]) %}
+vlan {{ community }}
+ private-vlan community
+{% endfor %}
+{% for isolated in pvlan.isolated_vlans | default([]) %}
+vlan {{ isolated }}
+ private-vlan isolated
+{% endfor %}
+vlan {{ pvlan.primary_vlan }}
+ private-vlan association {{ (pvlan.community_vlans | default([]) + pvlan.isolated_vlans | default([])) | join(',') }}
+{% endfor %}
+{% for intf in pvlan_interfaces | default([]) %}
+interface {{ intf.name }}
+{% if intf.mode == 'host' %}
+ switchport mode private-vlan host
+ switchport private-vlan host-association {{ intf.primary_vlan }} {{ intf.secondary_vlan }}
+{% elif intf.mode == 'promiscuous' %}
+ switchport mode private-vlan promiscuous
+ switchport private-vlan mapping {{ intf.primary_vlan }} {{ intf.secondary_vlans | join(',') }}
+{% endif %}
+{% endfor %}

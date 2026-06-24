@@ -1,0 +1,110 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_global_config
+# Purpose:     Day-0 bootstrap bundle applied to every managed device. Combines
+#              NTP, DNS, syslog, SNMP, SSH, banners, and NETCONF in a single
+#              intent to ensure a consistent baseline configuration at onboarding.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-mgmt-global-config-all-devices-001  # MANDATORY
+  type: mgmt_global_config                     # MANDATORY
+  version: 1                                   # MANDATORY
+  tenant: acme-corp                            # MANDATORY
+  change_ticket: CHG0012403                    # MANDATORY (CHG + 7 digits)
+  description: "Day-0 global management bundle — NTP, DNS, Syslog, SNMP, SSH, banners, NETCONF for all devices"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    all_tenant_devices: true             # MANDATORY — day-0 config applies to every device
+
+  # ── Management bundle ───────────────────────────────────────────────────────
+  management:
+    # Hostname / Domain
+    hostname: "lab-arista-sw01"          # OPTIONAL — override per-device hostname
+    domain_name: "acme-corp.local"       # OPTIONAL — used for SSH key generation
+
+    # NTP
+    ntp_servers:
+      - "10.0.0.1"
+      - "10.0.0.2"
+    ntp_source_interface: "Loopback0"
+    timezone: "UTC"
+    timezone_offset: 0
+
+    # DNS
+    dns_servers:
+      - "10.0.0.10"
+      - "10.0.0.11"
+    dns_domain_list:
+      - "acme-corp.local"
+      - "dc-east.acme-corp.local"
+
+    # Syslog
+    syslog_servers:
+      - host: "10.0.0.50"
+        port: 514
+        protocol: udp
+      - host: "10.0.0.51"
+        port: 514
+        protocol: udp
+    syslog_source_interface: "Loopback0"
+    syslog_trap_level: "informational"
+
+    # SNMP
+    snmp_version: "3"
+    snmp_community: "acme-RO-2025"
+    snmp_location: "DC-East, Rack A1"
+    snmp_contact: "noc@acme-corp.com"
+    snmp_trap_targets:
+      - host: "10.0.0.60"
+        community: "acme-TRAP-2025"
+        version: "2c"
+
+    # SSH
+    ssh_version: 2                       # MANDATORY — SSHv2 only; v1 is insecure
+    ssh_timeout: 60
+
+    # Banners
+    login_banner: |
+      *** AUTHORIZED ACCESS ONLY — Acme Corp ***
+    motd_banner: |
+      Managed by Intent Networking — All sessions logged.
+
+    # NETCONF / RESTCONF
+    netconf_enabled: true                # OPTIONAL — enable NETCONF for automation
+    netconf_port: 830
+    restconf_enabled: false
+
+    # DHCP (optional — omit if not a DHCP server)
+    dhcp_pools: []
+
+    # LLDP / CDP
+    lldp_enabled: true
+    cdp_enabled: false
+
+  policy:
+    compliance: NONE
+    encryption: tls
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmUsers
+        label: "Verify admin user exists on managed devices"
+        expected:
+          - username: admin
+            level: 15
+      - test_class: TestNapalmInterfaces
+        label: "Verify management interface is up"
+        expected:
+          - name: Management0
+            is_enabled: true
+            is_up: true

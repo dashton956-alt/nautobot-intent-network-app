@@ -1,0 +1,21 @@
+{# gre_tunnel — Cisco IOS-XE GRE tunnel configuration #}
+{% for tunnel in gre_tunnels | default([]) %}
+interface Tunnel{{ tunnel.tunnel_id }}
+ description {{ tunnel.description | default('GRE Tunnel to ' + tunnel.destination) }}
+{% if tunnel.ip_address is defined %}
+ ip address {{ tunnel.ip_address }} {{ tunnel.subnet_mask | default('255.255.255.252') }}
+{% endif %}
+{% if tunnel.vrf is defined %}
+ ip vrf forwarding {{ tunnel.vrf }}
+{% endif %}
+ tunnel source {{ tunnel.source }}
+ tunnel destination {{ tunnel.destination }}
+{% if tunnel.keepalive is defined %}
+ keepalive {{ tunnel.keepalive }} {{ tunnel.keepalive_retries | default(3) }}
+{% endif %}
+{% if tunnel.mtu is defined %}
+ ip mtu {{ tunnel.mtu }}
+ ip tcp adjust-mss {{ tunnel.mtu - 40 }}
+{% endif %}
+ no shutdown
+{% endfor %}

@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: bgp_evpn_af
+# Purpose:     Activate the BGP L2VPN EVPN address family on leaf/spine underlay
+#              BGP sessions. EVPN AF carries MAC/IP and IP prefix routes for
+#              VXLAN overlays — requires extended community propagation.
+# HIGH-IMPACT TYPE — approved_by required when OPA enforce is enabled.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-bgp-evpn-af-001           # MANDATORY
+  type: bgp_evpn_af                      # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "BGP EVPN Address Family — activate L2VPN EVPN AF on leaf/spine underlay BGP sessions"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east
+    roles:
+      - leaf-switch
+      - spine-switch
+
+  # ── BGP EVPN configuration ──────────────────────────────────────────────────
+  routing:
+    protocol: bgp                        # MANDATORY
+    as_number: 65001                     # MANDATORY — BGP AS number
+    router_id: "10.255.0.1"             # MANDATORY — BGP router-id
+    address_families:
+      l2vpn_evpn:
+        enabled: true                    # MANDATORY — activate EVPN address family
+        neighbors:
+          - ip: "10.255.0.100"           # MANDATORY — spine/peer loopback IP
+            remote_as: 65001             # MANDATORY — iBGP (same AS)
+            description: "Spine-01 EVPN peer"
+            update_source: Loopback0     # OPTIONAL — source sessions from stable loopback
+            activate: true               # MANDATORY — activate peer in EVPN AF
+            send_community: extended     # MANDATORY — EVPN requires extended communities
+            next_hop_unchanged: false    # OPTIONAL — preserve next-hop for route reflectors
+          - ip: "10.255.0.101"
+            remote_as: 65001
+            description: "Spine-02 EVPN peer"
+            update_source: Loopback0
+            activate: true
+            send_community: extended
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: both
+    schedule: "*/30 * * * *"
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify EVPN address-family activated"
+        expected:
+          - config_snippet: "address-family evpn"
+          - config_snippet: "neighbor 10.255.0.100 activate"

@@ -1,0 +1,12 @@
+{# anycast_gateway — Arista EOS anycast gateway (ip virtual-router) per VLAN SVI #}
+ip virtual-router mac-address {{ anycast_gateway_mac | default('001c.7300.0099') }}
+
+{% for gw in anycast_gateways | default([]) %}
+interface Vlan{{ gw.vlan_id }}
+   description {{ gw.description | default('Anycast GW VLAN ' ~ gw.vlan_id) }}
+{% if gw.vrf is defined and gw.vrf %}
+   vrf {{ gw.vrf }}
+{% endif %}
+   ip address virtual {{ gw.ip_address }}
+   no shutdown
+{% endfor %}

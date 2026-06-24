@@ -1,0 +1,45 @@
+{# mpls_l3vpn — Arista EOS PE router MPLS L3VPN configuration #}
+{# Requires LDP or SR-MPLS underlay and BGP VPNv4 #}
+
+vrf instance {{ vrf_name }}
+   rd {{ rd | default(local_asn ~ ':' ~ (vni_id | default(1))) }}
+   route-target import vpn-ipv4 {{ rt_import | default(local_asn ~ ':' ~ (vni_id | default(1))) }}
+   route-target export vpn-ipv4 {{ rt_export | default(local_asn ~ ':' ~ (vni_id | default(1))) }}
+
+{% if ce_interface is defined and ce_interface %}
+interface {{ ce_interface }}
+   vrf {{ vrf_name }}
+{% if ce_vlan is defined and ce_vlan %}
+   encapsulation dot1q {{ ce_vlan }}
+{% endif %}
+   no shutdown
+{% endif %}
+
+router bgp {{ local_asn }}
+{% if ce_routing_protocol | default('bgp') == 'bgp' %}
+   vrf {{ vrf_name }}
+      rd {{ rd | default(local_asn ~ ':1') }}
+      route-target import vpn-ipv4 {{ rt_import | default(local_asn ~ ':1') }}
+      route-target export vpn-ipv4 {{ rt_export | default(local_asn ~ ':1') }}
+{% if ce_neighbor_asn is defined and ce_neighbor_asn %}
+      neighbor {{ ce_interface }} remote-as {{ ce_neighbor_asn }}
+      !
+      address-family ipv4
+         neighbor {{ ce_interface }} activate
+{% endif %}
+{% if redistribute_connected | default(false) %}
+      redistribute connected
+{% endif %}
+{% if redistribute_static | default(false) %}
+      redistribute static
+{% endif %}
+{% elif ce_routing_protocol == 'ospf' %}
+   vrf {{ vrf_name }}
+      redistribute ospf {{ process_id | default(1) }} route-map RM-CE-OSPF-TO-VPN
+{% elif ce_routing_protocol == 'static' %}
+   vrf {{ vrf_name }}
+      redistribute static
+{% endif %}
+   !
+   address-family vpn-ipv4
+      neighbor default encapsulation mpls next-hop-self source-interface Loopback0

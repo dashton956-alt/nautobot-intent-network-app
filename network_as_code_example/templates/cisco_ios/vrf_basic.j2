@@ -1,0 +1,25 @@
+{# vrf_basic — Cisco IOS-XE VRF definition #}
+vrf definition {{ vrf_name }}
+{% if rd is defined and rd %}
+ rd {{ rd }}
+{% endif %}
+ !
+ address-family ipv4
+{% if rt_import is defined and rt_import %}
+  route-target import {{ rt_import }}
+{% endif %}
+{% if rt_export is defined and rt_export %}
+  route-target export {{ rt_export }}
+{% endif %}
+ exit-address-family
+{% if 'ipv6' in (address_families | default([])) %}
+ !
+ address-family ipv6
+{% if rt_import is defined and rt_import %}
+  route-target import {{ rt_import }}
+{% endif %}
+{% if rt_export is defined and rt_export %}
+  route-target export {{ rt_export }}
+{% endif %}
+ exit-address-family
+{% endif %}

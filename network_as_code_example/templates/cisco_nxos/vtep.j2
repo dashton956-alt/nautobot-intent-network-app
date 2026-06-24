@@ -1,0 +1,26 @@
+{# vtep — Cisco NX-OS NVE (VTEP) interface configuration #}
+interface loopback{{ vtep_loopback_id | default(1) }}
+ description VTEP NVE Source
+ ip address {{ vtep_ip }}/32
+{% if secondary_vtep_ip is defined %}
+ ip address {{ secondary_vtep_ip }}/32 secondary
+{% endif %}
+
+interface nve1
+ no shutdown
+ source-interface loopback{{ vtep_loopback_id | default(1) }}
+{% if host_reachability_protocol | default('bgp') == 'bgp' %}
+ host-reachability protocol bgp
+{% endif %}
+{% for vni in member_vnis | default([]) %}
+ member vni {{ vni.vni_id }}
+{% if vni.type | default('l2') == 'l3' %}
+  associate-vrf
+{% else %}
+{% if vni.multicast_group is defined %}
+  mcast-group {{ vni.multicast_group }}
+{% elif vni.ingress_replication | default(false) %}
+  ingress-replication protocol bgp
+{% endif %}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,99 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: ospf
+# Purpose:     Configure OSPF adjacency and area membership on interfaces.
+#              Covers router-ID, areas, stub/NSSA, authentication, redistribution.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-ospf-core-001                 # MANDATORY
+type: ospf                             # MANDATORY
+version: 1                             # MANDATORY
+tenant: acme-corp                      # MANDATORY
+description: "OSPF area 0 backbone — DC core routers"  # MANDATORY (>=10 chars)
+change_ticket: CHG0030011              # MANDATORY (CHG + 7 digits)
+approved_by: ""                        # OPTIONAL here
+
+scope:
+  sites: [dc-east]                     # MANDATORY — one of: sites | devices | roles | all_tenant_devices
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  OSPF PROCESS                                                           ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+process_id: 1                          # OPTIONAL (default: 1) — OSPF process number (1–65535)
+                                       #   Multiple processes allowed; each is independent
+
+router_id: 10.0.0.1                    # OPTIONAL — explicit router-ID; if omitted Nautobot picks
+                                       #   the highest loopback IP on the device
+                                       #   Best practice: always set explicitly
+
+area: "0.0.0.0"                        # OPTIONAL (default: 0.0.0.0) — default area for interfaces
+                                       #   that don't specify their own area (see interfaces below)
+
+reference_bandwidth: 10000             # OPTIONAL — auto-cost reference-bandwidth in Mbps
+                                       #   10000 = 10Gbps reference; aligns cost calculations for
+                                       #   mixed-speed fabrics. Omit to use platform default.
+
+default_originate: false               # OPTIONAL (default: false) — advertise a default route
+                                       #   into OSPF; only set true on border/edge routers
+always: false                          # OPTIONAL (default: false) — always originate default even
+                                       #   if no default in routing table (risky, use with care)
+
+passive_default: false                 # OPTIONAL (default: false) — make all interfaces passive
+                                       #   by default (no OSPF hellos sent out)
+
+# ── Stub/NSSA areas ───────────────────────────────────────────────────────────
+stub_areas: []                         # OPTIONAL — list of area IDs to make stub
+                                       #   Example: ["0.0.0.1", "0.0.0.2"]
+nssa_areas: []                         # OPTIONAL — list of area IDs to make NSSA
+
+# ── Authentication ────────────────────────────────────────────────────────────
+authentication:                        # OPTIONAL — OSPF MD5 or SHA authentication
+  type: md5                            #   md5 | sha256
+  key_id: 1                            #   Key ID (1–255)
+  key: "ospf-secret-key"               #   Pre-shared key — store in Nautobot Secrets for production
+
+# ── Interfaces ────────────────────────────────────────────────────────────────
+interfaces:                            # MANDATORY — at least one interface must be specified
+  - name: GigabitEthernet0/0           # MANDATORY — interface to enable OSPF on
+    area: "0.0.0.0"                    # OPTIONAL — area override for this interface
+    cost: 10                           # OPTIONAL — explicit OSPF cost (overrides auto-cost)
+    network_type: point-to-point       # OPTIONAL — point-to-point | broadcast | non-broadcast
+                                       #   point-to-point avoids DR/BDR election on P2P links
+
+  - name: GigabitEthernet0/1
+    area: "0.0.0.0"
+    cost: 10
+    network_type: point-to-point
+
+  - name: Loopback0
+    area: "0.0.0.0"
+    network_type: point-to-point       # Loopbacks should be point-to-point to advertise /32
+
+# ── Passive interfaces ────────────────────────────────────────────────────────
+no_passive: []                         # OPTIONAL — when passive_default: true, list interfaces that
+                                       #   SHOULD send hellos (i.e. un-passive specific interfaces)
+
+# ── Redistribution ────────────────────────────────────────────────────────────
+redistribute: []                       # OPTIONAL — list of protocols to redistribute into OSPF
+                                       # Example:
+                                       # - protocol: connected
+                                       #   subnets: true
+                                       #   route_map: RM-CONNECTED-TO-OSPF
+                                       # - protocol: static
+                                       #   subnets: true
+                                       #   metric: 20
+                                       #   metric_type: 2   # E1 or E2 (default E2)
+
+# ── Timers ────────────────────────────────────────────────────────────────────
+hello_interval: 10                     # OPTIONAL (default: 10) — hello packet interval in seconds
+dead_interval: 40                      # OPTIONAL (default: 40) — dead timer; must be > hello*3
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                    # OPTIONAL (default: rolling)
+  save_config: true                    # OPTIONAL (default: true)
+
+verification:
+  level: nuts                          # OPTIONAL — nuts recommended for routing protocol changes
+  trigger: on_deploy                   # OPTIONAL (default: on_deploy)
+  fail_action: rollback                # OPTIONAL — rollback if adjacency does not form

@@ -1,0 +1,105 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# INTENT HEADER FIELDS REFERENCE
+# ─────────────────────────────────────────────────────────────────────────────
+# This file is a REFERENCE ONLY — it is not a runnable intent.
+# It documents every top-level header field that appears at the root of every
+# intent, with all valid values and validation rules enforced by the schema
+# and OPA policies.
+# ═════════════════════════════════════════════════════════════════════════════
+
+# ── Fully annotated example header ───────────────────────────────────────────
+
+id: acme-example-intent-001             # MANDATORY — unique ID across all tenant intents
+                                        # Naming convention: <tenant>-<type-short>-<description>-<NNN>
+                                        # Examples:
+                                        #   corp-l2-access-servers-dc-east-001
+                                        #   corp-mgmt-ntp-all-sites-001
+                                        #   fin-pci-connectivity-001
+
+type: l2_access_port                    # MANDATORY — must match a registered intent type
+                                        # See: intents/layer2/, layer3/, mgmt/, security/, etc.
+                                        # for the full list of supported types.
+
+version: 1                              # MANDATORY — intent schema version
+                                        # Increment when making breaking changes to the intent
+                                        # body (field additions that change the rendered config).
+
+tenant: acme-corp                       # MANDATORY — Nautobot tenant slug
+                                        # All devices in scope must belong to this tenant.
+
+description: "Short description here"  # MANDATORY — human-readable summary
+                                        # Rules:
+                                        #   • Minimum 10 characters
+                                        #   • Should summarise: what, where, and why
+                                        #   • Format: "<what> — <where> — <details>"
+                                        # Examples:
+                                        #   "Server access ports on DC East leaf switches — VLAN 100"
+                                        #   "eBGP peering to Telia (AS1299) at London edge"
+                                        #   "NTP configuration — all devices — primary + secondary"
+
+change_ticket: CHG0012360               # MANDATORY — ITSM change ticket reference
+                                        # Format: CHG + exactly 7 digits (e.g. CHG0012360)
+                                        # Templates use CHG00XXXXX as a placeholder —
+                                        # replace with a real ticket before deploying.
+
+approved_by: ""                         # OPTIONAL for standard types
+                                        # MANDATORY for HIGH-IMPACT types (see policy_options.yaml)
+                                        # Format: Nautobot/AD username of the approver
+                                        # Examples: "net.engineer", "cloud.engineer", "app.owner"
+                                        # Leave as "" or omit for types that don't require it.
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPLETE INTENT SKELETON — copy this as the base for a new intent
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# id: <tenant>-<short-type>-<description>-<NNN>
+# type: <intent_type>
+# version: 1
+# tenant: acme-corp
+# description: "<what> — <where> — <details>"
+# change_ticket: CHG00XXXXX            # Replace with real ticket
+# approved_by: ""                      # Add approver for high-impact types
+#
+# scope:
+#   <see scope_options.yaml>
+#
+# <intent-type-specific fields>
+#
+# policy:
+#   compliance: NONE                   # or PCI-DSS | HIPAA | SOC2
+#   encryption: none                   # or tls | required | macsec
+#
+# deployment:
+#   strategy: rolling                  # or canary | all_at_once
+#   save_config: true
+#
+# verification:
+#   level: basic                       # or nuts
+#   trigger: on_deploy                 # or scheduled | both
+#   # schedule: "*/30 * * * *"         # required when trigger: scheduled or both
+#   fail_action: alert                 # or rollback | remediate
+#   tests:
+#     - test_class: TestNapalmRunningConfigContains
+#       label: "Verify ..."
+#       expected:
+#         - config_snippet: "..."
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCHEMA VALIDATION RULES SUMMARY
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#   Field           Type      Constraint
+#   ──────────────  ────────  ────────────────────────────────────────────────
+#   id              string    Required; unique per tenant
+#   type            string    Required; must be a registered intent type
+#   version         integer   Required; >= 1
+#   tenant          string    Required; must exist in Nautobot
+#   description     string    Required; >= 10 characters
+#   change_ticket   string    Required; matches regex CHG[0-9]{7}
+#   approved_by     string    Optional (required for high-impact when OPA on)
+#   scope           object    Required; at least one scope key must be set
+#   policy          object    Optional; defaults to NONE / none if omitted
+#   deployment      object    Optional; defaults to rolling / save_config: true
+#   verification    object    Optional; defaults to basic / on_deploy / alert

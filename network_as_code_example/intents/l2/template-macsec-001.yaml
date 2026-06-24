@@ -1,0 +1,51 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: macsec
+# Purpose:     Enable IEEE 802.1AE MACsec link-layer encryption on an
+#              inter-switch uplink. Protects against eavesdropping and
+#              injection attacks at Layer 2. Requires hardware support.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-macsec-001                # MANDATORY
+  type: macsec                           # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "MACsec — enable 802.1AE link-layer encryption on inter-switch links"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    devices:
+      - dc-east-leaf-01                  # MANDATORY — MACsec is per-device/interface
+
+  # ── MACsec configuration ────────────────────────────────────────────────────
+  macsec:
+    interface: Ethernet51                # MANDATORY — interface to protect
+    description: "MACsec-protected uplink to spine"  # OPTIONAL
+    key_server_priority: 0               # OPTIONAL — lower value wins key server election
+    cipher_suite: GCM-AES-128            # OPTIONAL — GCM-AES-128 | GCM-AES-256 | GCM-AES-XPN-128
+    pre_shared_key:                      # MANDATORY — PSK for MACsec key agreement (MKA)
+      key_name: macsec-spine-uplink-key
+      secret_ref: vault:secret/macsec/spine-uplink  # MANDATORY — reference to secrets manager
+    replay_protection: true              # OPTIONAL (default: true) — drop replayed frames
+    replay_window: 0                     # OPTIONAL — replay window size (0 = strict ordering)
+
+  policy:
+    compliance: NONE
+    encryption: macsec                   # Signals that this link uses MACsec encryption
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify MACsec policy applied on uplink"
+        expected:
+          - config_snippet: "macsec"

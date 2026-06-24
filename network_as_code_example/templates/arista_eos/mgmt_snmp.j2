@@ -1,0 +1,27 @@
+{# mgmt_snmp — Arista EOS SNMP configuration #}
+{% if snmp_location is defined and snmp_location %}
+snmp-server location {{ snmp_location }}
+{% endif %}
+{% if snmp_contact is defined and snmp_contact %}
+snmp-server contact {{ snmp_contact }}
+{% endif %}
+
+{% if snmp_version | string in ['2c', '2', 2] %}
+{% if snmp_community is defined and snmp_community %}
+snmp-server community {{ snmp_community }} ro
+{% endif %}
+{% endif %}
+
+{% if snmp_version | string in ['3', 3] %}
+{% for user in snmp_users | default([]) %}
+snmp-server user {{ user.username }} {{ user.group | default('v3-read') }} v3{% if user.auth is defined %} auth {{ user.auth.protocol | default('sha') }} {{ user.auth.password }}{% endif %}{% if user.priv is defined %} priv {{ user.priv.protocol | default('aes-128') }} {{ user.priv.password }}{% endif %}
+
+snmp-server group {{ user.group | default('v3-read') }} v3 {{ user.security_level | default('priv') }}
+{% endfor %}
+{% endif %}
+
+{% for trap in snmp_trap_targets | default([]) %}
+snmp-server host {{ trap.host }} version {{ trap.version | default(snmp_version | default('2c')) }} {{ trap.community | default(snmp_community) | default('') }}
+{% endfor %}
+
+snmp-server enable traps

@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: l2vni
+# Purpose:     Map VLAN 100 (SERVERS-PROD) to a VXLAN VNI across the DC East
+#              fabric. All leaf VTEPs will advertise MAC/IP for hosts in
+#              this VLAN via the BGP EVPN control plane.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-dc-east-l2vni-servers-prod-001  # MANDATORY
+  type: l2vni                              # MANDATORY
+  version: 1                               # MANDATORY
+  tenant: acme-corp                        # MANDATORY
+  change_ticket: CHG0012349                # MANDATORY (CHG + 7 digits)
+  description: "Map VLAN 100 (SERVERS-PROD) to a VXLAN VNI across DC East fabric"  # MANDATORY
+
+  # ── Fabric reference ────────────────────────────────────────────────────────
+  fabric:
+    name: dc-east-fabric                 # MANDATORY — must match the evpn_vxlan_fabric intent
+
+  # ── VNI mapping ─────────────────────────────────────────────────────────────
+  vni:
+    type: l2                             # MANDATORY — l2 = Layer 2 stretch via VXLAN
+    vlan_id: 100                         # MANDATORY — VLAN to map to a VNI
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: all_at_once                # Apply VNI mapping on all leaves simultaneously
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmVlans
+        label: "Verify VLAN 100 exists on fabric leaves"
+        expected:
+          - id: 100
+            name: SERVERS-PROD
+      - test_class: TestNapalmInterfaces
+        label: "Verify VXLAN interface is up"
+        expected:
+          - name: Vxlan1
+            is_enabled: true
+            is_up: true

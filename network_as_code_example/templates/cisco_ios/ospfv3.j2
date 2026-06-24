@@ -1,0 +1,22 @@
+{# ospfv3 — Cisco IOS-XE OSPFv3 (IPv6) configuration #}
+ipv6 unicast-routing
+router ospfv3 {{ process_id | default(1) }}
+{% if router_id is defined %}
+ router-id {{ router_id }}
+{% endif %}
+{% if default_information_originate | default(false) %}
+ default-information originate always
+{% endif %}
+ !
+ address-family ipv6 unicast
+{% for net in networks | default([]) %}
+  area {{ net.area | default('0') }} range {{ net.prefix }}
+{% endfor %}
+ exit-address-family
+{% for intf in ospfv3_interfaces | default([]) %}
+interface {{ intf.name }}
+ ospfv3 {{ process_id | default(1) }} ipv6 area {{ intf.area | default('0') }}
+{% if intf.network_type is defined %}
+ ospfv3 {{ process_id | default(1) }} network {{ intf.network_type }}
+{% endif %}
+{% endfor %}

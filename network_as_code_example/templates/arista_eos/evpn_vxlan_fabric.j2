@@ -1,0 +1,43 @@
+{# evpn_vxlan_fabric — Arista EOS VXLAN EVPN fabric bootstrap #}
+{# Applied to all spine and leaf nodes in the fabric #}
+
+hardware tcam profile vxlan-routing
+
+service routing protocols model multi-agent
+
+router bgp {{ local_asn }}
+   router-id {{ router_id | default('{{ host.data.loopback0_ip }}') }}
+   no bgp default ipv4-unicast
+   distance bgp 20 200 200
+   graceful-restart restart-time 300
+   graceful-restart
+   maximum-paths 4 ecmp 4
+{% for nbr in evpn_neighbors | default([]) %}
+   neighbor {{ nbr.ip }} remote-as {{ nbr.remote_asn | default(local_asn) }}
+   neighbor {{ nbr.ip }} update-source {{ nbr.update_source | default('Loopback0') }}
+   neighbor {{ nbr.ip }} send-community extended
+   neighbor {{ nbr.ip }} maximum-routes 12000
+{% endfor %}
+   !
+   address-family evpn
+{% for nbr in evpn_neighbors | default([]) %}
+      neighbor {{ nbr.ip }} activate
+{% if nbr.route_reflector_client | default(false) %}
+      neighbor {{ nbr.ip }} route-reflector-client
+{% endif %}
+{% endfor %}
+   !
+   address-family ipv4
+{% for nbr in evpn_neighbors | default([]) %}
+      neighbor {{ nbr.ip }} activate
+{% endfor %}
+
+interface {{ nve_interface | default('Vxlan1') }}
+   vxlan source-interface {{ source_interface | default('Loopback0') }}
+   vxlan udp-port 4789
+{% if replication_mode | default('ingress-replication') == 'ingress-replication' %}
+   vxlan controller-client
+{% endif %}
+{% if advertise_all_vni | default(true) %}
+   vxlan learn-restrict any
+{% endif %}

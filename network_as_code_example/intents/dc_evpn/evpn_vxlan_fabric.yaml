@@ -1,0 +1,65 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: evpn_vxlan_fabric
+# Purpose:     Bootstrap a full VXLAN EVPN fabric — allocates loopback IPs,
+#              L2/L3 VNIs, configures VTEP (NVE), and BGP EVPN address family.
+#              One intent covers all leaf/spine devices in the fabric.
+# HIGH-IMPACT TYPE — requires approved_by when OPA enforce is on.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-evpn-fabric-dc-east-001      # MANDATORY
+type: evpn_vxlan_fabric               # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "VXLAN EVPN fabric bootstrap — DC-East leaf and spine nodes"  # MANDATORY
+change_ticket: CHG0030030             # MANDATORY (CHG + 7 digits)
+approved_by: "net.engineer"           # MANDATORY for evpn_vxlan_fabric (high-impact)
+
+scope:
+  sites: [dc-east]                    # MANDATORY — all fabric devices at this site
+  # roles: [leaf, spine]              # OPTIONAL — filter to specific roles only
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  BGP UNDERLAY / OVERLAY AS                                             ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+local_asn: 65000                      # MANDATORY — BGP AS for the entire fabric
+                                      #   Use the same AS for all leaves (iBGP to spines)
+                                      #   OR per-leaf AS numbers for eBGP underlay
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  VTEP / NVE INTERFACE                                                  ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+nve_interface: nve1                   # OPTIONAL (default: nve1) — NVE interface name
+source_interface: Loopback0           # OPTIONAL (default: Loopback0) — VTEP source interface
+                                      #   Loopback IP is auto-allocated from ManagedLoopbackPool
+
+replication_mode: ingress-replication # OPTIONAL (default: ingress-replication)
+                                      #   ingress-replication — unicast BUM replication (recommended)
+                                      #   multicast           — PIM-SM for BUM replication
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  BGP EVPN ADDRESS FAMILY                                               ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+advertise_all_vni: true               # OPTIONAL (default: true) — advertise all local VNIs via EVPN
+route_target_auto: true               # OPTIONAL (default: true) — auto-derive RT from VNI
+
+# ── BGP EVPN neighbours (spines / route-reflectors) ──────────────────────────
+evpn_neighbors:                       # OPTIONAL — explicit list of EVPN overlay peers
+  - ip: 10.0.0.254                    #   Spine/RR loopback IP
+    remote_asn: 65000                 #   Same AS as fabric (iBGP RR scenario)
+    update_source: Loopback0
+    route_reflector_client: false     #   Set true on the spine/RR side, not the leaf
+  # - ip: 10.0.0.253
+  #   remote_asn: 65000
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: canary                    # OPTIONAL — canary strongly recommended for fabric bootstrap
+  save_config: true
+
+verification:
+  level: nuts                         # OPTIONAL — verifies VTEP up, BGP EVPN neighbours, VNI table
+  trigger: both
+  fail_action: rollback

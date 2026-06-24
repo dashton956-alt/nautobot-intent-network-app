@@ -1,0 +1,14 @@
+{# aaa_device_removal.j2 — ios-xe #}
+! Remove device-management AAA
+! Intent: {{ intent_id }}
+!
+{% if server_group %}
+no aaa group server tacacs+ {{ server_group }}
+{% endif %}
+{% for s in tacacs_servers | default([]) %}
+no tacacs server TACACS-{{ s.host | default(s.ip) }}
+{% endfor %}
+{% for method in (authentication | default({})).keys() %}
+no aaa authentication {{ method | replace('_', ' ') }} default
+{% endfor %}
+!

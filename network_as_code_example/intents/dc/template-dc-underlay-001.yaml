@@ -1,0 +1,61 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: dc_underlay
+# Purpose:     Configure the BGP unnumbered underlay between spine and leaf
+#              switches. Each leaf gets a unique AS number derived from the
+#              base. BFD provides fast failure detection; 8-path ECMP enables
+#              load sharing across all spine-leaf links.
+# HIGH-IMPACT TYPE — approved_by required when OPA enforce is enabled.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-dc-underlay-001           # MANDATORY
+  type: dc_underlay                      # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "DC Underlay (OSPF/BGP) — configure point-to-point underlay between spine and leaf"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east
+    roles:
+      - leaf-switch
+      - spine-switch
+
+  # ── Underlay configuration ──────────────────────────────────────────────────
+  dc:
+    underlay:
+      protocol: bgp                      # MANDATORY — ospf | bgp
+      bgp:
+        as_base: 65000                   # MANDATORY — leaf AS = 65000 + leaf number
+        spine_as: 65000                  # MANDATORY — spines share this AS
+        unnumbered: true                 # OPTIONAL — IPv6 link-local or unnumbered IPv4
+      loopback:
+        interface: Loopback0             # MANDATORY — loopback interface for VTEP source
+        ip_range: "10.255.0.0/24"        # MANDATORY — per-device IP allocated from this range
+      p2p_mtu: 9214                      # OPTIONAL — jumbo MTU for fabric links (VXLAN encap overhead)
+      bfd: true                          # OPTIONAL — BFD for sub-second failure detection
+      ecmp_max_paths: 8                  # OPTIONAL — maximum equal-cost paths for load sharing
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: both
+    schedule: "*/30 * * * *"
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify BGP underlay configured"
+        expected:
+          - config_snippet: "router bgp"
+          - config_snippet: "maximum-paths 8"

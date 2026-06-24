@@ -1,9 +1,12 @@
 """App declaration for intent_networking."""
 
 # Metadata is inherited from Nautobot. If not including Nautobot in the environment, this should be added
+import logging
 from importlib import metadata
 
 from nautobot.apps import NautobotAppConfig
+
+logger = logging.getLogger(__name__)
 
 try:
     __version__ = metadata.version("nautobot-app-intent-networking")
@@ -64,61 +67,63 @@ class IntentNetworkingConfig(NautobotAppConfig):
     searchable_models = ["intent"]
 
     def ready(self):
-        """Import jobs and job buttons so Nautobot discovers them at startup.
+        """Import jobs/job buttons and wire post-migration setup.
 
         super().ready() auto-discovers jobs.py via the `jobs = "jobs.jobs"`
         attribute and calls register_jobs() at import time. Job buttons live
         in a separate module and must be imported explicitly.
+
+        The default reconciliation schedule is created from the
+        ``nautobot_database_ready`` signal rather than here, so the database is
+        only queried after migrations complete (querying in ready() raises a
+        Django "database access during app initialization" warning).
         """
         super().ready()
+        from nautobot.core.signals import nautobot_database_ready  # noqa: PLC0415
+
         import intent_networking.job_buttons  # noqa: F401  pylint:disable=unused-import,import-outside-toplevel
 
-        self._ensure_reconciliation_schedule()
+        nautobot_database_ready.connect(_ensure_reconciliation_schedule, sender=self)
 
-    @staticmethod
-    def _ensure_reconciliation_schedule():
-        """Create a default hourly schedule for IntentReconciliationJob if one does not exist.
 
-        Uses a post-migrate-safe check; silently skips if database tables
-        are not ready yet (e.g. during initial migration).
-        """
-        try:
-            from django.conf import settings  # noqa: PLC0415
-            from nautobot.extras.models import Job as JobModel  # noqa: PLC0415
+def _ensure_reconciliation_schedule(sender, **kwargs):  # noqa: ARG001
+    """Create a default hourly schedule for IntentReconciliationJob if absent.
 
-            interval_hours = settings.PLUGINS_CONFIG.get("intent_networking", {}).get(
-                "reconciliation_interval_hours", 1
-            )
+    Connected to ``nautobot_database_ready`` so it runs after migrations, when
+    the database and app registry are ready. Silently skips on any error
+    (e.g. tables not yet present during the very first migration run).
+    """
+    try:
+        from nautobot.extras.models import Job as JobModel  # noqa: PLC0415
 
-            job_model = JobModel.objects.filter(
-                module_name="intent_networking.jobs",
-                job_class_name="IntentReconciliationJob",
-            ).first()
+        job_model = JobModel.objects.filter(
+            module_name="intent_networking.jobs",
+            job_class_name="IntentReconciliationJob",
+        ).first()
 
-            if not job_model:
-                return  # Job not registered yet — will run on next startup
+        if not job_model:
+            return  # Job not registered yet — will run on next startup
 
-            from nautobot.extras.models import ScheduledJob  # noqa: PLC0415
+        from nautobot.extras.models import ScheduledJob  # noqa: PLC0415
 
-            if not ScheduledJob.objects.filter(
+        if not ScheduledJob.objects.filter(
+            name="Intent Reconciliation (auto)",
+            task=job_model.class_path,
+        ).exists():
+            import json  # noqa: PLC0415
+
+            from django.utils import timezone  # noqa: PLC0415
+            from nautobot.extras.choices import JobExecutionType  # noqa: PLC0415
+
+            ScheduledJob.objects.create(
                 name="Intent Reconciliation (auto)",
                 task=job_model.class_path,
-            ).exists():
-                import json  # noqa: PLC0415
-
-                from django.utils import timezone  # noqa: PLC0415
-
-                ScheduledJob.objects.create(
-                    name="Intent Reconciliation (auto)",
-                    task=job_model.class_path,
-                    interval="hours",
-                    every=interval_hours,
-                    start_time=timezone.now(),
-                    kwargs=json.dumps({}),
-                )
-        except Exception:  # noqa: BLE001, S110
-            # Gracefully handle missing tables during initial migration
-            pass
+                interval=JobExecutionType.TYPE_HOURLY,
+                start_time=timezone.now(),
+                kwargs=json.dumps({}),
+            )
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("Skipped reconciliation schedule setup: %s", exc)
 
 
 config = IntentNetworkingConfig  # pylint:disable=invalid-name

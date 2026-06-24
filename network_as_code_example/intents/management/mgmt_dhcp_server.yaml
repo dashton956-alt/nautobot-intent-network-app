@@ -1,0 +1,90 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_dhcp_server
+# Purpose:     Configure DHCP server pools on distribution switches to assign
+#              IP addresses to servers, management devices, or IPMI interfaces.
+#              Excluded addresses reserve the gateway and static-IP range from
+#              the dynamic pool.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-dhcp-server-dc-east-001        # MANDATORY
+type: mgmt_dhcp_server                  # MANDATORY
+version: 1                              # MANDATORY
+tenant: acme-corp                       # MANDATORY
+description: "DHCP server pools — DC East distribution switches — server management VLANs"  # MANDATORY
+change_ticket: CHG0030113               # MANDATORY (CHG + 7 digits)
+approved_by: ""                         # OPTIONAL here
+
+scope:
+  site: dc-east                         # MANDATORY — site where DHCP server runs
+  role: distribution                    # MANDATORY — distribution switches act as DHCP servers
+
+management:
+  dhcp_server:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  DHCP POOLS (MANDATORY — at least one)                                 ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    pools:
+      - name: SERVER-MGMT-POOL              # MANDATORY per pool — unique pool name
+        network: "10.10.100.0/24"           # MANDATORY — subnet for this pool
+        default_router: "10.10.100.1"       # MANDATORY — default gateway sent to DHCP clients
+        dns_servers:                        # OPTIONAL — DNS servers sent to clients
+          - "10.0.0.10"
+          - "10.0.0.11"
+        domain_name: "dc-east.acme-corp.local"  # OPTIONAL — DNS domain suffix
+        lease_time: 86400                   # OPTIONAL (default: 86400 = 24h) — lease duration in seconds
+                                            #   86400  = 24 hours (servers / infrastructure)
+                                            #   43200  = 12 hours (IPMI / BMC)
+                                            #   3600   = 1 hour  (temp devices / BYOD)
+
+      - name: IPMI-POOL
+        network: "10.10.101.0/24"
+        default_router: "10.10.101.1"
+        dns_servers:
+          - "10.0.0.10"
+        domain_name: "ipmi.dc-east.acme-corp.local"
+        lease_time: 43200
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  EXCLUDED ADDRESSES (OPTIONAL)                                         ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+    #
+    # Reserve IP ranges within the pool network from dynamic assignment.
+    # Always exclude: gateway IPs, network/broadcast addresses, and any
+    # statically assigned device IPs within the pool subnet.
+
+    excluded_addresses:
+      - start: "10.10.100.1"               # OPTIONAL — first excluded IP
+        end: "10.10.100.10"                 # OPTIONAL — last excluded IP (inclusive range)
+                                            #   .1  = default gateway
+                                            #   .2-.10 = reserved for static infrastructure
+      - start: "10.10.101.1"
+        end: "10.10.101.10"
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  GLOBAL LEASE TIME (OPTIONAL)                                          ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    lease_time: 86400                       # OPTIONAL — global default (overridden by per-pool setting)
+
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: NONE
+  encryption: none
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: all_at_once                 # Both distribution switches configured simultaneously
+  save_config: true
+
+verification:
+  level: nuts
+  trigger: on_deploy
+  fail_action: alert
+  tests:
+    - test_class: TestNapalmConfig
+      label: "Verify DHCP pools in running config"
+      expected:
+        - config_snippet: "ip dhcp pool SERVER-MGMT-POOL"
+        - config_snippet: "network 10.10.100.0/24"

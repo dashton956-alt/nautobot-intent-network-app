@@ -1,0 +1,25 @@
+{# mgmt_interface — Cisco IOS-XE management and loopback interface configuration #}
+{% if loopback0_ip is defined %}
+interface Loopback0
+ description {{ loopback0_description | default('Router-ID / NMS Source') }}
+ ip address {{ loopback0_ip }} 255.255.255.255
+ no shutdown
+{% endif %}
+{% for lo in additional_loopbacks | default([]) %}
+interface Loopback{{ lo.id }}
+ description {{ lo.description | default('Loopback' + lo.id | string) }}
+ ip address {{ lo.ip_address }} {{ lo.subnet_mask | default('255.255.255.255') }}
+{% if lo.vrf is defined %}
+ ip vrf forwarding {{ lo.vrf }}
+{% endif %}
+ no shutdown
+{% endfor %}
+{% if mgmt_ip is defined %}
+interface GigabitEthernet0
+ description {{ mgmt_description | default('Out-of-Band Management') }}
+{% if mgmt_vrf is defined %}
+ ip vrf forwarding {{ mgmt_vrf }}
+{% endif %}
+ ip address {{ mgmt_ip }} {{ mgmt_mask | default('255.255.255.0') }}
+ no shutdown
+{% endif %}

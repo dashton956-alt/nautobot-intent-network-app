@@ -1,0 +1,18 @@
+{# mgmt_stp_root — Arista EOS STP root bridge election configuration #}
+spanning-tree mode {{ mode | default('rapid-pvst') }}
+
+{% for vlan_range in root_vlans | default([]) %}
+spanning-tree vlan-id {{ vlan_range }} priority {{ priority | default(4096) }}
+{% endfor %}
+
+{% if secondary is defined and secondary %}
+{# Secondary bridge priority applied on peer distribution switch via separate intent invocation #}
+{# Role: {{ secondary.device_role }}, Priority: {{ secondary.priority | default(8192) }} #}
+{% endif %}
+
+{% if diameter is defined and diameter %}
+{# Optimal timers calculated from diameter={{ diameter }} #}
+spanning-tree vlan-id 1-4094 hello-time {{ hello_time | default(2) }}
+spanning-tree vlan-id 1-4094 max-age {{ max_age | default(20) }}
+spanning-tree vlan-id 1-4094 forward-time {{ forward_delay | default(15) }}
+{% endif %}

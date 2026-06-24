@@ -1,0 +1,7 @@
+{# prefix_list — Cisco NX-OS IP prefix-list configuration #}
+{% for pl in prefix_lists | default([]) %}
+{% for entry in pl.entries | default([]) %}
+ip prefix-list {{ pl.name }} seq {{ entry.seq }} {{ entry.action }} {{ entry.prefix }}{% if entry.le is defined %} le {{ entry.le }}{% endif %}{% if entry.ge is defined %} ge {{ entry.ge }}{% endif %}
+
+{% endfor %}
+{% endfor %}

@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: vrf_basic
+# Purpose:     Create a VRF on devices for traffic segmentation (no MPLS).
+#              Allocates RD/RT from pools if not explicitly specified.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-vrf-payments-001             # MANDATORY
+type: vrf_basic                       # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "VRF PAYMENTS — PCI-DSS segment for payment processing systems"  # MANDATORY
+change_ticket: CHG0030014             # MANDATORY (CHG + 7 digits)
+approved_by: "net.engineer"           # OPTIONAL here; MANDATORY when OPA enforce is on
+
+scope:
+  devices: [router-01, router-02]     # MANDATORY — devices that need this VRF
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  VRF DEFINITION (MANDATORY)                                            ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+vrf_name: PAYMENTS                    # MANDATORY — VRF name (must be unique on each device)
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  ROUTE DISTINGUISHER / TARGET (OPTIONAL — auto-allocated if omitted)   ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+rd: ""                                # OPTIONAL — Route Distinguisher (e.g. "65001:100")
+                                      #   If omitted, Nautobot allocates from RD pools atomically
+                                      #   Format: <asn>:<id> or <ip>:<id>
+
+rt_export: ""                         # OPTIONAL — Route Target for export (e.g. "65001:100")
+                                      #   If omitted, auto-allocated from RT pools
+
+rt_import: ""                         # OPTIONAL — Route Target for import (e.g. "65001:100")
+                                      #   Can be different from export for hub-spoke topologies
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  INTERFACE ASSIGNMENT (OPTIONAL)                                       ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+interfaces:                           # OPTIONAL — interfaces to assign to this VRF at creation
+  - name: GigabitEthernet0/1
+    ip_address: 10.100.1.1/30         # OPTIONAL — IP address to configure on the interface
+  - name: GigabitEthernet0/2
+    ip_address: 10.100.1.5/30
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  REDISTRIBUTION (OPTIONAL)                                             ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+redistribute_connected: true          # OPTIONAL (default: false) — redistribute connected routes
+redistribute_static: false            # OPTIONAL (default: false) — redistribute static routes
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: PCI-DSS                 # OPTIONAL — PCI-DSS | HIPAA | SOC2 | none
+  encryption: required                # MANDATORY when compliance: PCI-DSS
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true                   # OPTIONAL (default: true)
+
+verification:
+  level: basic                        # OPTIONAL (default: basic)
+  trigger: on_deploy                  # OPTIONAL (default: on_deploy)
+  fail_action: alert                  # OPTIONAL (default: alert)

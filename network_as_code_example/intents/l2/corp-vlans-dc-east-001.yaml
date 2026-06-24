@@ -1,0 +1,63 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: vlan_provision
+# Purpose:     Provision the standard set of server, storage, management, and
+#              quarantine VLANs across all access-switches in DC East.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-vlans-dc-east-001             # MANDATORY
+  type: vlan_provision                   # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG0012346              # MANDATORY (CHG + 7 digits)
+  description: "Provision standard server VLANs across all access switches in DC East"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east                          # Apply to all devices at DC East
+    roles:
+      - access-switch                    # Restrict to access-switch role only
+
+  # ── VLAN definitions ────────────────────────────────────────────────────────
+  vlans:                                 # MANDATORY — at least one VLAN entry required
+    - id: 100
+      name: SERVERS-PROD
+      description: "Production server VLAN"
+    - id: 101
+      name: SERVERS-DEV
+      description: "Development server VLAN"
+    - id: 200
+      name: STORAGE
+      description: "Storage network VLAN"
+    - id: 300
+      name: MGMT
+      description: "Out-of-band management VLAN"
+    - id: 999
+      name: QUARANTINE
+      description: "Quarantine VLAN for non-compliant devices"
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true                    # OPTIONAL (default: true)
+
+  verification:
+    level: nuts                          # nuts verifies VLAN table via NAPALM
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmVlans
+        label: "Verify standard VLANs are provisioned"
+        expected:
+          - id: 100
+            name: SERVERS-PROD
+          - id: 101
+            name: SERVERS-DEV
+          - id: 200
+            name: STORAGE
+          - id: 300
+            name: MGMT
+          - id: 999
+            name: QUARANTINE

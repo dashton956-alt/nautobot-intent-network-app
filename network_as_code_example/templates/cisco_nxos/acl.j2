@@ -1,0 +1,19 @@
+{# acl — Cisco NX-OS IP ACL configuration #}
+ip access-list {{ acl_name }}
+{% for rule in acl_rules | default([]) %}
+{% if rule.action == 'remark' %}
+  remark {{ rule.remark }}
+{% else %}
+{% if rule.seq is defined %}
+  {{ rule.seq }} {{ rule.action }} {{ rule.protocol | default('ip') }} {{ rule.source | default('any') }} {{ rule.destination | default('any') }}{% if rule.destination_port is defined %} eq {{ rule.destination_port }}{% endif %}{% if rule.log | default(false) %} log{% endif %}
+
+{% else %}
+  {{ rule.action }} {{ rule.protocol | default('ip') }} {{ rule.source | default('any') }} {{ rule.destination | default('any') }}{% if rule.destination_port is defined %} eq {{ rule.destination_port }}{% endif %}{% if rule.log | default(false) %} log{% endif %}
+
+{% endif %}
+{% endif %}
+{% endfor %}
+{% for application in acl_apply | default([]) %}
+interface {{ application.interface }}
+ ip access-group {{ acl_name }} {{ application.direction }}
+{% endfor %}

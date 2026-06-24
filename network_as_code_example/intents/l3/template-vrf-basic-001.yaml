@@ -1,0 +1,69 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: vrf_basic
+# Purpose:     Provision VRF instances for tenant network segmentation on core
+#              and distribution devices. Non-MPLS VRFs provide L3 isolation
+#              without requiring MPLS labels — used for data-center tenants.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: template-vrf-basic-001             # MANDATORY
+  type: vrf_basic                        # MANDATORY
+  version: 1                             # MANDATORY
+  tenant: acme-corp                      # MANDATORY
+  change_ticket: CHG00XXXXX              # MANDATORY (replace with real ticket)
+  description: "VRF (non-MPLS) — provision VRF instances for tenant network segmentation"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    sites:
+      - dc-east
+    roles:
+      - core-router
+      - distribution-switch
+
+  # ── VRF definitions ─────────────────────────────────────────────────────────
+  routing:
+    vrfs:
+      - name: PROD                       # MANDATORY — VRF name
+        description: "Production tenant VRF"
+        rd: "65001:100"                  # MANDATORY — Route Distinguisher (AS:number format)
+        address_families:                # MANDATORY — at least one AF required
+          - ipv4_unicast
+        interfaces:                      # OPTIONAL — interfaces assigned to this VRF
+          - GigabitEthernet0/1.100
+      - name: DEV
+        description: "Development tenant VRF"
+        rd: "65001:200"
+        address_families:
+          - ipv4_unicast
+        interfaces:
+          - GigabitEthernet0/1.200
+      - name: MGMT
+        description: "Out-of-band management VRF"
+        rd: "65001:999"
+        address_families:
+          - ipv4_unicast
+        interfaces:
+          - GigabitEthernet0/0
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify VRF instances created"
+        expected:
+          - config_snippet: "vrf instance PROD"
+          - config_snippet: "vrf instance DEV"
+          - config_snippet: "vrf instance MGMT"

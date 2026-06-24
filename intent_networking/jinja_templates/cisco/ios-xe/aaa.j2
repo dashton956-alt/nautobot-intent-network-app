@@ -4,22 +4,32 @@
 !
 aaa new-model
 !
-{% for group in server_groups | default([]) %}
-aaa group server {{ group.type | default("tacacs+") }} {{ group.name }}
-{% for server in group.servers | default([]) %}
- server name {{ server }}
-{% endfor %}
-{% endfor %}
+aaa authentication login default {{ auth_methods | default("local") }}
+{% if enable_auth %}
+aaa authentication enable default {{ enable_auth }}
+{% endif %}
+{% if authorization %}
+aaa authorization exec default {{ authorization }}
+aaa authorization commands 15 default {{ authorization }}
+{% endif %}
+{% if accounting %}
+aaa accounting exec default start-stop {{ accounting }}
+aaa accounting commands 15 default start-stop {{ accounting }}
+{% endif %}
 !
-{% for auth in authentication | default([]) %}
-aaa authentication {{ auth.type }} {{ auth.list_name | default("default") }} group {{ auth.group }}{% if auth.local_fallback | default(false) %} local{% endif %}
-
+{% for server in radius_servers | default([]) %}
+radius server RADIUS-{{ loop.index }}
+ address ipv4 {{ server.ip | default(server.host) }} auth-port {{ server.port | default(1812) }}
+{% if server.key %}
+ key {{ server.key }}
+{% endif %}
 {% endfor %}
-{% for authz in authorization | default([]) %}
-aaa authorization {{ authz.type }} {{ authz.list_name | default("default") }} group {{ authz.group }}{% if authz.local_fallback | default(false) %} local{% endif %}
-
-{% endfor %}
-{% for acct in accounting | default([]) %}
-aaa accounting {{ acct.type }} {{ acct.list_name | default("default") }} start-stop group {{ acct.group }}
+{% for server in tacacs_servers | default([]) %}
+tacacs server TACACS-{{ loop.index }}
+ address ipv4 {{ server.ip | default(server.host) }}
+ port {{ server.port | default(49) }}
+{% if server.key %}
+ key {{ server.key }}
+{% endif %}
 {% endfor %}
 !

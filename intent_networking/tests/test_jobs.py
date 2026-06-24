@@ -9,6 +9,7 @@ Focuses on the testable utilities and data structures in jobs.py:
 """
 
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
@@ -22,8 +23,28 @@ from intent_networking.jobs import (
     IntentRollbackJob,
     IntentSyncFromGitJob,
     IntentVerificationJob,
+    _platform_slug,
     jobs,
 )
+
+
+class PlatformSlugTest(SimpleTestCase):
+    """Render template-dir resolution must key off network_driver, not just name."""
+
+    @staticmethod
+    def _dev(name=None, network_driver=None):
+        plat = SimpleNamespace(name=name, network_driver=network_driver) if (name or network_driver) else None
+        return SimpleNamespace(platform=plat)
+
+    def test_driver_preferred_over_human_name(self):
+        self.assertEqual(_platform_slug(self._dev(name="Arista EOS", network_driver="arista_eos")), "arista-eos")
+
+    def test_slug_name_still_works(self):
+        self.assertEqual(_platform_slug(self._dev(name="arista-eos")), "arista-eos")
+
+    def test_no_platform_defaults_to_ios_xe(self):
+        self.assertEqual(_platform_slug(self._dev()), "cisco-ios-xe")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Job registration

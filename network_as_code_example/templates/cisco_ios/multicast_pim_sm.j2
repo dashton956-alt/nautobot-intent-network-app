@@ -1,0 +1,25 @@
+{# multicast_pim_sm — Cisco IOS-XE PIM Sparse Mode multicast configuration #}
+ip multicast-routing{% if vrf is defined %} vrf {{ vrf }}{% endif %}
+
+{% if rp_type | default('static') == 'static' %}
+{% for rp in rp_addresses | default([]) %}
+ip pim{% if vrf is defined %} vrf {{ vrf }}{% endif %} rp-address {{ rp.address }} {{ rp.acl | default('') }}
+{% endfor %}
+{% elif rp_type == 'bsr' %}
+ip pim{% if vrf is defined %} vrf {{ vrf }}{% endif %} bsr-candidate {{ bsr_interface | default('Loopback0') }}
+ip pim{% if vrf is defined %} vrf {{ vrf }}{% endif %} rp-candidate {{ rp_interface | default('Loopback0') }}
+{% elif rp_type == 'auto_rp' %}
+ip pim{% if vrf is defined %} vrf {{ vrf }}{% endif %} send-rp-announce {{ rp_interface | default('Loopback0') }} scope {{ ttl_scope | default(16) }}
+ip pim{% if vrf is defined %} vrf {{ vrf }}{% endif %} send-rp-discovery scope {{ ttl_scope | default(16) }}
+{% endif %}
+{% for intf in multicast_interfaces | default([]) %}
+interface {{ intf.name }}
+ ip pim sparse-mode
+{% if intf.dr_priority is defined %}
+ ip pim dr-priority {{ intf.dr_priority }}
+{% endif %}
+{% endfor %}
+{% for peer in msdp_peers | default([]) %}
+ip msdp peer {{ peer.address }}{% if peer.connect_source is defined %} connect-source {{ peer.connect_source }}{% endif %}
+
+{% endfor %}

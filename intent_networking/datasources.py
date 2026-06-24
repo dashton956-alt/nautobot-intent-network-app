@@ -223,7 +223,18 @@ def _sync_repo_intents(repository_record, job_result):
         rel_path = os.path.relpath(filepath, repo_path)
         try:
             with open(filepath, "r", encoding="utf-8") as fd:
-                intent_yaml = yaml.safe_load(fd)
+                # Support multi-document YAML files. Comment-only documents
+                # (e.g. a trailing reference block) parse to None and are
+                # ignored; a single intent per file is still required.
+                documents = [doc for doc in yaml.safe_load_all(fd) if doc is not None]
+
+            if not documents:
+                raise ValueError("File contains no YAML documents")  # noqa: TRY301
+            if len(documents) > 1:
+                raise ValueError(  # noqa: TRY301
+                    f"File contains {len(documents)} YAML documents; expected one intent per file."
+                )
+            intent_yaml = documents[0]
 
             if not isinstance(intent_yaml, dict):
                 raise ValueError("File must contain a YAML mapping (dict)")  # noqa: TRY301
@@ -334,6 +345,16 @@ def _sync_repo_intents(repository_record, job_result):
             deprecated_status = Status.objects.filter(name__iexact="Deprecated").first()
             if deprecated_status:
                 orphaned.update(status=deprecated_status)
+            else:
+                logger.warning(
+                    "Could not find 'Deprecated' status — %d orphaned intent(s) were NOT deprecated.",
+                    orphan_count,
+                )
+                job_result.log(
+                    f"'Deprecated' status missing — {orphan_count} orphaned intent(s) left unchanged",
+                    level_choice=LogLevelChoices.LOG_WARNING,
+                    grouping="intent definitions",
+                )
             msg = f"Deprecated {orphan_count} intent(s) no longer present in repo"
             job_result.log(msg, level_choice=LogLevelChoices.LOG_WARNING, grouping="intent definitions")
     except Exception as exc:
@@ -369,9 +390,10 @@ def _resolve_dependencies(synced_intent_ids, yaml_files, paths_and_patterns, job
             continue
         try:
             with open(filepath, "r", encoding="utf-8") as fd:
-                intent_yaml = yaml.safe_load(fd)
-            if not isinstance(intent_yaml, dict):
+                documents = [doc for doc in yaml.safe_load_all(fd) if doc is not None]
+            if len(documents) != 1 or not isinstance(documents[0], dict):
                 continue
+            intent_yaml = documents[0]
             if "intent" in intent_yaml and isinstance(intent_yaml["intent"], dict):
                 intent_yaml = intent_yaml["intent"]
 
@@ -419,6 +441,17 @@ def _delete_repo_intents(repository_record, job_result):
         deprecated_status = Status.objects.filter(name__iexact="Deprecated").first()
         if deprecated_status:
             managed.update(status=deprecated_status)
+        else:
+            logger.warning(
+                "Could not find 'Deprecated' status — %d intent(s) for deleted repo '%s' were NOT deprecated.",
+                count,
+                repository_record.name,
+            )
+            job_result.log(
+                f"'Deprecated' status missing — {count} intent(s) for deleted repo '{repository_record.name}' left unchanged",
+                level_choice=LogLevelChoices.LOG_WARNING,
+                grouping="intent definitions",
+            )
 
         msg = f"Git repository '{repository_record.name}' deleted — deprecated {count} managed intent(s)"
         job_result.log(msg, level_choice=LogLevelChoices.LOG_WARNING, grouping="intent definitions")

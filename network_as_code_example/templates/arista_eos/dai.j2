@@ -1,0 +1,13 @@
+{# dai — Arista EOS Dynamic ARP Inspection configuration #}
+{% for vlan_entry in dai_vlans | default([]) %}
+ip arp inspection vlan {{ vlan_entry }}
+{% endfor %}
+
+{% if arp_rate_limit is defined and arp_rate_limit %}
+ip arp inspection limit rate {{ arp_rate_limit }}
+{% endif %}
+
+{% for trusted_port in trusted_ports | default([]) %}
+interface {{ trusted_port }}
+   ip arp inspection trust
+{% endfor %}

@@ -1,0 +1,97 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_telemetry
+# Purpose:     Configure gRPC dial-out streaming telemetry (gNMI/gRPC) to push
+#              interface counters, BGP state, CPU, and memory metrics to a
+#              central collector. Replaces SNMP polling for real-time observability.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-telemetry-all-devices-001      # MANDATORY
+type: mgmt_telemetry                    # MANDATORY
+version: 1                              # MANDATORY
+tenant: acme-corp                       # MANDATORY
+description: "gRPC streaming telemetry dial-out — all devices — interface, BGP, CPU, memory"  # MANDATORY
+change_ticket: CHG0030108               # MANDATORY (CHG + 7 digits)
+approved_by: ""                         # OPTIONAL here
+
+scope:
+  all_tenant_devices: true              # MANDATORY — telemetry from every device
+
+management:
+  telemetry:
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  COLLECTOR DESTINATION (MANDATORY)                                     ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+
+    destination_ip: "10.0.1.210"            # MANDATORY — telemetry collector IP (InfluxDB/gNMIc/etc.)
+    destination_port: 57000                 # MANDATORY — collector gRPC port
+    protocol: grpc                          # MANDATORY — grpc | grpc-tls
+                                            #   grpc     — unencrypted (test/lab only)
+                                            #   grpc-tls — TLS-encrypted (use in production)
+    encoding: gpb                           # OPTIONAL (default: gpb) — encoding format
+                                            #   gpb      — Google Protocol Buffers (compact, binary)
+                                            #   gpb-kv   — key-value pairs (less compact)
+                                            #   json-ietf — IETF JSON (human-readable, verbose)
+    source_interface: "Management0"         # OPTIONAL — source interface for gRPC connections
+
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║  SUBSCRIPTIONS (MANDATORY — at least one)                              ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
+    #
+    # Each subscription defines a gNMI path and sample interval.
+    # Paths follow the OpenConfig or vendor-native YANG model hierarchy.
+    # Interval is in milliseconds.
+
+    subscriptions:
+      - name: "interfaces"                  # MANDATORY per subscription — unique name
+        path: "/interfaces/interface/state/counters"  # MANDATORY — gNMI YANG path
+        interval: 30000                     # MANDATORY — sample interval in ms (30s)
+                                            #   Recommended intervals:
+                                            #     30s  — interface counters, CPU utilisation
+                                            #     60s  — BGP state, memory, routing table size
+                                            #     300s — slow-changing state (OSPF neighbours)
+
+      - name: "bgp"
+        path: "/network-instances/network-instance/protocols/protocol/bgp"
+        interval: 60000                     # 60s — BGP session state (changes infrequently)
+
+      - name: "cpu"
+        path: "/components/component/cpu/utilization/state"
+        interval: 30000
+
+      - name: "memory"
+        path: "/components/component/memory/state"
+        interval: 60000
+
+
+  # Additional useful paths:
+  # - name: "routing-table"
+  #   path: "/network-instances/network-instance/afts"
+  #   interval: 60000
+
+  # - name: "optical-power"             # For DWDM / coherent optics
+  #   path: "/components/component/optical-channel/state"
+  #   interval: 30000
+
+# ── Policy ────────────────────────────────────────────────────────────────────
+policy:
+  compliance: NONE
+  encryption: tls                       # Use grpc-tls protocol and TLS in production
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                     # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: nuts
+  trigger: on_deploy
+  fail_action: alert
+  tests:
+    - test_class: TestNapalmRunningConfigContains
+      label: "Verify telemetry destination configured"
+      expected:
+        - config_snippet: "destination 10.0.1.210"
+    - test_class: TestNapalmRunningConfigContains
+      label: "Verify gNMI transport is enabled"
+      expected:
+        - config_snippet: "management api gnmi"

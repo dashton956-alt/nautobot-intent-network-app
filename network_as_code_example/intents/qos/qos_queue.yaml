@@ -1,0 +1,71 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: qos_queue
+# Purpose:     Configure a queuing policy-map (LLQ / WFQ / CBWFQ) and apply
+#              it to interfaces. Voice gets strict priority; data gets bandwidth.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-qos-queue-wan-001            # MANDATORY
+type: qos_queue                       # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "LLQ QoS queuing policy — WAN egress — voice priority 20pct"  # MANDATORY
+change_ticket: CHG0030080             # MANDATORY (CHG + 7 digits)
+approved_by: ""                       # OPTIONAL here
+
+scope:
+  devices: [border-01]               # MANDATORY
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  POLICY MAP (MANDATORY)                                                ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+policy_map: WAN-EGRESS-QOS            # MANDATORY — policy-map name on the device
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  QUEUES — ordered list (MANDATORY — at least one queue)               ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+queues:
+  - class_name: VOICE                 # MANDATORY per queue — class-map name to match traffic
+    priority: true                    # OPTIONAL (default: false) — strict priority (LLQ)
+                                      #   Only ONE class should have priority: true
+                                      #   LLQ is guaranteed bandwidth regardless of congestion
+    bandwidth_percent: 20             # OPTIONAL — bandwidth percentage for non-priority queues
+                                      #   Priority queue uses this as a policing limit
+    shape_rate: null                  # OPTIONAL — shape traffic rate (bps) — overrides bandwidth
+
+  - class_name: VIDEO
+    priority: false                   # OPTIONAL — non-priority CBWFQ class
+    bandwidth_percent: 30             # OPTIONAL — guaranteed bandwidth during congestion
+
+  - class_name: CRITICAL-DATA
+    priority: false
+    bandwidth_percent: 25
+
+  - class_name: BULK-DATA
+    priority: false
+    bandwidth_percent: 15
+
+  - class_name: class-default         # OPTIONAL — catch-all class (usually included)
+    priority: false
+    bandwidth_percent: 10             # Remaining bandwidth
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  INTERFACE APPLICATION (OPTIONAL)                                      ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+apply_interfaces:                     # OPTIONAL — interfaces to apply this policy to
+  - GigabitEthernet0/0               #   Remove to create policy without applying
+
+direction: output                     # OPTIONAL (default: output) — output | input
+                                      #   QoS queuing is almost always applied outbound (output)
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: rolling                   # OPTIONAL (default: rolling)
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

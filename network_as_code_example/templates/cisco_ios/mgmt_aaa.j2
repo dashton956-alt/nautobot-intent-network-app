@@ -1,0 +1,45 @@
+{# mgmt_aaa — Cisco IOS-XE AAA with TACACS+ / RADIUS #}
+{# WARNING: Do NOT use fail_action: rollback for AAA changes #}
+aaa new-model
+
+{% if aaa is defined %}
+{% if aaa.tacacs_servers is defined %}
+{% for server in aaa.tacacs_servers %}
+tacacs server {{ server.name | default('TACACS-' ~ loop.index) }}
+ address ipv4 {{ server.host }}
+ port {{ server.port | default(49) }}
+ key {{ server.key | default('') }}
+{% if server.timeout is defined %}
+ timeout {{ server.timeout }}
+{% endif %}
+{% endfor %}
+aaa group server tacacs+ {{ aaa.server_group_name | default('TACACS-CORP') }}
+{% for server in aaa.tacacs_servers %}
+ server name {{ server.name | default('TACACS-' ~ loop.index) }}
+{% endfor %}
+{% endif %}
+
+{% if aaa.radius_servers is defined %}
+{% for server in aaa.radius_servers %}
+radius server {{ server.name | default('RADIUS-' ~ loop.index) }}
+ address ipv4 {{ server.host }} auth-port {{ server.auth_port | default(1812) }} acct-port {{ server.acct_port | default(1813) }}
+ key {{ server.key | default('') }}
+{% endfor %}
+aaa group server radius {{ aaa.radius_group_name | default('RADIUS-CORP') }}
+{% for server in aaa.radius_servers %}
+ server name {{ server.name | default('RADIUS-' ~ loop.index) }}
+{% endfor %}
+{% endif %}
+
+aaa authentication login default {{ aaa.auth_login_method | default('group TACACS-CORP local') }}
+aaa authorization exec default {{ aaa.authz_exec | default('group TACACS-CORP local') }}
+aaa authorization commands 1 default {{ aaa.authz_commands | default('group TACACS-CORP local') }}
+aaa authorization commands 15 default {{ aaa.authz_commands | default('group TACACS-CORP local') }}
+aaa accounting exec default start-stop {{ aaa.accounting | default('group TACACS-CORP') }}
+aaa accounting commands 1 default start-stop {{ aaa.accounting | default('group TACACS-CORP') }}
+aaa accounting commands 15 default start-stop {{ aaa.accounting | default('group TACACS-CORP') }}
+
+{% for user in aaa.local_users | default([]) %}
+username {{ user.username }} privilege {{ user.privilege | default(15) }} secret {{ user.secret | default('') }}
+{% endfor %}
+{% endif %}

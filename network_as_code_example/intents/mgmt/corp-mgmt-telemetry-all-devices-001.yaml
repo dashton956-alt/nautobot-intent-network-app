@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: mgmt_telemetry
+# Purpose:     Configure gRPC dial-out streaming telemetry on all devices to
+#              push interface counters, BGP state, CPU and memory metrics to
+#              the central collector at 30s/60s intervals.
+# ─────────────────────────────────────────────────────────────────────────────
+
+intent:
+  id: corp-mgmt-telemetry-all-devices-001  # MANDATORY
+  type: mgmt_telemetry                     # MANDATORY
+  version: 1                               # MANDATORY
+  tenant: acme-corp                        # MANDATORY
+  change_ticket: CHG0012403                # MANDATORY (CHG + 7 digits)
+  description: "gRPC streaming telemetry — all network devices — dial-out to central collector"  # MANDATORY
+
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  scope:
+    all_tenant_devices: true             # MANDATORY — telemetry applies to every device
+
+  management:
+    telemetry:
+      # ── Telemetry configuration ─────────────────────────────────────────────────
+      destination_ip: "10.0.1.210"           # MANDATORY — telemetry collector IP
+      destination_port: 57000                # MANDATORY — collector gRPC port
+      protocol: grpc                         # MANDATORY — grpc | grpc-tls
+      encoding: gpb                          # OPTIONAL — gpb | gpb-kv | json-ietf
+      source_interface: "Management0"        # OPTIONAL — source interface for gRPC connections
+
+      subscriptions:                         # MANDATORY — at least one subscription path
+        - name: "interfaces"
+          path: "/interfaces/interface/state/counters"
+          interval: 30000                    # Interval in milliseconds (30s)
+        - name: "bgp"
+          path: "/network-instances/network-instance/protocols/protocol/bgp"
+          interval: 60000                    # 60s — BGP state changes slowly
+        - name: "cpu"
+          path: "/components/component/cpu/utilization/state"
+          interval: 30000
+        - name: "memory"
+          path: "/components/component/memory/state"
+          interval: 60000
+
+
+  policy:
+    compliance: NONE
+    encryption: tls                      # gRPC should use TLS in production
+
+  # ── Deployment / Verification ────────────────────────────────────────────────
+  deployment:
+    controller: nornir
+    strategy: rolling                    # OPTIONAL (default: rolling)
+    save_config: true
+
+  verification:
+    level: nuts
+    trigger: on_deploy
+    fail_action: alert
+    tests:
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify telemetry destination configured"
+        expected:
+          - config_snippet: "destination 10.0.1.210"
+      - test_class: TestNapalmRunningConfigContains
+        label: "Verify gNMI transport is enabled"
+        expected:
+          - config_snippet: "management api gnmi"

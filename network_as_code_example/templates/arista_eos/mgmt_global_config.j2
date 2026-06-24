@@ -1,0 +1,93 @@
+{# mgmt_global_config — Arista EOS day-0 bootstrap bundle #}
+{# Renders NTP, DNS, syslog, SNMP, SSH, banners, NETCONF, LLDP/CDP in one pass #}
+
+{% if hostname is defined and hostname %}
+hostname {{ hostname }}
+{% endif %}
+{% if domain_name is defined and domain_name %}
+ip domain-name {{ domain_name }}
+{% endif %}
+
+! ── NTP ──────────────────────────────────────────────────────────────────────
+{% if timezone is defined %}
+clock timezone {{ timezone }} {{ timezone_offset | default(0) }}
+{% endif %}
+{% for server in ntp_servers | default([]) %}
+ntp server {{ server }}
+{% endfor %}
+{% if ntp_source_interface is defined %}
+ntp source {{ ntp_source_interface }}
+{% endif %}
+
+! ── DNS ──────────────────────────────────────────────────────────────────────
+{% for server in dns_servers | default([]) %}
+ip name-server {{ server }}
+{% endfor %}
+{% for domain in dns_domain_list | default([]) %}
+ip domain-list {{ domain }}
+{% endfor %}
+
+! ── Syslog ───────────────────────────────────────────────────────────────────
+{% if syslog_source_interface is defined %}
+logging source-interface {{ syslog_source_interface }}
+{% endif %}
+{% if syslog_trap_level is defined %}
+logging trap {{ syslog_trap_level }}
+{% endif %}
+{% for server in syslog_servers | default([]) %}
+logging host {{ server.host }} {{ server.port | default(514) }}
+{% endfor %}
+
+! ── SNMP ─────────────────────────────────────────────────────────────────────
+{% if snmp_location is defined %}
+snmp-server location {{ snmp_location }}
+{% endif %}
+{% if snmp_contact is defined %}
+snmp-server contact {{ snmp_contact }}
+{% endif %}
+{% if snmp_community is defined %}
+snmp-server community {{ snmp_community }} ro
+{% endif %}
+{% for trap in snmp_trap_targets | default([]) %}
+snmp-server host {{ trap.host }} version {{ trap.version | default('2c') }} {{ trap.community | default('') }}
+{% endfor %}
+
+! ── SSH ──────────────────────────────────────────────────────────────────────
+ip ssh version {{ ssh_version | default(2) }}
+{% if ssh_timeout is defined %}
+ip ssh timeout {{ ssh_timeout }}
+{% endif %}
+
+! ── Banners ───────────────────────────────────────────────────────────────────
+{% if login_banner is defined and login_banner %}
+banner login %
+{{ login_banner }}%
+{% endif %}
+{% if motd_banner is defined and motd_banner %}
+banner motd %
+{{ motd_banner }}%
+{% endif %}
+
+! ── NETCONF / RESTCONF ────────────────────────────────────────────────────────
+{% if netconf_enabled | default(false) %}
+management api netconf
+   transport ssh default
+   no shutdown
+{% endif %}
+{% if restconf_enabled | default(false) %}
+management api restconf
+   transport https default
+   no shutdown
+{% endif %}
+
+! ── LLDP / CDP ───────────────────────────────────────────────────────────────
+{% if lldp_enabled | default(true) %}
+lldp run
+{% else %}
+no lldp run
+{% endif %}
+{% if cdp_enabled | default(false) %}
+cdp run
+{% else %}
+no cdp run
+{% endif %}

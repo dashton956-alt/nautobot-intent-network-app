@@ -1,0 +1,48 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Intent type: l3vni
+# Purpose:     Provision an L3VNI (IP VRF over VXLAN) — enables inter-subnet
+#              routing within the EVPN fabric for a specific tenant VRF.
+#              VNI auto-allocated from pool; transit VLAN auto-derived.
+# ─────────────────────────────────────────────────────────────────────────────
+
+id: acme-l3vni-payments-001           # MANDATORY
+type: l3vni                           # MANDATORY
+version: 1                            # MANDATORY
+tenant: acme-corp                     # MANDATORY
+description: "L3VNI PAYMENTS VRF — inter-subnet routing for PCI-DSS segment"  # MANDATORY
+change_ticket: CHG0030032             # MANDATORY (CHG + 7 digits)
+approved_by: "net.engineer"           # OPTIONAL here; MANDATORY when compliance enforced
+
+scope:
+  sites: [dc-east]                    # MANDATORY — all leaf switches that need this L3VNI
+
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  L3VNI PARAMETERS                                                      ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+vrf_name: PAYMENTS                    # MANDATORY — VRF name to associate with this L3VNI
+                                      #   Must match the VRF configured by a vrf_basic intent
+                                      #   or the MPLS L3VPN VRF if applicable
+
+# vni_id: null                        # OPTIONAL — explicit L3VNI value; auto-allocated if omitted
+                                      #   Auto-allocation prevents VNI collisions across the fabric
+
+# transit_vlan: null                  # OPTIONAL — VLAN used as L3VNI transit; auto-derived as
+                                      #   3900 + (vni % 100) if omitted
+
+anycast_gateway_mac: "0000.0000.0001" # OPTIONAL (default: 0000.0000.0001) — shared virtual MAC
+                                      #   for anycast gateway across all VTEPs; must be IDENTICAL
+                                      #   on every leaf switch for ARP suppression to work
+
+redistribute_connected: true          # OPTIONAL (default: true) — redistribute connected (SVI)
+                                      #   routes into BGP EVPN for the VRF
+
+# ── Deployment / Verification ─────────────────────────────────────────────────
+deployment:
+  strategy: canary                    # OPTIONAL — canary recommended for L3VNI (routing change)
+  save_config: true
+
+verification:
+  level: nuts                         # OPTIONAL — verifies VRF present, inter-subnet reachability
+  trigger: both
+  fail_action: rollback
