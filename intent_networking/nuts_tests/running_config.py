@@ -61,7 +61,17 @@ class TestNapalmRunningConfigContains:
     @pytest.mark.nuts("config_snippet")
     def test_running_config_contains(self, single_result: NutsResult, config_snippet: str) -> None:
         """Fail if config_snippet is not present in the device's running configuration."""
-        if single_result.result is None:
-            pytest.fail("No running-config result returned")
-        if config_snippet not in single_result.result:
-            pytest.fail(f"Snippet not found in running config: {config_snippet!r}")
+        running = single_result.result
+        if not running:
+            # None or empty — distinguishes a collection problem from a
+            # genuinely-absent snippet so the failure isn't misleading.
+            pytest.fail(
+                "No running-config retrieved from device (NAPALM get_config returned empty). "
+                "Check the device's network_driver/NAPALM driver and credentials."
+            )
+        if config_snippet not in running:
+            pytest.fail(
+                f"Snippet not found in running config: {config_snippet!r} "
+                f"(running-config is {len(running)} chars; verify the expected text matches the "
+                f"device's rendering exactly, including spacing)."
+            )
