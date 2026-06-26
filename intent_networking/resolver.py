@@ -1184,6 +1184,9 @@ def resolve_bgp_ebgp(intent) -> dict:
                 "timers_keepalive": intent_data.get("timers_keepalive", 60),
                 "timers_hold": intent_data.get("timers_hold", 180),
                 "multihop": intent_data.get("multihop"),
+                "update_source": intent_data.get("update_source", ""),
+                "next_hop_self": intent_data.get("next_hop_self", False),
+                "route_reflector_client": intent_data.get("route_reflector_client", False),
                 "password": intent_data.get("password", ""),
                 "local_preference": intent_data.get("local_preference"),
                 "send_community": intent_data.get("send_community", ""),
@@ -1224,6 +1227,7 @@ def resolve_bgp_ibgp(intent) -> dict:
                 "neighbor_description": intent_data.get("neighbor_description")
                 or intent_data.get("description", "iBGP-peer"),
                 "vrf_name": intent_data.get("vrf", ""),
+                "multihop": intent_data.get("multihop"),
                 "update_source": intent_data.get("update_source", "Loopback0"),
                 "next_hop_self": intent_data.get("next_hop_self", True),
                 "route_reflector_client": intent_data.get("route_reflector_client", False),
