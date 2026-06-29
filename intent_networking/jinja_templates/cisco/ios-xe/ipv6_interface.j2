@@ -2,17 +2,20 @@
 ! IPv6 Interface
 ! Intent: {{ intent_id }}
 !
+{% if ipv6_unicast_routing | default(true) %}
 ipv6 unicast-routing
 !
-interface {{ interface }}
- ipv6 address {{ ipv6_address }}
-{% if link_local | default("") %}
- ipv6 address {{ link_local }} link-local
 {% endif %}
-{% if ipv6_nd_ra_suppress | default(false) %}
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.ipv6_address is defined and iface.ipv6_address %}
+ ipv6 address {{ iface.ipv6_address }}
+{% endif %}
+{% if iface.link_local is defined and iface.link_local %}
+ ipv6 address {{ iface.link_local }} link-local
+{% endif %}
+{% if iface.ra_suppress is defined and iface.ra_suppress %}
  ipv6 nd ra suppress
 {% endif %}
-{% if description | default("") %}
- description {{ description }}
-{% endif %}
 !
+{% endfor %}

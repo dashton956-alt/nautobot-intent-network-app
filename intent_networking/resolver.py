@@ -72,6 +72,25 @@ def _trailing_int(value):
     return int(m.group(1)) if m else None
 
 
+def _network_wildcard(entry) -> dict:
+    """Normalise a network entry into {network, wildcard}.
+
+    Accepts a CIDR string or a {network, wildcard}/{network, prefix} dict and
+    returns the address + wildcard mask used by routing `network` statements.
+    """
+    if isinstance(entry, dict):
+        if entry.get("wildcard"):
+            return {"network": entry.get("network"), "wildcard": entry["wildcard"]}
+        cidr = entry.get("network") or entry.get("prefix") or entry.get("cidr")
+    else:
+        cidr = entry
+    try:
+        net = ipaddress.ip_network(str(cidr), strict=False)
+        return {"network": str(net.network_address), "wildcard": str(net.hostmask)}
+    except ValueError:
+        return {"network": str(cidr), "wildcard": "0.0.0.0"}  # noqa: S104 — wildcard mask, not a bind address
+
+
 def _access_port_names(device) -> list:
     """Return the names of access-mode interfaces on a device.
 
@@ -1397,11 +1416,15 @@ def resolve_eigrp(intent) -> dict:
     intent_data = intent.intent_data
     routing = intent_data.get("routing", {})  # nested form
     as_number = intent_data.get("as_number") or routing.get("as_number")
-    networks = intent_data.get("networks") or routing.get("networks", [])
-    if not as_number or not networks:
+    raw_networks = intent_data.get("networks") or routing.get("networks", [])
+    if not as_number or not raw_networks:
         raise ValueError(
             f"Intent {intent.intent_id}: 'as_number' and 'networks' (or under 'routing') required for eigrp."
         )
+
+    # Normalise each network into {network, wildcard} so both the flat (Arista)
+    # and named-mode (IOS-XE) templates can emit `network <addr> <wildcard>`.
+    networks = [_network_wildcard(n) for n in raw_networks]
 
     devices = _get_scope_devices(intent)
     primitives = []
@@ -1414,6 +1437,7 @@ def resolve_eigrp(intent) -> dict:
                 "primitive_type": "eigrp",
                 "device": device.name,
                 "as_number": as_number,
+                "asn": as_number,
                 "networks": networks,
                 "router_id": intent_data.get("router_id") or routing.get("router_id", ""),
                 "stub": intent_data.get("stub", routing.get("stub")),
@@ -1452,25 +1476,61 @@ def resolve_route_redistribution(intent) -> dict:
             f"Intent {intent.intent_id}: 'routing.redistribution' (or legacy 'source_protocol'/'dest_protocol') required."
         )
 
+    # The templates emit one router block per *target* protocol, with a `sources`
+    # list of the protocols being redistributed into it. Group accordingly.
+    groups = {}
+    for e in entries:
+        into = e.get("into")
+        g = groups.setdefault(
+            into,
+            {
+                "target_protocol": into,
+                "target_asn": e.get("as_number"),
+                "target_process_id": e.get("process_id"),
+                "vrf": e.get("vrf", ""),
+                "sources": [],
+            },
+        )
+        g["target_asn"] = g["target_asn"] or e.get("as_number")
+        g["target_process_id"] = g["target_process_id"] or e.get("process_id")
+        g["sources"].append(
+            {
+                "protocol": e.get("from"),
+                "process_id": e.get("source_process_id"),
+                "route_map": e.get("route_map", ""),
+                "metric": e.get("metric"),
+                "metric_type": e.get("metric_type"),
+                "subnets": e.get("subnets", True),
+            }
+        )
+
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
 
     for device in devices:
         affected.append(device.name)
-        for entry in entries:
+        for g in groups.values():
             primitives.append(
                 {
                     "primitive_type": "route_redistribution",
                     "device": device.name,
-                    "source_protocol": entry.get("from"),
-                    "dest_protocol": entry.get("into"),
-                    "process_id": entry.get("process_id"),
-                    "as_number": entry.get("as_number"),
-                    "metric": entry.get("metric"),
-                    "metric_type": entry.get("metric_type"),
-                    "route_map": entry.get("route_map", ""),
-                    "subnets": entry.get("subnets", True),
+                    # Names consumed by both the Arista (`protocol`/`asn`/`process_id`)
+                    # and IOS-XE (`target_*`) templates.
+                    "protocol": g["target_protocol"],
+                    "target_protocol": g["target_protocol"],
+                    "asn": g["target_asn"],
+                    "target_asn": g["target_asn"],
+                    "process_id": g["target_process_id"],
+                    "target_process_id": g["target_process_id"],
+                    "vrf": g["vrf"],
+                    "sources": g["sources"],
+                    # Backward-compatible flat keys (first source of the group).
+                    "source_protocol": g["sources"][0]["protocol"] if g["sources"] else None,
+                    "dest_protocol": g["target_protocol"],
+                    "as_number": g["target_asn"],
+                    "metric": g["sources"][0].get("metric") if g["sources"] else None,
+                    "metric_type": g["sources"][0].get("metric_type") if g["sources"] else None,
                     "intent_id": intent.intent_id,
                 }
             )
@@ -1479,11 +1539,12 @@ def resolve_route_redistribution(intent) -> dict:
 
 
 def _flatten_route_map_entry(entry: dict) -> dict:
-    """Flatten a nested route-map entry ({match:{}, set:{}}) into the flat
-    ``match_*`` / ``set_*`` keys the route_policy templates consume.
+    """Flatten a nested route-map entry into flat match/set keys.
 
-    Every key the templates reference is always present (None when unset) so the
-    ``{% if entry.x %}`` guards never trip StrictUndefined.
+    Converts ``{match:{}, set:{}}`` into the ``match_*`` / ``set_*`` keys the
+    route_policy templates consume. Every key the templates reference is always
+    present (None when unset) so the ``{% if entry.x %}`` guards never trip
+    StrictUndefined.
     """
     match = entry.get("match", {})
     setb = entry.get("set", {})
@@ -1566,6 +1627,7 @@ def resolve_prefix_list(intent) -> dict:
                     "primitive_type": "prefix_list",
                     "device": device.name,
                     "list_name": pl["name"],
+                    "prefix_list_name": pl["name"],
                     "address_family": intent_data.get("address_family", "ipv4"),
                     "entries": pl.get("entries", []),
                     "intent_id": intent.intent_id,
@@ -1725,25 +1787,34 @@ def resolve_ipv6_dual_stack(intent) -> dict:
     if not interfaces:
         raise ValueError(f"Intent {intent.intent_id}: 'interfaces' list required for ipv6_dual_stack.")
 
+    # The template renders one block per device: a global `ipv6 unicast-routing`
+    # toggle plus an `interfaces` list of {name, ipv6_address, link_local, ...}.
+    iface_list = [
+        {
+            "name": c["name"],
+            "ipv6_address": c.get("ipv6_address", ""),
+            "eui64": c.get("eui64", False),
+            "link_local": c.get("link_local", ""),
+            "ra_suppress": c.get("ra_suppress", False),
+        }
+        for c in interfaces
+    ]
+
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
 
     for device in devices:
         affected.append(device.name)
-        for iface_cfg in interfaces:
-            primitives.append(
-                {
-                    "primitive_type": "ipv6_interface",
-                    "device": device.name,
-                    "interface": iface_cfg["name"],
-                    "ipv6_address": iface_cfg.get("ipv6_address", ""),
-                    "ipv6_eui64": iface_cfg.get("eui64", False),
-                    "ipv6_link_local": iface_cfg.get("link_local", ""),
-                    "ra_suppress": iface_cfg.get("ra_suppress", False),
-                    "intent_id": intent.intent_id,
-                }
-            )
+        primitives.append(
+            {
+                "primitive_type": "ipv6_interface",
+                "device": device.name,
+                "ipv6_unicast_routing": intent_data.get("ipv6_unicast_routing", True),
+                "interfaces": iface_list,
+                "intent_id": intent.intent_id,
+            }
+        )
 
     return _empty_plan(affected, primitives)
 
@@ -2161,6 +2232,7 @@ def resolve_sr_mpls(intent) -> dict:
             {
                 "primitive_type": "sr_mpls",
                 "device": device.name,
+                "process_tag": intent_data.get("process_tag") or intent_data.get("isis_process") or "1",
                 "srgb_start": srgb_start,
                 "srgb_end": srgb_end,
                 "prefix_sid": intent_data.get("prefix_sids", {}).get(device.name),
@@ -2317,22 +2389,24 @@ def resolve_evpn_vxlan_fabric(intent) -> dict:
             }
         )
 
-        # VTEP NVE interface
+        # VTEP NVE interface. The template iterates l2_vni/l3_vni as lists of
+        # {vlan_id|vrf_name, vni} mappings, so wrap the allocated VNIs.
+        fabric = intent_data.get("fabric", {})
         primitives.append(
             {
                 "primitive_type": "vtep",
                 "device": device.name,
                 "nve_interface": "nve1",
                 "source_interface": "Loopback0",
-                "l2_vni": l2_vni,
-                "l3_vni": l3_vni,
+                "l2_vni": [{"vlan_id": intent_data.get("transit_vlan", 1), "vni": l2_vni}],
+                "l3_vni": [{"vrf_name": fabric.get("vrf_name", "OVERLAY"), "vni": l3_vni}],
+                "vni_map": [],
                 "replication_mode": intent_data.get("replication_mode", "ingress-replication"),
                 "intent_id": intent.intent_id,
             }
         )
 
         # BGP EVPN address family
-        fabric = intent_data.get("fabric", {})
         primitives.append(
             {
                 "primitive_type": "bgp_evpn_af",
@@ -2371,6 +2445,7 @@ def resolve_l2vni(intent) -> dict:
                 "device": device.name,
                 "vlan_id": vlan_id,
                 "vni": vni,
+                "vni_id": vni,
                 "vlan_name": intent_data.get("vlan_name", f"L2VNI-{vni}"),
                 "replication_mode": intent_data.get("replication_mode", "ingress-replication"),
                 "mcast_group": intent_data.get("mcast_group", ""),
@@ -2493,6 +2568,7 @@ def resolve_anycast_gateway(intent) -> dict:
                     "device": device.name,
                     "vlan_id": svi.get("vlan"),
                     "virtual_ip": svi.get("ip"),
+                    "ip_address": svi.get("ip"),
                     "vni": svi.get("vni"),
                     "subnet_mask": intent_data.get("subnet_mask", "255.255.255.0"),
                     "anycast_mac": anycast_mac,
@@ -2542,6 +2618,28 @@ def resolve_vtep(intent) -> dict:
 def resolve_evpn_multisite(intent) -> dict:
     """Resolve a multi-site EVPN intent."""
     intent_data = intent.intent_data
+    # Nested form: dc.evpn_multisite.{site_id, dci_link, gateway_ip, remote_sites:[...]}
+    ms = intent_data.get("dc", {}).get("evpn_multisite", {})
+    site_id = ms.get("site_id") or intent_data.get("site_id")
+    local_asn = (
+        ms.get("local_asn")
+        or intent_data.get("local_asn")
+        or intent_data.get("policy", {}).get("tenant_asn")
+        or _get_plugin_config("default_bgp_asn")
+    )
+
+    # Build the DCI eBGP-EVPN neighbour list from the remote-site entries.
+    dci_neighbors = list(intent_data.get("dci_neighbors", []) or intent_data.get("bgp_peers", []))
+    for rs in ms.get("remote_sites", []):
+        dci_neighbors.append(
+            {
+                "ip": rs.get("gateway_ip") or rs.get("ip"),
+                "remote_asn": rs.get("remote_asn") or rs.get("asn") or local_asn,
+                "update_source": rs.get("update_source", "Loopback0"),
+                "multihop": rs.get("multihop", 3),
+            }
+        )
+
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
@@ -2552,9 +2650,11 @@ def resolve_evpn_multisite(intent) -> dict:
             {
                 "primitive_type": "evpn_multisite",
                 "device": device.name,
-                "site_id": intent_data.get("site_id"),
-                "dci_interface": intent_data.get("dci_interface", ""),
-                "bgp_peers": intent_data.get("bgp_peers", []),
+                "site_id": site_id,
+                "local_asn": local_asn,
+                "dci_interface": ms.get("dci_link") or intent_data.get("dci_interface", ""),
+                "dci_neighbors": dci_neighbors,
+                "bgp_peers": dci_neighbors,
                 "anycast_gateway_mac": intent_data.get("anycast_gateway_mac", ""),
                 "intent_id": intent.intent_id,
             }
@@ -2607,20 +2707,29 @@ def resolve_dc_underlay(intent) -> dict:
                 }
             )
         else:
-            primitives.append(
-                {
-                    "primitive_type": "bgp_neighbor",
-                    "device": device.name,
-                    "local_asn": (
-                        intent_data.get("local_asn")
-                        or underlay_bgp.get("as_base")
-                        or _get_plugin_config("default_bgp_asn")
-                    ),
-                    "neighbors": intent_data.get("neighbors", []),
-                    "router_id": loopback_ip,
-                    "intent_id": intent.intent_id,
-                }
+            local_asn = (
+                intent_data.get("local_asn")
+                or underlay_bgp.get("as_base")
+                or _get_plugin_config("default_bgp_asn")
             )
+            spine_as = underlay_bgp.get("spine_as", local_asn)
+            # The bgp_neighbor template renders a single peer, so emit one primitive
+            # per explicit neighbor. BGP-unnumbered underlays carry no neighbor IPs
+            # (interface-based peering) and therefore emit no per-neighbor config here.
+            for nb in intent_data.get("neighbors", []):
+                primitives.append(
+                    {
+                        "primitive_type": "bgp_neighbor",
+                        "device": device.name,
+                        "local_asn": local_asn,
+                        "neighbor_ip": nb.get("ip") or nb.get("neighbor_ip"),
+                        "neighbor_asn": nb.get("asn") or nb.get("remote_asn") or spine_as,
+                        "neighbor_description": nb.get("description", ""),
+                        "router_id": loopback_ip,
+                        "bfd_enabled": underlay.get("bfd", False),
+                        "intent_id": intent.intent_id,
+                    }
+                )
 
     return _empty_plan(affected, primitives)
 
@@ -2789,19 +2898,41 @@ def resolve_ipsec_s2s(intent) -> dict:
     for device in devices:
         affected.append(device.name)
         tunnel_id = allocate_tunnel_id(device, intent, "ipsec")
+        encryption = intent_data.get("encryption") or tunnel.get("encryption", "aes-256-gcm")
+        integrity = intent_data.get("integrity") or tunnel.get("integrity", "sha256")
+        dh_group = intent_data.get("dh_group") or tunnel.get("dh_group", 14)
+        lifetime = intent_data.get("lifetime") or tunnel.get("lifetime_seconds", 86400)
+        psk = intent_data.get("psk", "")
         primitives.append(
             {
                 "primitive_type": "ipsec_tunnel",
                 "device": device.name,
                 "tunnel_id": tunnel_id,
                 "remote_peer": remote_peer,
+                # Names the templates consume directly.
+                "peer_ip": remote_peer,
+                "psk": psk,
+                "pre_shared_key": psk,
+                "acl_name": intent_data.get("acl_name") or f"ACL-IPSEC-{intent.intent_id}",
+                "interface": intent_data.get("interface") or f"Tunnel{tunnel_id}",
+                "isakmp_policy": {
+                    "encryption": encryption,
+                    "hash": integrity,
+                    "dh_group": dh_group,
+                    "lifetime": lifetime,
+                },
+                "transform_set": {
+                    "name": f"TS-{intent.intent_id}",
+                    "encryption": "esp-aes 256",
+                    "integrity": "esp-sha256-hmac",
+                },
+                "tunnel_interface": None,
                 "local_endpoint": intent_data.get("local_endpoint") or tunnel.get("local_endpoint", ""),
                 "ike_version": intent_data.get("ike_version") or tunnel.get("ike_version", 2),
-                "encryption": intent_data.get("encryption") or tunnel.get("encryption", "aes-256-gcm"),
-                "integrity": intent_data.get("integrity") or tunnel.get("integrity", "sha256"),
-                "dh_group": intent_data.get("dh_group") or tunnel.get("dh_group", 14),
-                "lifetime": intent_data.get("lifetime") or tunnel.get("lifetime_seconds", 86400),
-                "psk": intent_data.get("psk", ""),
+                "encryption": encryption,
+                "integrity": integrity,
+                "dh_group": dh_group,
+                "lifetime": lifetime,
                 "local_network": intent_data.get("local_network", ""),
                 "remote_network": intent_data.get("remote_network", ""),
                 "pfs_group": intent_data.get("pfs_group") or tunnel.get("pfs_group", 14),
@@ -2820,21 +2951,45 @@ def resolve_ipsec_ikev2(intent) -> dict:
     primitives = []
     affected = []
 
+    peers = intent_data.get("peers", [])
+    first_peer = peers[0] if peers else {}
+    encryption = intent_data.get("encryption", "aes-cbc-256")
+    integrity = intent_data.get("integrity", "sha256")
+    dh_group = intent_data.get("dh_group", 14)
+    proposal_name = intent_data.get("proposal_name", f"IKEV2-{intent.intent_id}")
+    policy_name = intent_data.get("policy_name") or "IKEv2-POLICY"
+    profile_name = intent_data.get("profile_name") or "IKEv2-PROFILE"
+    psk = first_peer.get("psk", intent_data.get("psk", ""))
+
     for device in devices:
         affected.append(device.name)
         primitives.append(
             {
                 "primitive_type": "ipsec_ikev2",
                 "device": device.name,
-                "proposal_name": intent_data.get("proposal_name", f"IKEV2-{intent.intent_id}"),
-                "encryption": intent_data.get("encryption", "aes-cbc-256"),
-                "integrity": intent_data.get("integrity", "sha256"),
-                "dh_group": intent_data.get("dh_group", 14),
+                "proposal_name": proposal_name,
+                "encryption": encryption,
+                "integrity": integrity,
+                "dh_group": dh_group,
                 "prf": intent_data.get("prf", "sha256"),
-                "policy_name": intent_data.get("policy_name", ""),
-                "keyring_name": intent_data.get("keyring_name", ""),
-                "profile_name": intent_data.get("profile_name", ""),
-                "peers": intent_data.get("peers", []),
+                "policy_name": policy_name,
+                "keyring_name": intent_data.get("keyring_name") or "KR-1",
+                "profile_name": profile_name,
+                "peers": peers,
+                # Names the Arista template consumes (dict blocks) and the shared
+                # peer/PSK fields both templates reference directly.
+                "peer_ip": first_peer.get("ip") or intent_data.get("peer_ip", ""),
+                "peer_name": first_peer.get("name", "REMOTE"),
+                "psk": psk,
+                "pre_shared_key": psk,
+                "proposal": {
+                    "name": proposal_name,
+                    "encryption": encryption,
+                    "integrity": integrity,
+                    "dh_group": dh_group,
+                },
+                "policy": {"name": policy_name},
+                "profile": {"name": profile_name},
                 "intent_id": intent.intent_id,
             }
         )
@@ -3135,6 +3290,7 @@ def resolve_wan_uplink(intent) -> dict:
                     "device": device.name,
                     "interface": uplink["interface"],
                     "ip_address": uplink.get("ip_address", "dhcp"),
+                    "description": uplink.get("description") or uplink.get("isp_name", ""),
                     "isp_name": uplink.get("isp_name", ""),
                     "bandwidth": uplink.get("bandwidth", ""),
                     "default_route": uplink.get("default_route", True),
@@ -4905,6 +5061,7 @@ def resolve_reachability_ip_sla(intent) -> dict:
                     "probe_type": probe.get("type", "icmp-echo"),
                     "target": probe["target"],
                     "frequency": probe.get("frequency", 5),
+                    "interval": probe.get("interval") or probe.get("frequency", 5),
                     "threshold": probe.get("threshold", 1000),
                     "timeout": probe.get("timeout", 2000),
                     "intent_id": intent.intent_id,
@@ -4958,6 +5115,18 @@ def resolve_service_lb_vip(intent) -> dict:
         raise ValueError(
             f"Intent {intent.intent_id}: 'vip_address' and 'members' (or 'pool_members') required for service_lb_vip."
         )
+
+    # Normalise members to the flat keys the template reads (address -> ip).
+    members = [
+        {
+            "ip": m.get("ip") or m.get("address"),
+            "address": m.get("address") or m.get("ip"),
+            "port": m.get("port", intent_data.get("vip_port", 443)),
+            "weight": m.get("weight", 1),
+            "enabled": m.get("enabled", True),
+        }
+        for m in members
+    ]
 
     devices = _get_scope_devices(intent)
     primitives = []

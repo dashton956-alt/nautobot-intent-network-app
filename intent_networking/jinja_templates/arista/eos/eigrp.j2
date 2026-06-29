@@ -7,7 +7,7 @@ router eigrp {{ asn }}
    router-id {{ router_id }}
 {% endif %}
 {% for net in networks | default([]) %}
-   network {{ net }}
+   network {{ net.network }} {{ net.wildcard }}
 {% endfor %}
 {% for iface in passive_interfaces | default([]) %}
    passive-interface {{ iface }}
