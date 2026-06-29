@@ -22,10 +22,10 @@ from intent_networking import resolver as R
 REPO = Path(__file__).resolve().parent.parent.parent
 INTENTS = REPO / "network_as_code_example" / "intents"
 TPL = REPO / "intent_networking" / "jinja_templates"
-# Platforms the render contract is guaranteed (and enforced) for. arista/eos is
-# the reference lab platform; cisco/ios-xe is the default. The remaining vendor
-# template sets (ios-xr, nxos, junos, aos-cx) are a tracked follow-up.
-PLATFORMS = ["arista/eos", "cisco/ios-xe"]
+# Platforms held to the StrictUndefined render contract. arista/eos is the
+# reference lab platform and cisco/ios-xe the default; the remaining vendor
+# template sets are enforced to the same contract.
+PLATFORMS = ["arista/eos", "cisco/ios-xe", "cisco/ios-xr", "cisco/nxos", "juniper/junos", "aruba/aos-cx"]
 
 # Primitive types handled by controller/cloud adapters (not Jinja-rendered).
 ADAPTER_PRIMITIVES = {

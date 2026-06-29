@@ -12,10 +12,10 @@ snmp-server system-contact "{{ contact }}"
 snmp-server community {{ community_item.name }} {{ community_item.permission | default("public") }}
 {% endfor %}
 {% for trap_host in trap_targets | default([]) %}
-snmp-server host {{ trap_host.ip }}{% if trap_host.version | default("") %} version {{ trap_host.version }}{% endif %} community {{ trap_host.community | default("public") }}
+snmp-server host {{ trap_host.ip | default(trap_host) }}{% if trap_host.version | default("") %} version {{ trap_host.version }}{% endif %} community {{ trap_host.community | default("public") }}
 {% if trap_host.traps | default([]) %}
 {% for trap in trap_host.traps %}
-snmp-server host {{ trap_host.ip }} trap {{ trap }}
+snmp-server host {{ trap_host.ip | default(trap_host) }} trap {{ trap }}
 {% endfor %}
 {% endif %}
 {% endfor %}

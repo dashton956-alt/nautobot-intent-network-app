@@ -159,7 +159,6 @@ mapping:
       - mgmt_netflow
       - mgmt_telemetry
       - mgmt_ssh
-      - mgmt_aaa
       - mgmt_aaa_device
       - mgmt_netconf
       - mgmt_motd
@@ -169,11 +168,13 @@ mapping:
       - mgmt_dhcp_server
       - mgmt_global_config
       # Reachability
+      - reachability        # legacy bare type (dispatched by RESOLVERS)
       - reachability_static
       - reachability_bgp_network
       - reachability_floating
       - reachability_ip_sla
       # Service
+      - service             # legacy bare type (dispatched by RESOLVERS)
       - service_lb_vip
       - service_dns
       - service_dhcp

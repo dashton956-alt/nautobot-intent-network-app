@@ -17,7 +17,7 @@ set snmp community {{ community_item.name }} clients {{ client }}
 {% endif %}
 {% endfor %}
 {% for trap_host in trap_targets | default([]) %}
-set snmp trap-group {{ trap_host.group | default("TRAPS") }} targets {{ trap_host.ip }}
+set snmp trap-group {{ trap_host.group | default("TRAPS") }} targets {{ trap_host.ip | default(trap_host) }}
 {% if trap_host.version | default("") %}
 set snmp trap-group {{ trap_host.group | default("TRAPS") }} version {{ trap_host.version }}
 {% endif %}

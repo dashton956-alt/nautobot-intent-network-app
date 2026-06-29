@@ -6,7 +6,7 @@
 set vlans {{ primary_vlan_name | default("PRIMARY") }} vlan-id {{ primary_vlan }}
 set vlans {{ primary_vlan_name | default("PRIMARY") }} private-vlan trunk
 {% for secondary in secondary_vlans | default([]) %}
-set vlans {{ secondary.name | default("SEC-" ~ loop.index) }} vlan-id {{ secondary.id }}
+set vlans {{ secondary.name | default("SEC-" ~ loop.index) }} vlan-id {{ secondary.id | default(secondary) }}
 set vlans {{ secondary.name | default("SEC-" ~ loop.index) }} private-vlan {{ secondary.type | default("isolated") }}
 set vlans {{ primary_vlan_name | default("PRIMARY") }} private-vlan {{ secondary.type | default("isolated") }} {{ secondary.name | default("SEC-" ~ loop.index) }}
 {% endfor %}

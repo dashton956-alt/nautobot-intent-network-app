@@ -3,12 +3,12 @@
 ! Intent: {{ intent_id }}
 !
 {% for server in servers | default([]) %}
-set system syslog host {{ server.ip }} any {{ server.severity | default("warning") }}
+set system syslog host {{ server.ip | default(server.host) | default(server) }} any {{ server.severity | default("warning") }}
 {% if server.port | default("") %}
-set system syslog host {{ server.ip }} port {{ server.port }}
+set system syslog host {{ server.ip | default(server.host) | default(server) }} port {{ server.port }}
 {% endif %}
 {% if server.source_address | default("") %}
-set system syslog host {{ server.ip }} source-address {{ server.source_address }}
+set system syslog host {{ server.ip | default(server.host) | default(server) }} source-address {{ server.source_address }}
 {% endif %}
 {% endfor %}
 {% if console_severity | default("") %}

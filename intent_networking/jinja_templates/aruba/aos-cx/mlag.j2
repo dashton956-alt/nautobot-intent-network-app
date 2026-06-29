@@ -5,7 +5,7 @@
 vsx
     inter-switch-link lag {{ isl_lag | default(256) }}
     role {{ role | default("primary") }}
-    keepalive peer {{ peer_ip }} source {{ source_ip | default("") }}
+    keepalive peer {{ peer_address }} source {{ source_ip | default("") }}
     system-mac {{ system_mac | default("") }}
 {% for bundle in bundles | default([]) %}
 interface lag {{ bundle.id }}

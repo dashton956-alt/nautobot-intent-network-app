@@ -4,9 +4,9 @@
 !
 qos queue-profile {{ profile_name | default("QOS-QUEUES") }}
 {% for queue in queues | default([]) %}
-    queue {{ queue.id }} weight {{ queue.weight | default(1) }}
+    queue {{ queue.id | default(loop.index0) }} weight {{ queue.weight | default(1) }}
 {% if queue.priority | default(false) %}
-    queue {{ queue.id }} strict
+    queue {{ queue.id | default(loop.index0) }} strict
 {% endif %}
 {% endfor %}
 {% for iface in interfaces | default([]) %}

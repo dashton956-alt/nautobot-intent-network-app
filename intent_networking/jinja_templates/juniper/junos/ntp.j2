@@ -3,9 +3,9 @@
 ! Intent: {{ intent_id }}
 !
 {% for server in servers | default([]) %}
-set system ntp server {{ server.ip }}
+set system ntp server {{ server.ip | default(server) }}
 {% if server.prefer | default(false) %}
-set system ntp server {{ server.ip }} prefer
+set system ntp server {{ server.ip | default(server) }} prefer
 {% endif %}
 {% endfor %}
 {% if source_address | default("") %}

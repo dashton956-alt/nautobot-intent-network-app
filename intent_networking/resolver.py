@@ -2480,6 +2480,7 @@ def resolve_l3vni(intent) -> dict:
                 "device": device.name,
                 "vrf_name": vrf_name,
                 "vni": vni,
+                "vni_id": vni,
                 "vlan_id": intent_data.get("transit_vlan") or l3.get("vlan_id") or (3900 + (vni % 100)),
                 "anycast_gateway_mac": intent_data.get("anycast_gateway_mac", "0000.0000.0001"),
                 "redistribute_connected": intent_data.get("redistribute_connected", True),

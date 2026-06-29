@@ -3,13 +3,13 @@
 ! Intent: {{ intent_id }}
 !
 {% for server in servers | default([]) %}
-logging {{ server.ip }}{% if server.severity | default("") %} severity {{ server.severity }}{% endif %}
+logging {{ server.ip | default(server.host) | default(server) }}{% if server.severity | default("") %} severity {{ server.severity }}{% endif %}
 
 {% if server.port | default("") %}
-logging {{ server.ip }} port {{ server.port }}
+logging {{ server.ip | default(server.host) | default(server) }} port {{ server.port }}
 {% endif %}
 {% if server.transport | default("") %}
-logging {{ server.ip }} transport {{ server.transport }}
+logging {{ server.ip | default(server.host) | default(server) }} transport {{ server.transport }}
 {% endif %}
 {% endfor %}
 {% if source_interface | default("") %}

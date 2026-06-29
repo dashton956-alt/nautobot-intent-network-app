@@ -19,22 +19,20 @@ interface {{ nve_interface | default('nve1') }}
   no shutdown
   host-reachability protocol bgp
   source-interface {{ source_interface | default('Loopback0') }}
-{% if l2_vni is defined and l2_vni %}
-  member vni {{ l2_vni }}
+{% for v in l2_vni | default([]) %}
+  member vni {{ v.vni }}
 {% if replication_mode | default('ingress-replication') == 'ingress-replication' %}
     ingress-replication protocol bgp
 {% else %}
-    mcast-group {{ mcast_group | default('239.0.0.1') }}
+    mcast-group {{ v.mcast_group | default('239.0.0.1') }}
 {% endif %}
-{% endif %}
-{% if l3_vni is defined and l3_vni %}
-  member vni {{ l3_vni }} associate-vrf
-{% endif %}
-{% if vni_map is defined %}
-{% for vni, vlan in vni_map.items() %}
-  member vni {{ vni }}
+{% endfor %}
+{% for v in l3_vni | default([]) %}
+  member vni {{ v.vni }} associate-vrf
+{% endfor %}
+{% for m in vni_map | default([]) %}
+  member vni {{ m.vni }}
 {% if replication_mode | default('ingress-replication') == 'ingress-replication' %}
     ingress-replication protocol bgp
 {% endif %}
 {% endfor %}
-{% endif %}

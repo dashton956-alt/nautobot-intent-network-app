@@ -2,22 +2,22 @@
 ! AAA Configuration
 ! Intent: {{ intent_id }}
 !
-{% for group in server_groups | default([]) %}
-aaa group server {{ group.type | default("tacacs") }} {{ group.name }}
-{% for server in group.servers | default([]) %}
- server {{ server }}
-{% endfor %}
-{% endfor %}
-!
-{% for auth in authentication | default([]) %}
-aaa authentication {{ auth.type }} {{ auth.list_name | default("default") }} group {{ auth.group }}{% if auth.local_fallback | default(false) %} local{% endif %}
+aaa authentication login default {{ auth_methods | default("local") }}
+{% if enable_auth | default("") %}
+aaa authentication enable default {{ enable_auth }}
+{% endif %}
+{% if authorization | default("") %}
+aaa authorization exec default {{ authorization }}
+{% endif %}
+{% if accounting | default("") %}
+aaa accounting exec default start-stop {{ accounting }}
+{% endif %}
+{% for server in tacacs_servers | default([]) %}
+tacacs-server host {{ server.ip | default(server) }}{% if server.key | default("") %} key {{ server.key }}{% endif %}
 
 {% endfor %}
-{% for authz in authorization | default([]) %}
-aaa authorization {{ authz.type }} {{ authz.list_name | default("default") }} group {{ authz.group }}{% if authz.local_fallback | default(false) %} local{% endif %}
+{% for server in radius_servers | default([]) %}
+radius-server host {{ server.ip | default(server) }}{% if server.key | default("") %} key {{ server.key }}{% endif %}
 
-{% endfor %}
-{% for acct in accounting | default([]) %}
-aaa accounting {{ acct.type }} {{ acct.list_name | default("default") }} start-stop group {{ acct.group }}
 {% endfor %}
 !

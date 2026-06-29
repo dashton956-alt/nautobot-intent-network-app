@@ -6,7 +6,7 @@ redundancy
  iccp
   group {{ iccp_group | default(1) }}
    member
-    neighbor {{ peer_ip }}
+    neighbor {{ peer_address }}
    backbone
 {% for iface in backbone_interfaces | default([]) %}
     interface {{ iface }}

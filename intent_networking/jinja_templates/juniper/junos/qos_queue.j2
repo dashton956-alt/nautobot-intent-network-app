@@ -3,9 +3,9 @@
 ! Intent: {{ intent_id }}
 !
 {% for queue in queues | default([]) %}
-set class-of-service forwarding-classes class {{ queue.name }} queue-num {{ queue.id }}
-set class-of-service schedulers {{ queue.scheduler | default(queue.name) }} transmit-rate percent {{ queue.bandwidth_percent | default(25) }}
+set class-of-service forwarding-classes class {{ queue.name | default(queue.class_name) }} queue-num {{ queue.id | default(loop.index0) }}
+set class-of-service schedulers {{ queue.scheduler | default(queue.name) | default(queue.class_name) }} transmit-rate percent {{ queue.bandwidth_percent | default(25) }}
 {% if queue.priority | default(false) %}
-set class-of-service schedulers {{ queue.scheduler | default(queue.name) }} priority strict-high
+set class-of-service schedulers {{ queue.scheduler | default(queue.name) | default(queue.class_name) }} priority strict-high
 {% endif %}
 {% endfor %}
