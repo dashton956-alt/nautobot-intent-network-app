@@ -6,13 +6,13 @@
 interface {{ group.interface }}
    vrrp {{ group.group_id }} priority {{ group.priority | default(100) }}
    vrrp {{ group.group_id }} ipv4 {{ group.virtual_ip }}
-{% if group.preempt %}
+{% if group.preempt is defined and group.preempt %}
    vrrp {{ group.group_id }} preempt
 {% endif %}
-{% if group.track_interface %}
+{% if group.track_interface is defined and group.track_interface %}
    vrrp {{ group.group_id }} tracked-object {{ group.track_interface }} decrement {{ group.track_decrement | default(10) }}
 {% endif %}
-{% if group.authentication %}
+{% if group.authentication is defined and group.authentication %}
    vrrp {{ group.group_id }} authentication {{ group.authentication }}
 {% endif %}
 !

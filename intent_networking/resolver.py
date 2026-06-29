@@ -20,6 +20,7 @@ Key design rules:
 
 import ipaddress
 import logging
+import re
 
 from django.conf import settings
 from django.db import transaction
@@ -58,6 +59,30 @@ def _empty_plan(affected_devices: list, primitives: list) -> dict:
         "allocated_rds": {},
         "allocated_rts": {},
     }
+
+
+def _trailing_int(value):
+    """Extract the trailing integer from a string like 'Vlan4094' or 'Port-Channel999'.
+
+    Returns None when there is no value or no trailing digits.
+    """
+    if value is None:
+        return None
+    m = re.search(r"(\d+)\s*$", str(value))
+    return int(m.group(1)) if m else None
+
+
+def _access_port_names(device) -> list:
+    """Return the names of access-mode interfaces on a device.
+
+    Used by 'apply_to_all_access_ports' intents (storm control, port security)
+    to fan out per-port config without an explicit interface list.
+    """
+    names = []
+    for iface in device.interfaces.all():
+        if getattr(iface, "mode", None) == "access":
+            names.append(iface.name)
+    return names
 
 
 def _get_scope_devices(intent, scope_key: str = "scope") -> list:
@@ -443,19 +468,22 @@ def resolve_connectivity(intent) -> dict:
     intent_data = intent.intent_data
     source = intent_data.get("source", {})
 
-    if not source:
+    if source:
+        # Legacy group/site MPLS-L3VPN form.
+        source_group = source.get("group")
+        source_sites = source.get("sites", [])
+        if not source_group or not source_sites:
+            raise ValueError(f"Intent {intent.intent_id} source is missing 'group' or 'sites'.")
+        devices = get_devices_for_group(source_group, source_sites, intent.tenant)
+    elif intent_data.get("connectivity") or intent_data.get("scope"):
+        # Newer nested form: scope.sites + a connectivity{} block. Resolve devices
+        # straight from scope rather than a service group.
+        devices = _get_scope_devices(intent)
+    else:
         raise ValueError(
-            f"Intent {intent.intent_id} has no 'source' defined. "
-            f"Connectivity intents require source.group and source.sites."
+            f"Intent {intent.intent_id} has no 'source' or 'connectivity'/'scope' defined. "
+            f"Connectivity intents require source.group+source.sites, or scope + a connectivity block."
         )
-
-    source_group = source.get("group")
-    source_sites = source.get("sites", [])
-
-    if not source_group or not source_sites:
-        raise ValueError(f"Intent {intent.intent_id} source is missing 'group' or 'sites'.")
-
-    devices = get_devices_for_group(source_group, source_sites, intent.tenant)
     vrf_name = generate_vrf_name(intent)
     rt_export, rt_import = allocate_route_target(intent)
     default_bgp_asn = _get_plugin_config("default_bgp_asn")
@@ -482,6 +510,7 @@ def resolve_connectivity(intent) -> dict:
                 "bgp_asn": default_bgp_asn,
                 "redistribute_connected": True,
                 "redistribute_static": False,
+                "intent_id": intent.intent_id,
             }
         )
 
@@ -501,6 +530,7 @@ def resolve_connectivity(intent) -> dict:
                 "route_map_out": f"RM-{vrf_name}-OUT",
                 "bfd_enabled": True,
                 "max_prefix": 500,
+                "intent_id": intent.intent_id,
             }
         )
 
@@ -724,8 +754,11 @@ def resolve_l2_trunk_port(intent) -> dict:
 def resolve_lag(intent) -> dict:
     """Resolve a LAG / port-channel intent."""
     intent_data = intent.intent_data
-    member_interfaces = intent_data.get("member_interfaces", [])
-    channel_id = intent_data.get("channel_id")
+    lag = intent_data.get("lag", {})
+    member_interfaces = [m["interface"] for m in lag.get("members", []) if m.get("interface")] or intent_data.get(
+        "member_interfaces", []
+    )
+    channel_id = lag.get("port_channel_id") or intent_data.get("channel_id")
     if not member_interfaces or not channel_id:
         raise ValueError(f"Intent {intent.intent_id}: 'member_interfaces' and 'channel_id' required for lag.")
 
@@ -741,11 +774,13 @@ def resolve_lag(intent) -> dict:
                 "device": device.name,
                 "channel_id": channel_id,
                 "member_interfaces": member_interfaces,
-                "lacp_mode": intent_data.get("lacp_mode", "active"),
-                "mode": intent_data.get("port_mode", "trunk"),
-                "allowed_vlans": intent_data.get("allowed_vlans", []),
-                "mtu": intent_data.get("mtu", 9216),
-                "description": intent_data.get("interface_description") or intent_data.get("description", ""),
+                "lacp_mode": lag.get("mode") or intent_data.get("lacp_mode", "active"),
+                "mode": lag.get("port_mode") or intent_data.get("port_mode", "trunk"),
+                "allowed_vlans": lag.get("allowed_vlans") or intent_data.get("allowed_vlans", []),
+                "mtu": lag.get("mtu") or intent_data.get("mtu", 9216),
+                "description": lag.get("description")
+                or intent_data.get("interface_description")
+                or intent_data.get("description", ""),
                 "intent_id": intent.intent_id,
             }
         )
@@ -757,14 +792,23 @@ def resolve_lag(intent) -> dict:
 def resolve_mlag(intent) -> dict:
     """Resolve an MLAG / MC-LAG intent. Dual-chassis LAG across two switches."""
     intent_data = intent.intent_data
+    mlag = intent_data.get("mlag", {})
+    peer_link = mlag.get("peer_link")
     peer_link_interfaces = intent_data.get("peer_link_interfaces", [])
-    domain_id = intent_data.get("domain_id")
+    if not peer_link_interfaces and peer_link:
+        peer_link_interfaces = [peer_link]
+    domain_id = mlag.get("domain_id") or intent_data.get("domain_id")
     if not peer_link_interfaces or not domain_id:
         raise ValueError(f"Intent {intent.intent_id}: 'peer_link_interfaces' and 'domain_id' required for mlag.")
 
     devices = _get_scope_devices(intent)
     if len(devices) < 2:
         raise ValueError(f"Intent {intent.intent_id}: MLAG requires at least 2 devices, found {len(devices)}.")
+
+    # Derive the peer-link SVI (e.g. "Vlan4094") and peer-link port-channel number
+    # (e.g. "Port-Channel999" -> 999) from the nested mlag block when present.
+    peer_link_vlan = intent_data.get("peer_link_vlan") or _trailing_int(mlag.get("local_interface"))
+    peer_link_channel = _trailing_int(peer_link)
 
     primitives = []
     affected = []
@@ -777,10 +821,15 @@ def resolve_mlag(intent) -> dict:
                 "device": device.name,
                 "domain_id": domain_id,
                 "peer_link_interfaces": peer_link_interfaces,
-                "peer_address": intent_data.get("peer_address", ""),
-                "keepalive_vlan": intent_data.get("keepalive_vlan"),
-                "peer_link_vlan": intent_data.get("peer_link_vlan"),
-                "description": intent_data.get("interface_description") or intent_data.get("description", ""),
+                "peer_address": mlag.get("peer_address") or intent_data.get("peer_address", ""),
+                "keepalive_vlan": mlag.get("keepalive_vlan") or intent_data.get("keepalive_vlan"),
+                "peer_link_vlan": peer_link_vlan,
+                "peer_link_channel": peer_link_channel,
+                "reload_delay": mlag.get("reload_delay"),
+                "reload_delay_non_mlag": mlag.get("reload_delay_non_mlag"),
+                "description": mlag.get("description")
+                or intent_data.get("interface_description")
+                or intent_data.get("description", ""),
                 "intent_id": intent.intent_id,
             }
         )
@@ -819,12 +868,15 @@ def resolve_stp_policy(intent) -> dict:
 def resolve_qinq(intent) -> dict:
     """Resolve a QinQ / double tagging intent."""
     intent_data = intent.intent_data
-    interface_name = intent_data.get("interface")
-    outer_vlan = intent_data.get("outer_vlan")
-    inner_vlans = intent_data.get("inner_vlans", [])
+    qinq = intent_data.get("qinq", {})
+    interface_name = qinq.get("interface") or intent_data.get("interface")
+    outer_vlan = qinq.get("outer_vlan") or intent_data.get("outer_vlan")
+    inner_vlans = qinq.get("customer_vlans") or intent_data.get("inner_vlans", [])
     if not interface_name or not outer_vlan:
         raise ValueError(f"Intent {intent.intent_id}: 'interface' and 'outer_vlan' required for qinq.")
 
+    description = qinq.get("description") or intent_data.get("description", "")
+    ethertype = qinq.get("dot1q_tunnel_ethertype") or intent_data.get("ethertype", "0x8100")
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
@@ -838,7 +890,8 @@ def resolve_qinq(intent) -> dict:
                 "interface": interface_name,
                 "outer_vlan": outer_vlan,
                 "inner_vlans": inner_vlans,
-                "ethertype": intent_data.get("ethertype", "0x8100"),
+                "ethertype": ethertype,
+                "interfaces": [{"name": interface_name, "outer_vlan": outer_vlan, "description": description}],
                 "intent_id": intent.intent_id,
             }
         )
@@ -850,9 +903,25 @@ def resolve_qinq(intent) -> dict:
 def resolve_pvlan(intent) -> dict:
     """Resolve a Private VLAN intent."""
     intent_data = intent.intent_data
-    primary_vlan = intent_data.get("primary_vlan")
+    pvlan = intent_data.get("pvlan", {})
+    primary_vlan = pvlan.get("primary_vlan") or intent_data.get("primary_vlan")
     if not primary_vlan:
         raise ValueError(f"Intent {intent.intent_id}: 'primary_vlan' required for pvlan.")
+
+    isolated_vlans = pvlan.get("isolated_vlans") or intent_data.get("isolated_vlans", [])
+    if not isolated_vlans and pvlan.get("isolated_vlan"):
+        isolated_vlans = [pvlan["isolated_vlan"]]
+    community_vlans = pvlan.get("community_vlans") or intent_data.get("community_vlans", [])
+    secondary_vlans = list(isolated_vlans) + list(community_vlans)
+
+    def _iface_names(ports):
+        return [p["interface"] for p in ports if isinstance(p, dict) and p.get("interface")]
+
+    promiscuous_ports = pvlan.get("promiscuous_ports") or intent_data.get("promiscuous_ports", [])
+    isolated_ports = pvlan.get("isolated_ports") or intent_data.get("isolated_ports", [])
+    community_ports = pvlan.get("community_ports", [])
+    promiscuous_interfaces = _iface_names(promiscuous_ports)
+    host_interfaces = _iface_names(isolated_ports) + _iface_names(community_ports)
 
     devices = _get_scope_devices(intent)
     primitives = []
@@ -865,10 +934,14 @@ def resolve_pvlan(intent) -> dict:
                 "primitive_type": "pvlan",
                 "device": device.name,
                 "primary_vlan": primary_vlan,
-                "isolated_vlans": intent_data.get("isolated_vlans", []),
-                "community_vlans": intent_data.get("community_vlans", []),
-                "promiscuous_ports": intent_data.get("promiscuous_ports", []),
-                "isolated_ports": intent_data.get("isolated_ports", []),
+                "isolated_vlans": isolated_vlans,
+                "community_vlans": community_vlans,
+                "secondary_vlans": secondary_vlans,
+                "secondary_type": "community" if community_vlans and not isolated_vlans else "isolated",
+                "promiscuous_ports": promiscuous_ports,
+                "isolated_ports": isolated_ports,
+                "promiscuous_interfaces": promiscuous_interfaces,
+                "host_interfaces": host_interfaces,
                 "intent_id": intent.intent_id,
             }
         )
@@ -880,28 +953,40 @@ def resolve_pvlan(intent) -> dict:
 def resolve_storm_control(intent) -> dict:
     """Resolve a storm control intent."""
     intent_data = intent.intent_data
-    interfaces = intent_data.get("interfaces", [])
-    if not interfaces and intent_data.get("interface"):
-        interfaces = [intent_data["interface"]]
-    if not interfaces:
+    sc = intent_data.get("storm_control", {})
+    explicit = sc.get("interfaces") or intent_data.get("interfaces", [])
+    if not explicit and (sc.get("interface") or intent_data.get("interface")):
+        explicit = [sc.get("interface") or intent_data["interface"]]
+    apply_all = sc.get("apply_to_all_access_ports", False)
+    if not explicit and not apply_all:
         raise ValueError(f"Intent {intent.intent_id}: 'interfaces' or 'interface' required for storm_control.")
+
+    broadcast = sc.get("broadcast", {})
+    multicast = sc.get("multicast", {})
+    unknown_unicast = sc.get("unknown_unicast", {})
+    broadcast_level = broadcast.get("level_pct", intent_data.get("broadcast_level", 80.0))
+    multicast_level = multicast.get("level_pct", intent_data.get("multicast_level", 80.0))
+    unicast_level = unknown_unicast.get("level_pct", intent_data.get("unicast_level", 80.0))
+    action = broadcast.get("action") or intent_data.get("action", "shutdown")
 
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
 
     for device in devices:
-        affected.append(device.name)
+        interfaces = explicit if explicit else _access_port_names(device)
+        if interfaces:
+            affected.append(device.name)
         for iface in interfaces:
             primitives.append(
                 {
                     "primitive_type": "storm_control",
                     "device": device.name,
                     "interface": iface,
-                    "broadcast_level": intent_data.get("broadcast_level", 80.0),
-                    "multicast_level": intent_data.get("multicast_level", 80.0),
-                    "unicast_level": intent_data.get("unicast_level", 80.0),
-                    "action": intent_data.get("action", "shutdown"),
+                    "broadcast_level": broadcast_level,
+                    "multicast_level": multicast_level,
+                    "unicast_level": unicast_level,
+                    "action": action,
                     "intent_id": intent.intent_id,
                 }
             )
@@ -913,28 +998,39 @@ def resolve_storm_control(intent) -> dict:
 def resolve_port_security(intent) -> dict:
     """Resolve a port security / MAC limit intent."""
     intent_data = intent.intent_data
-    interface_name = intent_data.get("interface")
-    if not interface_name:
+    ps = intent_data.get("port_security", {})
+    interface_name = ps.get("interface") or intent_data.get("interface")
+    apply_all = ps.get("apply_to_all_access_ports", False)
+    if not interface_name and not apply_all:
         raise ValueError(f"Intent {intent.intent_id}: 'interface' required for port_security.")
+
+    aging = ps.get("aging", {})
+    max_mac = ps.get("max_mac_addresses") or intent_data.get("max_mac", 1)
+    violation_action = ps.get("violation_action") or intent_data.get("violation_action", "restrict")
+    sticky = ps.get("sticky_mac", intent_data.get("sticky", False))
+    aging_time = aging.get("time_minutes", 0) if aging.get("enabled") else intent_data.get("aging_time", 0)
 
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
 
     for device in devices:
-        affected.append(device.name)
-        primitives.append(
-            {
-                "primitive_type": "port_security",
-                "device": device.name,
-                "interface": interface_name,
-                "max_mac": intent_data.get("max_mac", 1),
-                "violation_action": intent_data.get("violation_action", "restrict"),
-                "sticky": intent_data.get("sticky", False),
-                "aging_time": intent_data.get("aging_time", 0),
-                "intent_id": intent.intent_id,
-            }
-        )
+        interfaces = [interface_name] if interface_name else _access_port_names(device)
+        if interfaces:
+            affected.append(device.name)
+        for iface in interfaces:
+            primitives.append(
+                {
+                    "primitive_type": "port_security",
+                    "device": device.name,
+                    "interface": iface,
+                    "max_mac": max_mac,
+                    "violation_action": violation_action,
+                    "sticky": sticky,
+                    "aging_time": aging_time,
+                    "intent_id": intent.intent_id,
+                }
+            )
 
     return _empty_plan(affected, primitives)
 
@@ -1063,18 +1159,21 @@ def resolve_static_route(intent) -> dict:
     for device in devices:
         affected.append(device.name)
         for route in routes:
+            prefix = route.get("prefix") or route.get("destination")
+            if not prefix:
+                raise ValueError(f"Intent {intent.intent_id}: each static route requires 'prefix'/'destination'.")
             primitives.append(
                 {
                     "primitive_type": "static_route",
                     "device": device.name,
-                    "prefix": route["prefix"],
+                    "prefix": prefix,
                     "next_hop": route.get("next_hop", ""),
                     "exit_interface": route.get("exit_interface", ""),
                     "admin_distance": route.get("admin_distance", 1),
                     "vrf": route.get("vrf", ""),
                     "tag": route.get("tag"),
                     "track": route.get("track"),
-                    "name": route.get("name", ""),
+                    "name": route.get("name") or route.get("description", ""),
                     "intent_id": intent.intent_id,
                 }
             )
@@ -1379,14 +1478,52 @@ def resolve_route_redistribution(intent) -> dict:
     return _empty_plan(affected, primitives)
 
 
+def _flatten_route_map_entry(entry: dict) -> dict:
+    """Flatten a nested route-map entry ({match:{}, set:{}}) into the flat
+    ``match_*`` / ``set_*`` keys the route_policy templates consume.
+
+    Every key the templates reference is always present (None when unset) so the
+    ``{% if entry.x %}`` guards never trip StrictUndefined.
+    """
+    match = entry.get("match", {})
+    setb = entry.get("set", {})
+    seq = entry.get("sequence", entry.get("seq"))
+    local_pref = setb.get("local_preference", entry.get("set_local_preference"))
+    return {
+        "seq": seq,
+        "sequence": seq,
+        "action": entry.get("action", "permit"),
+        "match_prefix_list": match.get("prefix_list", entry.get("match_prefix_list")),
+        "match_community": match.get("community", entry.get("match_community")),
+        "match_as_path": match.get("as_path", entry.get("match_as_path")),
+        "set_local_preference": local_pref,
+        "set_local_pref": local_pref,
+        "set_med": setb.get("metric", entry.get("set_med")),
+        "set_metric_type": setb.get("metric_type", entry.get("set_metric_type")),
+        "set_community": setb.get("community", entry.get("set_community")),
+        "set_next_hop": setb.get("next_hop", entry.get("set_next_hop")),
+        "set_weight": setb.get("weight", entry.get("set_weight")),
+        "set_as_path_prepend": setb.get("as_path_prepend", entry.get("set_as_path_prepend")),
+    }
+
+
 @transaction.atomic
 def resolve_route_policy(intent) -> dict:
     """Resolve a route policy / route-map intent."""
     intent_data = intent.intent_data
     routing = intent_data.get("routing", {})
-    policy_name = intent_data.get("policy_name") or routing.get("policy_name")
-    entries = intent_data.get("entries") or routing.get("entries", [])
-    if not policy_name or not entries:
+
+    # Nested form: route_policy.route_maps = [{name, entries:[{sequence, action, match{}, set{}}]}]
+    route_maps = intent_data.get("route_policy", {}).get("route_maps", [])
+
+    # Legacy flat form: top-level policy_name + entries.
+    if not route_maps:
+        policy_name = intent_data.get("policy_name") or routing.get("policy_name")
+        entries = intent_data.get("entries") or routing.get("entries", [])
+        if policy_name and entries:
+            route_maps = [{"name": policy_name, "entries": entries}]
+
+    if not route_maps:
         raise ValueError(f"Intent {intent.intent_id}: 'policy_name' and 'entries' required for route_policy.")
 
     devices = _get_scope_devices(intent)
@@ -1395,15 +1532,16 @@ def resolve_route_policy(intent) -> dict:
 
     for device in devices:
         affected.append(device.name)
-        primitives.append(
-            {
-                "primitive_type": "route_policy",
-                "device": device.name,
-                "policy_name": policy_name,
-                "entries": entries,
-                "intent_id": intent.intent_id,
-            }
-        )
+        for rm in route_maps:
+            primitives.append(
+                {
+                    "primitive_type": "route_policy",
+                    "device": device.name,
+                    "policy_name": rm.get("name"),
+                    "entries": [_flatten_route_map_entry(e) for e in rm.get("entries", [])],
+                    "intent_id": intent.intent_id,
+                }
+            )
 
     return _empty_plan(affected, primitives)
 
@@ -1525,9 +1663,38 @@ def resolve_bfd(intent) -> dict:
 def resolve_pbr(intent) -> dict:
     """Resolve a Policy-Based Routing intent."""
     intent_data = intent.intent_data
+    pbr = intent_data.get("pbr", {})
+    policies = pbr.get("policies", [])
+
     policy_name = intent_data.get("policy_name")
-    if not policy_name:
+    if not policy_name and not policies:
         raise ValueError(f"Intent {intent.intent_id}: 'policy_name' required for pbr.")
+
+    # The templates emit a single route-map with one sequence per policy, plus a
+    # union of the interfaces it is applied to.
+    route_map_name = policy_name or pbr.get("name") or f"PBR-{intent.intent_id}"
+    apply_interfaces = list(intent_data.get("apply_interfaces", []))
+    if policies:
+        entries = []
+        for p in policies:
+            match = p.get("match", {})
+            setb = p.get("set", {})
+            entries.append(
+                {
+                    "match_acl": match.get("acl", p.get("match_acl")),
+                    "match_dscp": match.get("dscp", p.get("match_dscp")),
+                    "set_next_hop": setb.get("next_hop", p.get("set_next_hop")),
+                    "set_vrf": setb.get("vrf", p.get("set_vrf")),
+                    "set_interface": setb.get("interface", p.get("set_interface")),
+                }
+            )
+            for ap in p.get("apply_to", []):
+                if isinstance(ap, dict) and ap.get("interface"):
+                    apply_interfaces.append(ap["interface"])
+                elif isinstance(ap, str):
+                    apply_interfaces.append(ap)
+    else:
+        entries = intent_data.get("entries", [])
 
     devices = _get_scope_devices(intent)
     primitives = []
@@ -1539,9 +1706,10 @@ def resolve_pbr(intent) -> dict:
             {
                 "primitive_type": "pbr",
                 "device": device.name,
-                "policy_name": policy_name,
-                "entries": intent_data.get("entries", []),
-                "apply_interfaces": intent_data.get("apply_interfaces", []),
+                "policy_name": route_map_name,
+                "route_map_name": route_map_name,
+                "entries": entries,
+                "apply_interfaces": apply_interfaces,
                 "intent_id": intent.intent_id,
             }
         )
@@ -4489,7 +4657,21 @@ def resolve_mgmt_dhcp_server(intent) -> dict:
     primitives = []
     affected = []
 
-    pools = intent_data.get("pools", [])
+    # Normalise each pool so it always carries the flat keys the templates read:
+    # collapse the example's `dns_servers` list into a single `dns_server` string
+    # and ensure optional keys are present (None) for the StrictUndefined guards.
+    pools = []
+    for p in intent_data.get("pools", []):
+        np = dict(p)
+        dns = p.get("dns_servers") or ([p["dns_server"]] if p.get("dns_server") else [])
+        np["dns_server"] = " ".join(str(d) for d in dns) if dns else None
+        np.setdefault("default_router", None)
+        np.setdefault("domain_name", None)
+        np.setdefault("lease_time", None)
+        np.setdefault("ranges", p.get("ranges", []))
+        np.setdefault("excluded_addresses", p.get("excluded_addresses", []))
+        pools.append(np)
+
     for device in devices:
         affected.append(device.name)
         primitives.append(

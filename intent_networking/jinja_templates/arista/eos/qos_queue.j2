@@ -5,16 +5,16 @@
 policy-map {{ policy_map }}
 {% for q in queues | default([]) %}
    class {{ q.class_name }}
-{% if q.bandwidth_percent %}
+{% if q.bandwidth_percent is defined and q.bandwidth_percent %}
       bandwidth percent {{ q.bandwidth_percent }}
 {% endif %}
-{% if q.priority %}
+{% if q.priority is defined and q.priority %}
       priority
 {% endif %}
-{% if q.shape_rate %}
+{% if q.shape_rate is defined and q.shape_rate %}
       shape rate {{ q.shape_rate }}
 {% endif %}
-{% if q.queue_limit %}
+{% if q.queue_limit is defined and q.queue_limit %}
       queue-length {{ q.queue_limit }}
 {% endif %}
 {% endfor %}

@@ -17,10 +17,10 @@ router ospf {{ process_id }}
 {% for iface in interfaces | default([]) %}
 interface {{ iface.name }}
    ip ospf area {{ iface.area | default(area | default("0.0.0.0")) }}
-{% if iface.cost %}
+{% if iface.cost is defined and iface.cost %}
    ip ospf cost {{ iface.cost }}
 {% endif %}
-{% if iface.network_type %}
+{% if iface.network_type is defined and iface.network_type %}
    ip ospf network {{ iface.network_type }}
 {% endif %}
 {% if hello_interval %}

@@ -18,13 +18,13 @@ router isis {{ process_tag }}
 {% for iface in interfaces | default([]) %}
 interface {{ iface.name }}
    isis enable {{ process_tag }}
-{% if iface.metric %}
+{% if iface.metric is defined and iface.metric %}
    isis metric {{ iface.metric }}
 {% endif %}
-{% if iface.network_type %}
+{% if iface.network_type is defined and iface.network_type %}
    isis network {{ iface.network_type }}
 {% endif %}
-{% if iface.passive %}
+{% if iface.passive is defined and iface.passive %}
    isis passive
 {% endif %}
 !
