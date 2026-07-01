@@ -1457,8 +1457,6 @@ def _render_removal_configs(plan: ResolutionPlan, job_logger=None) -> dict:
 
 def _enqueue_job(job_class_name: str, *, requesting_user=None, **job_kwargs) -> None:
     """Look up a Job in the DB by class name and enqueue it via JobResult."""
-    from django.contrib.auth import get_user_model  # noqa: PLC0415
-
     try:
         job_model = JobModel.objects.get(
             module_name="intent_networking.jobs",
@@ -1488,9 +1486,7 @@ def _get_service_account():
     """
     from django.contrib.auth import get_user_model  # noqa: PLC0415
 
-    username = settings.PLUGINS_CONFIG.get("intent_networking", {}).get(
-        "intent_service_account", "intent-engine-svc"
-    )
+    username = settings.PLUGINS_CONFIG.get("intent_networking", {}).get("intent_service_account", "intent-engine-svc")
     User = get_user_model()
     try:
         user, created = User.objects.get_or_create(username=username, defaults={"is_active": True})

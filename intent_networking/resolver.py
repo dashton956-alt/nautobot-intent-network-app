@@ -2709,9 +2709,7 @@ def resolve_dc_underlay(intent) -> dict:
             )
         else:
             local_asn = (
-                intent_data.get("local_asn")
-                or underlay_bgp.get("as_base")
-                or _get_plugin_config("default_bgp_asn")
+                intent_data.get("local_asn") or underlay_bgp.get("as_base") or _get_plugin_config("default_bgp_asn")
             )
             spine_as = underlay_bgp.get("spine_as", local_asn)
             # The bgp_neighbor template renders a single peer, so emit one primitive

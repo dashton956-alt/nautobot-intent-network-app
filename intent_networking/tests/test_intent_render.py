@@ -29,11 +29,31 @@ PLATFORMS = ["arista/eos", "cisco/ios-xe", "cisco/ios-xr", "cisco/nxos", "junipe
 
 # Primitive types handled by controller/cloud adapters (not Jinja-rendered).
 ADAPTER_PRIMITIVES = {
-    "wireless_ssid", "wireless_vlan_map", "wireless_dot1x", "wireless_guest", "wireless_rf",
-    "wireless_qos", "wireless_band_steer", "wireless_roam", "wireless_segment", "wireless_mesh",
-    "wireless_flexconnect", "sdwan_overlay", "sdwan_app_policy", "sdwan_qos", "sdwan_dia",
-    "cloud_sdwan", "cloud_vpc_peer", "cloud_transit_gw", "cloud_direct_connect", "cloud_vpn_gw",
-    "cloud_security_group", "cloud_nat", "cloud_route_table", "hybrid_dns", "fw_rule",
+    "wireless_ssid",
+    "wireless_vlan_map",
+    "wireless_dot1x",
+    "wireless_guest",
+    "wireless_rf",
+    "wireless_qos",
+    "wireless_band_steer",
+    "wireless_roam",
+    "wireless_segment",
+    "wireless_mesh",
+    "wireless_flexconnect",
+    "sdwan_overlay",
+    "sdwan_app_policy",
+    "sdwan_qos",
+    "sdwan_dia",
+    "cloud_sdwan",
+    "cloud_vpc_peer",
+    "cloud_transit_gw",
+    "cloud_direct_connect",
+    "cloud_vpn_gw",
+    "cloud_security_group",
+    "cloud_nat",
+    "cloud_route_table",
+    "hybrid_dns",
+    "fw_rule",
 }
 # Intent types whose resolver needs live DB beyond the stub layer.
 SKIP_TYPES = {"dc_mlag"}
@@ -103,7 +123,8 @@ class IntentRenderSmokeTest(TestCase):
                 if "/examples/" in f:
                     continue
                 rel = f.split("/intents/")[1]
-                docs = [d for d in yaml.safe_load_all(open(f)) if d]
+                with open(f, encoding="utf-8") as fh:
+                    docs = [d for d in yaml.safe_load_all(fh) if d]
                 if len(docs) != 1:
                     continue
                 d = docs[0]
