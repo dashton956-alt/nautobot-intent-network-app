@@ -2,7 +2,7 @@
 ! ACL Configuration
 ! Intent: {{ intent_id }}
 !
-{% if address_family == "ipv6" %}
+{% if (address_family | default("ipv4")) == "ipv6" %}
 {% if acl_type == "standard" %}
 ipv6 access-list standard {{ acl_name }}
 {% for entry in entries %}

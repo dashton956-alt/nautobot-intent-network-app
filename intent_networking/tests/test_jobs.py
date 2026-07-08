@@ -178,7 +178,8 @@ class EnqueueJobTest(SimpleTestCase):
         mock_job_model = MagicMock()
         mock_jm.objects.get.return_value = mock_job_model
         mock_user = MagicMock()
-        mock_get_user.return_value.objects.filter.return_value.first.return_value = mock_user
+        # No requesting_user -> falls back to the auto-provisioned service account.
+        mock_get_user.return_value.objects.get_or_create.return_value = (mock_user, False)
 
         _enqueue_job("IntentResolutionJob", intent_id="test-001")
 
@@ -187,6 +188,22 @@ class EnqueueJobTest(SimpleTestCase):
             job_class_name="IntentResolutionJob",
         )
         mock_jr.enqueue_job.assert_called_once()
+
+    @patch("django.contrib.auth.get_user_model")
+    @patch("intent_networking.jobs.JobResult")
+    @patch("intent_networking.jobs.JobModel")
+    def test_enqueue_uses_requesting_user_without_service_account(self, mock_jm, mock_jr, mock_get_user):
+        """A supplied requesting_user is used directly (no service-account lookup)."""
+        from intent_networking.jobs import _enqueue_job
+
+        mock_jm.objects.get.return_value = MagicMock()
+        requester = MagicMock()
+
+        _enqueue_job("IntentVerificationJob", requesting_user=requester, intent_id="test-002")
+
+        mock_get_user.return_value.objects.get_or_create.assert_not_called()
+        args, _kwargs = mock_jr.enqueue_job.call_args
+        self.assertIs(args[1], requester)
 
     @patch("intent_networking.jobs.JobModel")
     def test_enqueue_handles_missing_job(self, mock_jm):

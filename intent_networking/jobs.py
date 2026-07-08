@@ -472,7 +472,12 @@ class IntentDeploymentJob(Job):
             dispatch_event(EVENT_INTENT_DEPLOYED, intent)
 
             # Trigger verification
-            _enqueue_job("IntentVerificationJob", intent_id=intent_id, triggered_by="deployment")
+            _enqueue_job(
+                "IntentVerificationJob",
+                requesting_user=getattr(self, "user", None),
+                intent_id=intent_id,
+                triggered_by="deployment",
+            )
         else:
             self.logger.failure("Deployment failed for %s: %s", intent_id, push_results["errors"])
             self._mark_failed(intent)
@@ -1452,8 +1457,6 @@ def _render_removal_configs(plan: ResolutionPlan, job_logger=None) -> dict:
 
 def _enqueue_job(job_class_name: str, *, requesting_user=None, **job_kwargs) -> None:
     """Look up a Job in the DB by class name and enqueue it via JobResult."""
-    from django.contrib.auth import get_user_model  # noqa: PLC0415
-
     try:
         job_model = JobModel.objects.get(
             module_name="intent_networking.jobs",
@@ -1463,16 +1466,38 @@ def _enqueue_job(job_class_name: str, *, requesting_user=None, **job_kwargs) -> 
         logger.error("Job '%s' not found in Nautobot registry — cannot enqueue.", job_class_name)
         return
 
-    User = get_user_model()
-    user = requesting_user
-    if user is None:
-        # Dedicated service account — never grab an arbitrary superuser
-        user = User.objects.filter(username="intent-engine-svc").first()
+    # Use the requesting user when known; otherwise a dedicated, login-disabled
+    # service account (auto-provisioned) — never an arbitrary superuser.
+    user = requesting_user or _get_service_account()
     if not user:
-        logger.error("No service account 'intent-engine-svc' found — cannot enqueue '%s'.", job_class_name)
+        logger.error("Could not resolve a service account — cannot enqueue '%s'.", job_class_name)
         return
 
     JobResult.enqueue_job(job_model, user, **job_kwargs)
+
+
+def _get_service_account():
+    """Return (creating if needed) the dedicated intent service account.
+
+    The account is login-disabled (unusable password, no API token) and is used
+    only as the actor for system-initiated chained jobs when no requesting user
+    is available. The username is configurable via the
+    ``intent_service_account`` plugin setting.
+    """
+    from django.contrib.auth import get_user_model  # noqa: PLC0415
+
+    username = settings.PLUGINS_CONFIG.get("intent_networking", {}).get("intent_service_account", "intent-engine-svc")
+    User = get_user_model()
+    try:
+        user, created = User.objects.get_or_create(username=username, defaults={"is_active": True})
+        if created:
+            user.set_unusable_password()
+            user.save()
+            logger.info("Created intent service account '%s' for system-initiated jobs.", username)
+        return user
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Could not get/create service account '%s': %s", username, exc)
+        return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────

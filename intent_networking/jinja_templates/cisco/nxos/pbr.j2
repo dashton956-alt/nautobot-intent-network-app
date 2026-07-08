@@ -5,7 +5,7 @@
 feature pbr
 !
 {% for entry in entries | default([]) %}
-route-map {{ policy_name }} {{ entry.action }} {{ entry.seq }}
+route-map {{ policy_name }} {{ entry.action | default("permit") }} {{ entry.seq | default(loop.index * 10) }}
 {% if entry.match_acl | default("") %}
   match ip address {{ entry.match_acl }}
 {% endif %}

@@ -473,7 +473,8 @@ class NestedBlockResolverTest(TestCase):
         intent = self._intent({"routing": {"as_number": 100, "networks": ["10.0.0.0/8"], "router_id": "10.255.0.1"}})
         prim = resolve_eigrp(intent)["primitives"][0]
         self.assertEqual(prim["as_number"], 100)
-        self.assertEqual(prim["networks"], ["10.0.0.0/8"])
+        # Networks are normalised to {network, wildcard} for the EIGRP templates.
+        self.assertEqual(prim["networks"], [{"network": "10.0.0.0", "wildcard": "0.255.255.255"}])
         self.assertEqual(prim["router_id"], "10.255.0.1")
 
     def test_ospfv3_reads_routing_block_areas(self):

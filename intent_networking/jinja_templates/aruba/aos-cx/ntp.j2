@@ -3,7 +3,7 @@
 ! Intent: {{ intent_id }}
 !
 {% for server in servers | default([]) %}
-ntp server {{ server.ip }}{% if server.prefer | default(false) %} prefer{% endif %}
+ntp server {{ server.ip | default(server) }}{% if server.prefer | default(false) %} prefer{% endif %}
 
 {% endfor %}
 {% if source_interface | default("") %}

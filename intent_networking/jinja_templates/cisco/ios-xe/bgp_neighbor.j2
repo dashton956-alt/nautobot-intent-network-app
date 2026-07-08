@@ -1,9 +1,15 @@
-! BGP Neighbor — {{ neighbor_description }}
+! BGP Neighbor — {{ neighbor_description | default(neighbor_ip) }}
 router bgp {{ local_asn }}
  !
+{% if vrf_name %}
  address-family ipv4 vrf {{ vrf_name }}
+{% else %}
+ address-family ipv4
+{% endif %}
   neighbor {{ neighbor_ip }} remote-as {{ neighbor_asn }}
+{% if neighbor_description %}
   neighbor {{ neighbor_ip }} description {{ neighbor_description }}
+{% endif %}
   neighbor {{ neighbor_ip }} activate
 {% if route_map_in %}
   neighbor {{ neighbor_ip }} route-map {{ route_map_in }} in

@@ -2,9 +2,13 @@
 ! IPv6 Interface
 ! Intent: {{ intent_id }}
 !
-interface {{ interface }}
-    ipv6 address {{ ipv6_address }}
-{% if description | default("") %}
-    description {{ description }}
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.ipv6_address is defined and iface.ipv6_address %}
+    ipv6 address {{ iface.ipv6_address }}
+{% endif %}
+{% if iface.link_local is defined and iface.link_local %}
+    ipv6 address {{ iface.link_local }} link-local
 {% endif %}
     no shutdown
+{% endfor %}

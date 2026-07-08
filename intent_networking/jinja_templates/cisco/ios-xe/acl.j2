@@ -1,15 +1,15 @@
 ! ACL — {{ acl_name }}
-! Intent: {{ intent_id }} v{{ intent_version }}
+! Intent: {{ intent_id }} v{{ intent_version | default(1) }}
 ip access-list {{ acl_type }} {{ acl_name }}
 {% for entry in entries %}
-{% if entry.remark %}
+{% if entry.remark is defined and entry.remark %}
  remark {{ entry.remark }}
 {% endif %}
 {% if entry.port is defined and entry.port %}
- {{ entry.action }} {{ entry.protocol }} {{ entry.source }} {{ entry.destination }} eq {{ entry.port }}{% if entry.log %} log{% endif %}
+ {{ entry.action }} {{ entry.protocol }} {{ entry.source }} {{ entry.destination }} eq {{ entry.port }}{% if entry.log is defined and entry.log %} log{% endif %}
 
 {% else %}
- {{ entry.action }} {{ entry.protocol }} {{ entry.source }} {{ entry.destination }}{% if entry.log %} log{% endif %}
+ {{ entry.action }} {{ entry.protocol }} {{ entry.source }} {{ entry.destination }}{% if entry.log is defined and entry.log %} log{% endif %}
 
 {% endif %}
 {% endfor %}

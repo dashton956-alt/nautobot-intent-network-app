@@ -16,8 +16,10 @@ crypto isakmp policy {{ isakmp_priority | default(10) }}
 crypto isakmp key "{{ psk }}" address {{ peer_ip }}
 !
 interface tunnel {{ tunnel_id | default(1) }}
+{% if tunnel_ip is defined and tunnel_ip %}
     ip address {{ tunnel_ip }}/{{ prefix_len | default(30) }}
-    tunnel source {{ tunnel_source }}
+{% endif %}
+    tunnel source {{ tunnel_source | default(local_endpoint) | default("") }}
     tunnel destination {{ peer_ip }}
     tunnel mode ipsec ipv4
     tunnel protection ipsec profile {{ profile_name | default("IPSEC-PROF") }}

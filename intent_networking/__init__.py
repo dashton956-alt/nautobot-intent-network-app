@@ -41,6 +41,10 @@ class IntentNetworkingConfig(NautobotAppConfig):
         # Reconciliation
         "reconciliation_interval_hours": 1,
         "auto_remediation_enabled": True,
+        # Service account used as the actor for system-initiated chained jobs
+        # (verify-after-deploy, reconciliation remediation, rollback) when no
+        # requesting user is available. Auto-created (login-disabled) on demand.
+        "intent_service_account": "intent-engine-svc",
         # Notifications — Slack (legacy)
         "slack_webhook_url": None,
         "github_api_url": None,

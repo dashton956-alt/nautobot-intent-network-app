@@ -1,68 +1,71 @@
 {# bgp_neighbor.j2 — arista-eos #}
+{# Optional knobs are guarded with `is defined` so the template renders for every
+   bgp_neighbor producer (connectivity, dc underlay, eBGP, iBGP) regardless of
+   which optional fields that resolver emits. #}
 ! BGP Neighbor — {{ neighbor_description | default(neighbor_ip) }}
-! Intent: {{ intent_id }}
+! Intent: {{ intent_id | default("n/a") }}
 !
 router bgp {{ local_asn }}
-{% if vrf_name %}
+{% if vrf_name is defined and vrf_name %}
    vrf {{ vrf_name }}
 {% endif %}
    neighbor {{ neighbor_ip }} remote-as {{ neighbor_asn }}
-{% if neighbor_description %}
+{% if neighbor_description is defined and neighbor_description %}
    neighbor {{ neighbor_ip }} description {{ neighbor_description }}
 {% endif %}
-{% if update_source %}
+{% if update_source is defined and update_source %}
    neighbor {{ neighbor_ip }} update-source {{ update_source }}
 {% endif %}
-{% if multihop %}
+{% if multihop is defined and multihop %}
    neighbor {{ neighbor_ip }} ebgp-multihop {{ multihop }}
 {% endif %}
-{% if password %}
+{% if password is defined and password %}
    neighbor {{ neighbor_ip }} password {{ password }}
 {% endif %}
-{% if bfd_enabled %}
+{% if bfd_enabled is defined and bfd_enabled %}
    neighbor {{ neighbor_ip }} bfd
 {% endif %}
-{% if timers_keepalive and timers_hold %}
+{% if (timers_keepalive is defined and timers_keepalive) and (timers_hold is defined and timers_hold) %}
    neighbor {{ neighbor_ip }} timers {{ timers_keepalive }} {{ timers_hold }}
 {% endif %}
-{% if next_hop_self %}
+{% if next_hop_self is defined and next_hop_self %}
    neighbor {{ neighbor_ip }} next-hop-self
 {% endif %}
-{% if route_reflector_client %}
+{% if route_reflector_client is defined and route_reflector_client %}
    neighbor {{ neighbor_ip }} route-reflector-client
 {% endif %}
-{% if send_community %}
+{% if send_community is defined and send_community %}
    neighbor {{ neighbor_ip }} send-community {{ send_community }}
 {% endif %}
-{% if max_prefix %}
+{% if max_prefix is defined and max_prefix %}
    neighbor {{ neighbor_ip }} maximum-routes {{ max_prefix }}
 {% endif %}
-{% if route_map_in %}
+{% if route_map_in is defined and route_map_in %}
    neighbor {{ neighbor_ip }} route-map {{ route_map_in }} in
 {% endif %}
-{% if route_map_out %}
+{% if route_map_out is defined and route_map_out %}
    neighbor {{ neighbor_ip }} route-map {{ route_map_out }} out
 {% endif %}
-{% if prefix_list_in %}
+{% if prefix_list_in is defined and prefix_list_in %}
    neighbor {{ neighbor_ip }} prefix-list {{ prefix_list_in }} in
 {% endif %}
-{% if prefix_list_out %}
+{% if prefix_list_out is defined and prefix_list_out %}
    neighbor {{ neighbor_ip }} prefix-list {{ prefix_list_out }} out
 {% endif %}
-{% if default_originate %}
+{% if default_originate is defined and default_originate %}
    neighbor {{ neighbor_ip }} default-originate
 {% endif %}
-{% if allowas_in %}
+{% if allowas_in is defined and allowas_in %}
    neighbor {{ neighbor_ip }} allowas-in {{ allowas_in }}
 {% endif %}
    neighbor {{ neighbor_ip }} activate
-{% if maximum_paths %}
+{% if maximum_paths is defined and maximum_paths %}
    maximum-paths {{ maximum_paths }}
 {% endif %}
-{% if local_preference %}
+{% if local_preference is defined and local_preference %}
    bgp default local-preference {{ local_preference }}
 {% endif %}
-{% if graceful_restart %}
+{% if graceful_restart is defined and graceful_restart %}
    graceful-restart
 {% endif %}
 !
