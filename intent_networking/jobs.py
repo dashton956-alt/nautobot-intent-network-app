@@ -57,6 +57,14 @@ from intent_networking.resolver import resolve_intent
 logger = logging.getLogger(__name__)
 
 
+class ConfigRenderError(Exception):
+    """One or more primitives failed to render into device config.
+
+    Raised by _render_all_configs so deployments hard-fail instead of pushing
+    partial config when a template errors or is missing for a device's platform.
+    """
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Sync From Git
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1245,6 +1253,12 @@ def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
 
     Returns:
         dict: device_name → rendered config string.
+
+    Raises:
+        ConfigRenderError: if any mapped primitive fails to render (template
+            error or template missing for the device's platform). All failures
+            are collected first so the message lists every broken primitive —
+            partial config is never returned.
     """
     from jinja2 import Environment, FileSystemLoader, StrictUndefined  # noqa: PLC0415
 
@@ -1367,6 +1381,7 @@ def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
     }
 
     rendered = {}
+    render_errors = []
     for device in plan.affected_devices.all():
         platform = _platform_slug(device)
         platform_dir = platform_map.get(platform, "cisco/ios-xe")
@@ -1389,10 +1404,20 @@ def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
                     tpl = env.get_template(tname)
                     sections.append(tpl.render(**primitive))
                 except Exception as exc:
+                    # Hard failure: pushing partial config while only warning is
+                    # a silent failure — collect and raise after the full sweep.
+                    msg = f"{device.name} [{platform_dir}/{tname}] ({ptype}): {type(exc).__name__}: {exc}"
+                    render_errors.append(msg)
                     if job_logger:
                         job_logger.warning("Template render error for %s: %s", ptype, exc)
 
         rendered[device.name] = "\n".join(sections)
+
+    if render_errors:
+        raise ConfigRenderError(
+            f"{len(render_errors)} primitive(s) failed to render — refusing to produce partial config:\n"
+            + "\n".join(render_errors)
+        )
 
     return rendered
 
@@ -1444,8 +1469,16 @@ def _render_removal_configs(plan: ResolutionPlan, job_logger=None) -> dict:
                 tpl = env.get_template(removal_tname)
                 sections.append(tpl.render(**primitive))
             except TemplateNotFound:
-                # No removal template for this primitive type — skip silently
-                pass
+                # No removal template for this primitive type on this platform.
+                # Skipping is tolerated (not every type needs explicit removal),
+                # but warn so operators know config may be left on the device.
+                msg = (
+                    f"No removal template {platform_dir}/{removal_tname} for {device.name} — "
+                    f"'{ptype}' config from the previous version may remain on the device."
+                )
+                logger.warning(msg)
+                if job_logger:
+                    job_logger.warning(msg)
             except Exception as exc:
                 if job_logger:
                     job_logger.warning("Removal template render error for %s/%s: %s", device.name, ptype, exc)

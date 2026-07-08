@@ -282,3 +282,84 @@ class IntentDependencyDeploymentTest(SimpleTestCase):
 
         job.logger.failure.assert_called_once()
         self.assertIn("child-001", job.logger.failure.call_args[0][2])
+
+
+class RenderAllConfigsTest(SimpleTestCase):
+    """_render_all_configs must hard-fail on render errors, never emit partial config."""
+
+    @staticmethod
+    def _plan(primitives, driver="arista_eos", platform_name="arista-eos"):
+        device = SimpleNamespace(
+            name="leaf-01",
+            platform=SimpleNamespace(name=platform_name, network_driver=driver),
+        )
+        return SimpleNamespace(
+            affected_devices=SimpleNamespace(all=lambda: [device]),
+            primitives=primitives,
+        )
+
+    def test_complete_primitive_renders(self):
+        from intent_networking.jobs import _render_all_configs
+
+        plan = self._plan(
+            [
+                {
+                    "primitive_type": "static_route",
+                    "device": "leaf-01",
+                    "prefix": "10.0.0.0/8",
+                    "next_hop": "192.0.2.1",
+                    "exit_interface": "",
+                    "admin_distance": 1,
+                    "vrf": "",
+                    "tag": None,
+                    "track": None,
+                    "name": "",
+                    "intent_id": "t-001",
+                }
+            ]
+        )
+        rendered = _render_all_configs(plan)
+        self.assertIn("ip route 10.0.0.0/8 192.0.2.1", rendered["leaf-01"])
+
+    def test_render_error_raises_instead_of_partial_config(self):
+        from intent_networking.jobs import ConfigRenderError, _render_all_configs
+
+        # static_route missing every field the template references → UndefinedError
+        plan = self._plan([{"primitive_type": "static_route", "device": "leaf-01", "intent_id": "t-002"}])
+        job_logger = MagicMock()
+        with self.assertRaises(ConfigRenderError) as ctx:
+            _render_all_configs(plan, job_logger)
+        self.assertIn("leaf-01", str(ctx.exception))
+        self.assertIn("static_route", str(ctx.exception))
+        job_logger.warning.assert_called()
+
+    def test_unmapped_primitive_is_skipped_not_fatal(self):
+        from intent_networking.jobs import _render_all_configs
+
+        # Adapter-routed types have no template mapping and must not raise.
+        plan = self._plan([{"primitive_type": "wireless_ssid", "device": "leaf-01"}])
+        rendered = _render_all_configs(plan)
+        self.assertEqual(rendered["leaf-01"], "")
+
+
+class RenderRemovalConfigsTest(SimpleTestCase):
+    """_render_removal_configs must warn (not silently skip) on missing removal templates."""
+
+    def test_missing_removal_template_logs_warning(self):
+        from intent_networking.jobs import _render_removal_configs
+
+        # eigrp has no removal template on cisco/ios-xe — must warn, not raise.
+        device = SimpleNamespace(
+            name="rtr-01",
+            platform=SimpleNamespace(name="cisco-ios-xe", network_driver="cisco_xe"),
+        )
+        plan = SimpleNamespace(
+            affected_devices=SimpleNamespace(all=lambda: [device]),
+            primitives=[{"primitive_type": "eigrp", "device": "rtr-01", "asn": 100}],
+        )
+        job_logger = MagicMock()
+        rendered = _render_removal_configs(plan, job_logger)
+        self.assertEqual(rendered["rtr-01"], "")
+        warning_text = " ".join(str(c) for c in job_logger.warning.call_args_list)
+        self.assertIn("No removal template", warning_text)
+        self.assertIn("eigrp", warning_text)
