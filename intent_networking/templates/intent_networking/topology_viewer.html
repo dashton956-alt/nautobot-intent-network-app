@@ -33,7 +33,9 @@
             background:var(--bg);
             color:var(--text);
             font-family:'Sora','Segoe UI',sans-serif;
-            z-index:10;
+            /* Sit above Nautobot's fixed navbar (~1030) so the full-screen
+               viewer isn't clipped under the toolbar. */
+            z-index:1100;
         }
 
 /* ── Top bar ─────────────────────────────────────────────────────────────── */
@@ -600,6 +602,11 @@
             <div class="tb-sep"></div>
             <button class="tb-btn active" id="btn-physics" onclick="togglePhysics()">⚡ Physics</button>
             <button class="tb-btn" id="btn-cluster" onclick="toggleClusters()">⬡ Cluster Sites</button>
+            <div class="tb-sep"></div>
+            <button class="tb-btn active" id="btn-view-all"      onclick="setEdgeView('all')">All Links</button>
+            <button class="tb-btn"        id="btn-view-physical" onclick="setEdgeView('physical')">Physical</button>
+            <button class="tb-btn"        id="btn-view-logical"  onclick="setEdgeView('logical')">Logical</button>
+            <div class="tb-sep"></div>
             <button class="tb-btn" onclick="fitGraph()">⊕ Fit</button>
             <button class="tb-btn" onclick="refreshGraph()">↺ Refresh</button>
             <div id="tb-status">loading...</div>
@@ -733,6 +740,7 @@
         let selectedIntent  = null;
         let physicsEnabled  = true;
         let clustersActive  = false;
+        let edgeView        = 'all';   // 'all' | 'physical' | 'logical'
         let liveCache       = {};   // device_name → {data, ts}
         const LIVE_TTL      = 60000; // ms
 
@@ -782,6 +790,7 @@
                 graphData  = await res.json();
 
                 renderGraph(graphData);
+                applyEdgeView();   // keep the active Physical/Logical filter after reload
                 setStatus(`${graphData.device_count} devices · ${graphData.edge_count} links`);
                 document.getElementById('canvas-placeholder').style.display = 'none';
             } catch(e) {
@@ -1337,6 +1346,32 @@
             physicsEnabled = !physicsEnabled;
             if (network) network.setOptions({ physics: { enabled: physicsEnabled } });
             document.getElementById('btn-physics').classList.toggle('active', physicsEnabled);
+        }
+
+        // A "logical" edge is a plan-derived link with no physical cable
+        // (server tags it cable_type === 'logical' / cable_id === null).
+        function isLogicalEdge(edge) {
+            const m = (edge && edge.meta) || {};
+            return m.cable_type === 'logical' || m.cable_id == null;
+        }
+
+        // Show/hide edges according to the current Physical/Logical view.
+        function applyEdgeView() {
+            if (!edgesDS) return;
+            edgesDS.forEach(edge => {
+                let hidden = false;
+                if      (edgeView === 'physical') hidden = isLogicalEdge(edge);
+                else if (edgeView === 'logical')  hidden = !isLogicalEdge(edge);
+                edgesDS.update({ id: edge.id, hidden: hidden });
+            });
+        }
+
+        function setEdgeView(mode) {
+            edgeView = mode;
+            ['all', 'physical', 'logical'].forEach(m =>
+                document.getElementById('btn-view-' + m)
+                    .classList.toggle('active', m === mode));
+            applyEdgeView();
         }
 
         function toggleClusters() {
