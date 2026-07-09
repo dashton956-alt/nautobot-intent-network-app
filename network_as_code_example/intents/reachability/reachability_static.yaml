@@ -1,0 +1,36 @@
+# -----------------------------------------------------------------------------
+# Intent type: reachability_static
+# Purpose:     Static reachability for corporate summaries.
+# -----------------------------------------------------------------------------
+
+id: acme-reach-static-001
+type: reachability_static
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031034
+description: "Reachability static — corporate summaries via the DC edge"
+
+scope:
+  devices: [branch-lon-rtr-01]
+
+routes:
+  - prefix: "10.0.0.0/8"
+    next_hop: 10.60.0.1
+    admin_distance: 1
+  - prefix: "172.16.0.0/12"
+    next_hop: 10.60.0.1
+    admin_distance: 1
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

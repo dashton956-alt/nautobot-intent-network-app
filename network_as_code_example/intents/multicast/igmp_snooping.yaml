@@ -1,0 +1,33 @@
+# -----------------------------------------------------------------------------
+# Intent type: igmp_snooping
+# Purpose:     IGMP snooping with querier on media VLANs.
+# -----------------------------------------------------------------------------
+
+id: acme-mc-igmp-snoop-001
+type: igmp_snooping
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031037
+description: "IGMP snooping — media VLANs with local querier"
+
+scope:
+  devices: [dc-east-access-sw-01]
+
+vlans: [120, 121]
+querier_enabled: true
+querier_address: 10.20.120.2
+fast_leave: true
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

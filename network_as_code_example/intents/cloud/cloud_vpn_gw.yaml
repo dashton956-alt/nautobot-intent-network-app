@@ -1,0 +1,38 @@
+# -----------------------------------------------------------------------------
+# Intent type: cloud_vpn_gw
+# Purpose:     Site-to-cloud IPsec VPN gateway.
+# -----------------------------------------------------------------------------
+
+id: acme-cloud-vpngw-001
+type: cloud_vpn_gw
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031017
+description: "Cloud VPN gateway — S2S tunnels from DC East to AWS"
+
+scope:
+  devices: [dc-east-edge-01]
+
+provider: aws
+vpn_gateway_id: vgw-0123abcd4567ef890
+customer_gateway_ip: 203.0.113.10
+tunnel_ips:
+  - 169.254.20.1
+  - 169.254.21.1
+ike_version: 2
+encryption: aes-256-gcm
+bgp_asn: 65000
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: cloud
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

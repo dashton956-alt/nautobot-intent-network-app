@@ -1,0 +1,37 @@
+# -----------------------------------------------------------------------------
+# Intent type: ssl_inspection
+# Purpose:     TLS inspection policy on the security appliance.
+# -----------------------------------------------------------------------------
+
+id: acme-sec-ssl-inspect-001
+type: ssl_inspection
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031054
+description: "SSL inspection — decrypt selected categories at the edge"
+
+scope:
+  devices: [dc-east-fw-01]
+
+policy_name: SSL-INSPECT-EDGE
+ca_cert: ACME-INSPECT-CA
+bypass_categories:
+  - financial
+  - healthcare
+decrypt_categories:
+  - social-media
+  - webmail
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

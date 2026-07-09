@@ -1,0 +1,34 @@
+# -----------------------------------------------------------------------------
+# Intent type: mvpn
+# Purpose:     Draft-Rosen MVPN with default MDT for VRF MEDIA.
+# -----------------------------------------------------------------------------
+
+id: acme-mc-mvpn-001
+type: mvpn
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031041
+description: "MVPN — default/data MDT groups for VRF MEDIA over the core"
+
+scope:
+  devices: [dc-east-core-01]
+
+vrf: MEDIA
+mdt_default_group: 239.192.10.1
+mdt_data_group: "239.192.20.0/24"
+mdt_data_threshold: 100
+pim_mode: sparse-mode
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

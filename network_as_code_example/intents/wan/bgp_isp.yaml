@@ -1,0 +1,35 @@
+# -----------------------------------------------------------------------------
+# Intent type: bgp_isp
+# Purpose:     eBGP to the upstream ISP (alias of bgp_ebgp).
+# -----------------------------------------------------------------------------
+
+id: acme-wan-bgp-isp-001
+type: bgp_isp
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031058
+description: "BGP to ISP — default-route peering with the upstream carrier"
+
+scope:
+  devices: [dc-east-edge-01]
+
+local_asn: 65000
+neighbor_ip: 203.0.113.1
+neighbor_asn: 3356
+neighbor_description: upstream-isp
+route_map_in: RM-FROM-ISP
+route_map_out: RM-TO-ISP
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

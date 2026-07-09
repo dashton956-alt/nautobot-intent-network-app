@@ -1,0 +1,38 @@
+# -----------------------------------------------------------------------------
+# Intent type: service_dns
+# Purpose:     Authoritative DNS records for the intranet zone.
+# -----------------------------------------------------------------------------
+
+id: acme-service-dns-001
+type: service_dns
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031025
+description: "Service DNS — A/CNAME records in acme-corp.internal"
+
+scope:
+  devices: [dc-east-dns-01]
+
+zone: acme-corp.internal
+ttl: 300
+records:
+  - name: intranet
+    type: A
+    value: 10.100.0.50
+  - name: wiki
+    type: CNAME
+    value: intranet.acme-corp.internal
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

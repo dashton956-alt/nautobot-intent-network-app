@@ -1,0 +1,33 @@
+# -----------------------------------------------------------------------------
+# Intent type: qos_trust
+# Purpose:     Trust DSCP on infrastructure uplinks.
+# -----------------------------------------------------------------------------
+
+id: acme-qos-trust-001
+type: qos_trust
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031032
+description: "QoS trust — trust DSCP on switch-to-switch links"
+
+scope:
+  devices: [dc-east-access-sw-01]
+
+trust_type: dscp
+apply_interfaces:
+  - Ethernet49
+  - Ethernet50
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

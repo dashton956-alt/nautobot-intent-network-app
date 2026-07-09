@@ -1,0 +1,33 @@
+# -----------------------------------------------------------------------------
+# Intent type: wireless_roam
+# Purpose:     Fast roaming (802.11r/OKC) for voice handsets.
+# -----------------------------------------------------------------------------
+
+id: acme-wl-roam-001
+type: wireless_roam
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031008
+description: "Wireless fast roam — 802.11r FT with OKC and PMK caching"
+
+scope:
+  devices: [wlc-dc-east-01]
+
+ft_enabled: true
+ft_over_ds: true
+pmk_cache: true
+okc_enabled: true
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: wlc
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

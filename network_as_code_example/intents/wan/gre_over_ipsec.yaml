@@ -1,0 +1,36 @@
+# -----------------------------------------------------------------------------
+# Intent type: gre_over_ipsec
+# Purpose:     GRE tunnel protected by an IPsec profile.
+# -----------------------------------------------------------------------------
+
+id: acme-wan-gre-ipsec-001
+type: gre_over_ipsec
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031061
+description: "GRE over IPsec — encrypted overlay carrying routing protocols"
+
+scope:
+  devices: [branch-lon-rtr-01]
+
+tunnel_source: 203.0.113.10
+tunnel_destination: 198.51.100.1
+tunnel_ip: "172.16.20.2/30"
+ike_version: 2
+encryption: aes-256-gcm
+integrity: sha256
+dh_group: 14
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

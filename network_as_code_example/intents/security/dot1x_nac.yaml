@@ -1,0 +1,37 @@
+# -----------------------------------------------------------------------------
+# Intent type: dot1x_nac
+# Purpose:     Wired 802.1X network access control on user ports.
+# -----------------------------------------------------------------------------
+
+id: acme-sec-dot1x-001
+type: dot1x_nac
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031051
+description: "802.1X NAC — port auth with guest and auth-fail VLANs"
+
+scope:
+  devices: [dc-east-access-sw-01]
+
+interfaces:
+  - Ethernet1
+  - Ethernet2
+host_mode: multi-auth
+radius_server_group: CORP-RADIUS
+reauth_period: 3600
+guest_vlan: 900
+auth_fail_vlan: 901
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

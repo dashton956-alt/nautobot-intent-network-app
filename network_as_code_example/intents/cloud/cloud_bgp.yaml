@@ -1,0 +1,37 @@
+# -----------------------------------------------------------------------------
+# Intent type: cloud_bgp
+# Purpose:     BGP peering from the DC edge to the cloud provider gateway.
+# -----------------------------------------------------------------------------
+
+id: acme-cloud-bgp-001
+type: cloud_bgp
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031011
+description: "Cloud BGP — eBGP session to AWS Direct Connect gateway"
+
+scope:
+  devices: [dc-east-edge-01]
+
+provider: aws
+local_asn: 65000
+cloud_peer_ip: 169.254.10.1
+cloud_asn: 64512
+bfd: true
+route_map_out: RM-TO-CLOUD
+communities:
+  - "65000:100"
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: cloud
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

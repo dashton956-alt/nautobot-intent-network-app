@@ -1,0 +1,38 @@
+# -----------------------------------------------------------------------------
+# Intent type: sdwan_overlay
+# Purpose:     Join a branch edge to the SD-WAN overlay fabric.
+# -----------------------------------------------------------------------------
+
+id: acme-sdwan-overlay-001
+type: sdwan_overlay
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031021
+description: "SD-WAN overlay — branch edge onboarding to the ACME fabric"
+
+scope:
+  devices: [branch-lon-sdwan-01]
+
+fabric_name: ACME-FABRIC
+site_id: 201
+system_ip: 10.255.100.201
+transport_colors:
+  - mpls
+  - biz-internet
+control_connections:
+  - vbond.acme-corp.example
+  - vsmart.acme-corp.example
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: vmanage
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

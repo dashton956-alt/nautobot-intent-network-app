@@ -1,0 +1,43 @@
+# -----------------------------------------------------------------------------
+# Intent type: service
+# Purpose:     Legacy bare 'service' type — dispatches on service_type.
+# -----------------------------------------------------------------------------
+
+id: acme-service-lbvip-001
+type: service
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031023
+description: "Service (legacy dispatch) — load-balancer VIP for the intranet"
+
+scope:
+  devices: [dc-east-lb-01]
+
+service_type: lb_vip
+vip_name: VS-INTRANET
+vip_address: 10.100.0.50
+vip_port: 443
+pool_name: POOL-INTRANET
+load_balancing_method: round-robin
+members:
+  - address: 10.100.2.10
+    port: 8443
+  - address: 10.100.2.11
+    port: 8443
+health_monitor:
+  type: https
+  path: /healthz
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

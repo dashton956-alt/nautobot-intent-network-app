@@ -1,0 +1,31 @@
+# -----------------------------------------------------------------------------
+# Intent type: evpn_mpls
+# Purpose:     EVPN over MPLS transport (EVI per service).
+# -----------------------------------------------------------------------------
+
+id: acme-mpls-evpn-001
+type: evpn_mpls
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031043
+description: "EVPN-MPLS — EVI 100 stretched between PE routers"
+
+scope:
+  devices: [pe-router-lon-01]
+
+evi: 100
+esi: "0011:2233:4455:6677:8899"
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

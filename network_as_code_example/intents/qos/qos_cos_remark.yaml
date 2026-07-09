@@ -1,0 +1,37 @@
+# -----------------------------------------------------------------------------
+# Intent type: qos_cos_remark
+# Purpose:     Trust and remark CoS at the access edge.
+# -----------------------------------------------------------------------------
+
+id: acme-qos-cos-remark-001
+type: qos_cos_remark
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031028
+description: "QoS CoS remark — trust CoS and normalise values on uplinks"
+
+scope:
+  devices: [dc-east-access-sw-01]
+
+trust_cos: true
+cos_map:
+  "5": 5
+  "3": 3
+  "0": 0
+apply_interfaces:
+  - Ethernet47
+  - Ethernet48
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

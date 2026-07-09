@@ -1,0 +1,47 @@
+# -----------------------------------------------------------------------------
+# Intent type: zbf
+# Purpose:     Zone-based firewall between inside and outside zones.
+# -----------------------------------------------------------------------------
+
+id: acme-sec-zbf-001
+type: zbf
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031056
+description: "ZBF — inside/outside zone pair with inspect policy"
+
+scope:
+  devices: [branch-lon-rtr-01]
+
+zones:
+  - name: INSIDE
+    interfaces: [GigabitEthernet0/0/1]
+  - name: OUTSIDE
+    interfaces: [GigabitEthernet0/0/0]
+zone_pairs:
+  - name: IN-TO-OUT
+    source: INSIDE
+    destination: OUTSIDE
+    policy_map: PM-INSPECT-OUT
+class_maps:
+  - name: CM-WEB
+    protocols: [http, https, dns]
+policy_maps:
+  - name: PM-INSPECT-OUT
+    classes:
+      - name: CM-WEB
+        action: inspect
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

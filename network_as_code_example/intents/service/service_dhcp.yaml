@@ -1,0 +1,38 @@
+# -----------------------------------------------------------------------------
+# Intent type: service_dhcp
+# Purpose:     DHCP pool served from the branch router.
+# -----------------------------------------------------------------------------
+
+id: acme-service-dhcp-001
+type: service_dhcp
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031024
+description: "Service DHCP — branch user pool on the local router"
+
+scope:
+  devices: [branch-lon-rtr-01]
+
+pools:
+  - name: BRANCH-USERS
+    network: "10.60.10.0/24"
+    default_router: 10.60.10.1
+    dns_server: 10.0.0.10
+    lease_time: 86400
+    excluded_addresses:
+      - 10.60.10.1
+      - 10.60.10.2
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

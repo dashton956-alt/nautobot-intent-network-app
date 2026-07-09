@@ -1,0 +1,41 @@
+# -----------------------------------------------------------------------------
+# Intent type: wan_failover
+# Purpose:     SLA-tracked failover from primary WAN to LTE backup.
+# -----------------------------------------------------------------------------
+
+id: acme-wan-failover-001
+type: wan_failover
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031062
+description: "WAN failover — track primary path, float default to LTE"
+
+scope:
+  devices: [branch-lon-rtr-01]
+
+probes:
+  - sla_id: 10
+    type: icmp-echo
+    target: 8.8.8.8
+    frequency: 5
+    threshold: 1000
+    timeout: 2000
+backup_routes:
+  - prefix: "0.0.0.0/0"
+    next_hop: 192.168.90.1
+    admin_distance: 250
+    track: 10
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: nornir
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

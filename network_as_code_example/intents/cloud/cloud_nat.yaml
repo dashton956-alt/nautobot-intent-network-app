@@ -1,0 +1,33 @@
+# -----------------------------------------------------------------------------
+# Intent type: cloud_nat
+# Purpose:     Managed NAT gateway for private-subnet egress.
+# -----------------------------------------------------------------------------
+
+id: acme-cloud-nat-001
+type: cloud_nat
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031012
+description: "Cloud NAT — NAT gateway for the private app subnet"
+
+scope:
+  devices: [dc-east-edge-01]
+
+provider: aws
+nat_gateway_name: acme-prod-natgw
+subnet_id: subnet-0a1b2c3d4e5f6a7b8
+eip_allocation: eipalloc-0f9e8d7c6b5a4d3e2
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  controller: cloud
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert
