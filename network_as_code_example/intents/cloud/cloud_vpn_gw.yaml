@@ -28,7 +28,6 @@ policy:
   encryption: none
 
 deployment:
-  controller: cloud
   strategy: rolling
   save_config: true
 

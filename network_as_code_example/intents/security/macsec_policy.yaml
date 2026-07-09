@@ -17,7 +17,7 @@ interfaces:
   - Ethernet49
   - Ethernet50
 policy_name: MACSEC-DCI
-cipher_suite: GCM-AES-256
+cipher_suite: gcm-aes-256
 key_chain: KC-MACSEC-DCI
 replay_protection: true
 replay_window: 0
@@ -27,7 +27,6 @@ policy:
   encryption: none
 
 deployment:
-  controller: nornir
   strategy: rolling
   save_config: true
 

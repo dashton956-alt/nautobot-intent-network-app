@@ -26,7 +26,6 @@ policy:
   encryption: none
 
 deployment:
-  controller: wlc
   strategy: rolling
   save_config: true
 

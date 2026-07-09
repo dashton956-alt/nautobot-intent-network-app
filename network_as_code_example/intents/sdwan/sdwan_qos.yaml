@@ -34,7 +34,6 @@ policy:
   encryption: none
 
 deployment:
-  controller: vmanage
   strategy: rolling
   save_config: true
 

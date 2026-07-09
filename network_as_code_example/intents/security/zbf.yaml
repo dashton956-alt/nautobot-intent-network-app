@@ -37,7 +37,6 @@ policy:
   encryption: none
 
 deployment:
-  controller: nornir
   strategy: rolling
   save_config: true
 

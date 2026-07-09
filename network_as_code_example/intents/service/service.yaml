@@ -18,7 +18,7 @@ vip_name: VS-INTRANET
 vip_address: 10.100.0.50
 vip_port: 443
 pool_name: POOL-INTRANET
-load_balancing_method: round-robin
+load_balancing_method: round_robin
 members:
   - address: 10.100.2.10
     port: 8443
@@ -33,7 +33,6 @@ policy:
   encryption: none
 
 deployment:
-  controller: nornir
   strategy: rolling
   save_config: true
 
