@@ -28,6 +28,33 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.13 (render-contract enforcement and full corpus coverage)
+
+v2.0.13 is a **reliability release** — no database migrations are included.
+
+```bash
+pip install --upgrade nautobot-app-intent-networking==2.0.13
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+Review these behaviour changes before upgrading:
+
+- **Deployments hard-fail on render errors.** If any primitive's template
+  errors or is missing for the device's platform, the deploy raises
+  `ConfigRenderError` and the intent is marked *Failed* — partial config is
+  never pushed. Intents that previously "worked" by silently dropping a broken
+  section will now fail; fix the intent/template contract instead.
+- **Missing removal templates log a warning** (previously silent) during
+  upgrades/rollback, naming the device/platform/type whose previous-version
+  config may remain on the device.
+- **Chained jobs run as an auto-provisioned `intent-engine-svc` account**
+  (login-disabled) when no requesting user is available. Override the username
+  with the `intent_service_account` plugin setting if needed.
+- **`mgmt_aaa` was removed from the schema `type` enum** — it was never
+  dispatchable. Use `mgmt_aaa_device` or `aaa`.
+
+See the [v2.0.13 release notes](../admin/release_notes/version_2.0.13.md) for full details.
+
 ### Upgrading to v2.0.12 (schema alignment and multi-vendor fixes)
 
 v2.0.12 is a **correctness release** — no database migrations are included.
