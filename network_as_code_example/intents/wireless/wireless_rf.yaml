@@ -1,0 +1,35 @@
+# -----------------------------------------------------------------------------
+# Intent type: wireless_rf
+# Purpose:     RF profile: channel plan and TX power bounds.
+# -----------------------------------------------------------------------------
+
+id: acme-wl-rf-001
+type: wireless_rf
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031007
+description: "Wireless RF profile — DCA/TPC with fixed 2.4 GHz channel plan"
+
+scope:
+  devices: [wlc-dc-east-01]
+
+channels_2g: [1, 6, 11]
+channels_5g: [36, 40, 44, 48, 149, 153, 157, 161]
+channels_6g: []
+tx_power_min: 8
+tx_power_max: 17
+dca_enabled: true
+tpc_enabled: true
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

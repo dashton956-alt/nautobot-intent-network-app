@@ -1,0 +1,35 @@
+# -----------------------------------------------------------------------------
+# Intent type: service_nat
+# Purpose:     Static NAT mappings for published services.
+# -----------------------------------------------------------------------------
+
+id: acme-service-nat-001
+type: service_nat
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031026
+description: "Service NAT — static mappings for the public web frontend"
+
+scope:
+  devices: [dc-east-edge-01]
+
+static_mappings:
+  - inside_local: 10.100.2.10
+    inside_global: 198.51.100.10
+    protocol: tcp
+    port: 443
+  - inside_local: 10.100.2.11
+    inside_global: 198.51.100.11
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

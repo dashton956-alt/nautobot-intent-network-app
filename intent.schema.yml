@@ -595,20 +595,10 @@ mapping:
           - type: str
 
   isolation:
-    type: map
+    # Shared key: legacy security isolation block ({deny_groups, deny_protocols})
+    # or the wireless guest client-isolation toggle (bool) — validated loosely.
+    type: any
     required: false
-    mapping:
-      deny_groups:
-        type: seq
-        required: false
-        sequence:
-          - type: str
-      deny_protocols:
-        type: seq
-        required: false
-        sequence:
-          - type: str
-            enum: [telnet, http, ftp, snmpv1, snmpv2, rsh, rlogin, tftp]
 
   # ══════════════════════════════════════════════════════════════════════════
   # LAYER 2 — PORT AND VLAN FIELDS
@@ -678,35 +668,12 @@ mapping:
 
   # VLAN provisioning
   vlans:
+    # Shared key: bare VLAN ids (igmp_snooping, dhcp_snooping, ...) or full
+    # VLAN definition maps (vlan_provision) — items validated loosely.
     type: seq
     required: false
     sequence:
-      - type: map
-        mapping:
-          id:
-            type: int
-            required: true
-            range:
-              min: 1
-              max: 4094
-          name:
-            type: str
-            required: true
-          description:
-            type: str
-            required: false
-          vrf:
-            type: str
-            required: false
-          ip_address:
-            type: str
-            required: false
-          ipv6_address:
-            type: str
-            required: false
-          active:
-            type: bool
-            required: false
+      - type: any
 
   # LAG / Port-channel
   lag_id:
@@ -764,7 +731,8 @@ mapping:
     type: str
     required: false
   priority:
-    type: int
+    # Shared key: numeric priority (stp/fhrp) or wireless QoS tier (str).
+    type: any
     required: false
   root_vlans:
     type: seq
@@ -1665,10 +1633,11 @@ mapping:
 
   # ZBF
   zones:
+    # Shared key: zone names (str) or zbf zone definitions {name, interfaces}.
     type: seq
     required: false
     sequence:
-      - type: str
+      - type: any
   zone_pairs:
     type: seq
     required: false
@@ -2101,12 +2070,9 @@ mapping:
     enum: [input, output, both, in, out]
 
   dscp_map:
-    type: seq
+    # Shared key: per-class mappings (seq) or wireless {class: dscp} map.
+    type: any
     required: false
-    sequence:
-      - type: map
-        matching-rule: any
-        allowempty: true
 
   # ══════════════════════════════════════════════════════════════════════════
   # REACHABILITY
@@ -2117,6 +2083,9 @@ mapping:
     sequence:
       - type: map
         mapping:
+          type:
+            type: str
+            required: false
           sla_id:
             type: int
             required: true
@@ -2782,3 +2751,589 @@ mapping:
       - type: map
         matching-rule: any
         allowempty: true
+
+  # ── Type-specific fields for the full example corpus (wireless, cloud,
+  #    sdwan, service, qos, reachability, mpls/sp, multicast, security, wan) ──
+  affinity:
+    type: str
+    required: false
+
+  allow_self_ping:
+    type: bool
+    required: false
+
+  ap_group:
+    type: str
+    required: false
+
+  applications:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  associations:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  attachments:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  backhaul_ssid:
+    type: str
+    required: false
+
+  backup_routes:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  bandwidth:
+    type: str
+    required: false
+
+  breakout_applications:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  bridge_domain:
+    type: int
+    required: false
+
+  bridge_group:
+    type: int
+    required: false
+
+  burst_bytes:
+    type: int
+    required: false
+
+  bypass_categories:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  ca_cert:
+    type: str
+    required: false
+
+  certificate_profile:
+    type: str
+    required: false
+
+  channels_2g:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  channels_5g:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  channels_6g:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  child_policy:
+    type: str
+    required: false
+
+  classes:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  cloud_asn:
+    type: int
+    required: false
+
+  cloud_peer_ip:
+    type: str
+    required: false
+
+  cloud_region:
+    type: str
+    required: false
+
+  communities:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  conform_action:
+    type: str
+    required: false
+
+  control_connections:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  cos_map:
+    type: map
+    required: false
+    matching-rule: any
+    allowempty: true
+
+  customer_gateway_ip:
+    type: str
+    required: false
+
+  dca_enabled:
+    type: bool
+    required: false
+
+  decrypt_categories:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  default_peer:
+    type: str
+    required: false
+
+  dns_redirect:
+    type: bool
+    required: false
+
+  eap_method:
+    type: str
+    required: false
+
+  eip_allocation:
+    type: str
+    required: false
+
+  encapsulation:
+    type: str
+    required: false
+
+  esi:
+    type: str
+    required: false
+
+  evi:
+    type: int
+    required: false
+
+  exceed_action:
+    type: str
+    required: false
+
+  fabric_name:
+    type: str
+    required: false
+
+  fast_leave:
+    type: bool
+    required: false
+
+  forward_zones:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  ft_enabled:
+    type: bool
+    required: false
+
+  ft_over_ds:
+    type: bool
+    required: false
+
+  function_length:
+    type: int
+    required: false
+
+  group_policy:
+    type: str
+    required: false
+
+  hold_priority:
+    type: int
+    required: false
+
+  inbound_rules:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  insertion_type:
+    type: str
+    required: false
+
+  inter_vlan_acl:
+    type: str
+    required: false
+
+  ipsec_profile:
+    type: str
+    required: false
+
+  ipv6_networks:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  keepalive:
+    type: int
+    required: false
+
+  key_chain:
+    type: str
+    required: false
+
+  label_allocation:
+    type: str
+    required: false
+
+  load_balance_threshold:
+    type: int
+    required: false
+
+  local_switching:
+    type: bool
+    required: false
+
+  locator_block:
+    type: str
+    required: false
+
+  mac_limit:
+    type: int
+    required: false
+
+  markings:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  mdt_data_group:
+    type: str
+    required: false
+
+  mdt_data_threshold:
+    type: int
+    required: false
+
+  mdt_default_group:
+    type: str
+    required: false
+
+  nat_gateway_name:
+    type: str
+    required: false
+
+  nat_interface:
+    type: str
+    required: false
+
+  nhs_address:
+    type: str
+    required: false
+
+  okc_enabled:
+    type: bool
+    required: false
+
+  originator_id:
+    type: str
+    required: false
+
+  outbound_rules:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  path_option:
+    type: str
+    required: false
+
+  pbr_policy:
+    type: str
+    required: false
+
+  phase:
+    type: int
+    required: false
+
+  pim_mode:
+    type: str
+    required: false
+
+  pmk_cache:
+    type: bool
+    required: false
+
+  policy_maps:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  preferred_band:
+    type: str
+    required: false
+
+  prefix:
+    type: str
+    required: false
+
+  private_zones:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  probe_suppression:
+    type: bool
+    required: false
+
+  propagation:
+    type: bool
+    required: false
+
+  pw_class:
+    type: str
+    required: false
+
+  pw_id:
+    type: int
+    required: false
+
+  querier_address:
+    type: str
+    required: false
+
+  querier_enabled:
+    type: bool
+    required: false
+
+  rate_bps:
+    type: int
+    required: false
+
+  rate_limit_down:
+    type: int
+    required: false
+
+  rate_limit_up:
+    type: int
+    required: false
+
+  reachability_type:
+    type: str
+    required: false
+
+  reauth_period:
+    type: int
+    required: false
+
+  records:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  redirect_acl:
+    type: str
+    required: false
+
+  remote_pe:
+    type: str
+    required: false
+
+  resolver_endpoints:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  route_map:
+    type: str
+    required: false
+
+  route_table_id:
+    type: str
+    required: false
+
+  route_tables:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  sa_filter:
+    type: str
+    required: false
+
+  scheduler:
+    type: str
+    required: false
+
+  sdwan_policy:
+    type: str
+    required: false
+
+  security_group_name:
+    type: str
+    required: false
+
+  service_node:
+    type: str
+    required: false
+
+  service_type:
+    type: str
+    required: false
+
+  session_timeout:
+    type: int
+    required: false
+
+  setup_priority:
+    type: int
+    required: false
+
+  site_id:
+    type: int
+    required: false
+
+  sla_classes:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  subnet_id:
+    type: str
+    required: false
+
+  system_ip:
+    type: str
+    required: false
+
+  targeted_sessions:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  tpc_enabled:
+    type: bool
+    required: false
+
+  transit_gateway_id:
+    type: str
+    required: false
+
+  transport_colors:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  trust_boundary:
+    type: str
+    required: false
+
+  trust_cos:
+    type: bool
+    required: false
+
+  trust_type:
+    type: str
+    required: false
+
+  ttl:
+    type: int
+    required: false
+
+  tunnel_ips:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  tunnel_key:
+    type: int
+    required: false
+
+  tx_power_max:
+    type: int
+    required: false
+
+  tx_power_min:
+    type: int
+    required: false
+
+  untrusted_ports:
+    type: seq
+    required: false
+    sequence:
+      - type: any
+
+  v4_pool:
+    type: str
+    required: false
+
+  vhub_name:
+    type: str
+    required: false
+
+  violate_action:
+    type: str
+    required: false
+
+  vlan_mapping:
+    type: map
+    required: false
+    matching-rule: any
+    allowempty: true
+
+  vpc_id:
+    type: str
+    required: false
+
+  vpls_instance:
+    type: str
+    required: false
+
+  vpn_gateway_id:
+    type: str
+    required: false
+
+  vpn_id:
+    type: int
+    required: false
+
+  wmm_enabled:
+    type: bool
+    required: false
+
+  zone:
+    type: str
+    required: false

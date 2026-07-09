@@ -1,0 +1,32 @@
+# -----------------------------------------------------------------------------
+# Intent type: srv6
+# Purpose:     SRv6 locator and encapsulation on the PE.
+# -----------------------------------------------------------------------------
+
+id: acme-mpls-srv6-001
+type: srv6
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031048
+description: "SRv6 — locator block for the segment-routed IPv6 core"
+
+scope:
+  devices: [pe-router-lon-01]
+
+locator_block: "2001:db8:aaaa::/48"
+locator_name: MAIN
+function_length: 16
+encapsulation: reduced
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

@@ -1,0 +1,33 @@
+# -----------------------------------------------------------------------------
+# Intent type: cloud_sdwan
+# Purpose:     Extend the SD-WAN fabric into the cloud region.
+# -----------------------------------------------------------------------------
+
+id: acme-cloud-sdwan-001
+type: cloud_sdwan
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031014
+description: "Cloud SD-WAN — vhub attachment in eu-west-2"
+
+scope:
+  devices: [dc-east-edge-01]
+
+provider: aws
+cloud_region: eu-west-2
+vpc_id: vpc-0aa11bb22cc33dd44
+vhub_name: acme-euw2-hub
+sdwan_policy: PROD-TRANSIT
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

@@ -1,0 +1,34 @@
+# -----------------------------------------------------------------------------
+# Intent type: wireless_flexconnect
+# Purpose:     FlexConnect local switching for branch APs.
+# -----------------------------------------------------------------------------
+
+id: acme-wl-flexconnect-001
+type: wireless_flexconnect
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031003
+description: "Wireless FlexConnect — branch APs switch traffic locally"
+
+scope:
+  devices: [wlc-dc-east-01]
+
+ap_group: BRANCH-LON-APS
+local_switching: true
+native_vlan: 10
+vlan_mapping:
+  CORP-WIFI: 100
+  GUEST-WIFI: 900
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

@@ -91,6 +91,23 @@ def _network_wildcard(entry) -> dict:
         return {"network": str(cidr), "wildcard": "0.0.0.0"}  # noqa: S104 — wildcard mask, not a bind address
 
 
+def _iface_dicts(interfaces, **defaults) -> list:
+    """Normalise interface entries (names or dicts) into template-ready dicts.
+
+    Templates iterate interfaces as ``{name, ...}`` dicts; intents commonly list
+    bare names. Defaults provide any per-interface keys the templates guard on.
+    """
+    out = []
+    for entry in interfaces or []:
+        d = dict(defaults)
+        if isinstance(entry, dict):
+            d.update(entry)
+        else:
+            d["name"] = entry
+        out.append(d)
+    return out
+
+
 def _access_port_names(device) -> list:
     """Return the names of access-mode interfaces on a device.
 
@@ -1149,6 +1166,8 @@ def resolve_macsec(intent) -> dict:
                     "policy_name": intent_data.get("policy_name", f"MACSEC-{intent.intent_id}"),
                     "cipher_suite": intent_data.get("cipher_suite", "GCM-AES-256"),
                     "key_chain": intent_data.get("key_chain", ""),
+                    "key_id": intent_data.get("key_id", "01"),
+                    "key_string": intent_data.get("key_string", ""),
                     "replay_protection": intent_data.get("replay_protection", True),
                     "replay_window": intent_data.get("replay_window", 0),
                     "intent_id": intent.intent_id,
@@ -2027,6 +2046,8 @@ def resolve_mpls_l2vpn(intent) -> dict:
     if not vpls_instance:
         raise ValueError(f"Intent {intent.intent_id}: 'vpls_instance' required for mpls_l2vpn.")
 
+    vpn_id = intent_data.get("vpn_id")
+    local_asn = intent_data.get("local_asn") or _get_plugin_config("default_bgp_asn")
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
@@ -2038,9 +2059,17 @@ def resolve_mpls_l2vpn(intent) -> dict:
                 "primitive_type": "l2vpn_vpls",
                 "device": device.name,
                 "vpls_instance": vpls_instance,
-                "vpn_id": intent_data.get("vpn_id"),
+                "vfi_name": vpls_instance,
+                "vpn_id": vpn_id,
+                "vpls_id": vpn_id,
+                "local_asn": local_asn,
+                "vlan_id": intent_data.get("bridge_domain") or intent_data.get("vlan_id"),
+                "route_distinguisher": intent_data.get("rd", "auto"),
+                "route_target": intent_data.get("route_target") or f"{local_asn}:{vpn_id}",
                 "bridge_domain": intent_data.get("bridge_domain", ""),
                 "pw_class": intent_data.get("pw_class", ""),
+                "peers": intent_data.get("peers", []),
+                "pseudowires": intent_data.get("pseudowires", []),
                 "mtu": intent_data.get("mtu", 1500),
                 "mac_limit": intent_data.get("mac_limit"),
                 "intent_id": intent.intent_id,
@@ -2079,6 +2108,10 @@ def resolve_pseudowire(intent) -> dict:
                 "device": device.name,
                 "pw_id": pw_id,
                 "remote_pe": remote_pe,
+                "peer_ip": remote_pe,
+                "vc_id": intent_data.get("vc_id") or pw_id,
+                "pw_class": intent_data.get("pw_class", ""),
+                "attachment_circuit": intent_data.get("interface", ""),
                 "encapsulation": intent_data.get("encapsulation", "mpls"),
                 "interface": intent_data.get("interface", ""),
                 "vlan": intent_data.get("vlan"),
@@ -2126,6 +2159,7 @@ def resolve_evpn_mpls(intent) -> dict:
                 "rt_import": rt_import,
                 "esi": intent_data.get("esi", ""),
                 "encapsulation": "mpls",
+                "local_asn": intent_data.get("local_asn") or _get_plugin_config("default_bgp_asn"),
                 "intent_id": intent.intent_id,
             }
         )
@@ -2159,6 +2193,8 @@ def resolve_ldp(intent) -> dict:
                 "interfaces": intent_data.get("interfaces", []),
                 "targeted_sessions": intent_data.get("targeted_sessions", []),
                 "label_allocation": intent_data.get("label_allocation", "default"),
+                "neighbor": intent_data.get("neighbor", ""),
+                "password": intent_data.get("password", ""),
                 "intent_id": intent.intent_id,
             }
         )
@@ -2195,8 +2231,12 @@ def resolve_rsvp_te(intent) -> dict:
                 "device": device.name,
                 "tunnel_id": tunnel_id,
                 "tunnel_destination": tunnel_dest,
+                "destination": tunnel_dest,
+                "tunnel_interface": f"Tunnel{tunnel_id}",
+                "interfaces": intent_data.get("interfaces", []),
                 "bandwidth": intent_data.get("bandwidth", ""),
                 "path_option": intent_data.get("path_option", "dynamic"),
+                "explicit_path": intent_data.get("explicit_path", ""),
                 "setup_priority": intent_data.get("setup_priority", 7),
                 "hold_priority": intent_data.get("hold_priority", 7),
                 "affinity": intent_data.get("affinity"),
@@ -2274,6 +2314,10 @@ def resolve_srv6(intent) -> dict:
                 "device": device.name,
                 "locator_name": intent_data.get("locator_name", "MAIN"),
                 "locator_block": locator_block,
+                "prefix": locator_block,
+                "locator_prefix": locator_block,
+                "sids": intent_data.get("sids", []),
+                "interfaces": intent_data.get("interfaces", []),
                 "function_length": intent_data.get("function_length", 16),
                 "encapsulation": intent_data.get("encapsulation", "reduced"),
                 "intent_id": intent.intent_id,
@@ -2300,7 +2344,10 @@ def resolve_6pe_6vpe(intent) -> dict:
                 "mode": intent_data.get("mode", "6pe"),
                 "vrf": intent_data.get("vrf", ""),
                 "ipv6_networks": intent_data.get("ipv6_networks", []),
+                "networks": intent_data.get("ipv6_networks", []),
                 "neighbor_ip": intent_data.get("neighbor_ip", ""),
+                "neighbors": ([{"ip": intent_data["neighbor_ip"]}] if intent_data.get("neighbor_ip") else []),
+                "local_asn": intent_data.get("local_asn") or _get_plugin_config("default_bgp_asn"),
                 "intent_id": intent.intent_id,
             }
         )
@@ -2337,9 +2384,12 @@ def resolve_mvpn(intent) -> dict:
                 "device": device.name,
                 "vrf": vrf_name,
                 "mdt_default_group": mdt_group,
+                "mdt_default": mdt_group,
                 "mdt_data_group": intent_data.get("mdt_data_group", ""),
                 "mdt_data_threshold": intent_data.get("mdt_data_threshold"),
                 "pim_mode": intent_data.get("pim_mode", "sparse-mode"),
+                "local_asn": intent_data.get("local_asn") or _get_plugin_config("default_bgp_asn"),
+                "neighbors": intent_data.get("neighbors", []),
                 "intent_id": intent.intent_id,
             }
         )
@@ -3019,9 +3069,13 @@ def resolve_gre_tunnel(intent) -> dict:
                 "primitive_type": "gre_tunnel",
                 "device": device.name,
                 "tunnel_id": tunnel_id,
+                "tunnel_interface": f"Tunnel{tunnel_id}",
                 "tunnel_source": tunnel_source,
                 "tunnel_destination": tunnel_dest,
                 "ip_address": intent_data.get("tunnel_ip", ""),
+                "tunnel_ip": intent_data.get("tunnel_ip", ""),
+                "description": intent_data.get("description", ""),
+                "tunnel_key": intent_data.get("tunnel_key"),
                 "keepalive": intent_data.get("keepalive", 10),
                 "mtu": intent_data.get("mtu", 1400),
                 "intent_id": intent.intent_id,
@@ -3051,22 +3105,48 @@ def resolve_gre_over_ipsec(intent) -> dict:
                 "primitive_type": "gre_tunnel",
                 "device": device.name,
                 "tunnel_id": tunnel_id,
+                "tunnel_interface": f"Tunnel{tunnel_id}",
                 "tunnel_source": intent_data.get("tunnel_source", ""),
                 "tunnel_destination": tunnel_dest,
                 "ip_address": intent_data.get("tunnel_ip", ""),
+                "tunnel_ip": intent_data.get("tunnel_ip", ""),
+                "description": intent_data.get("description", ""),
+                "tunnel_key": intent_data.get("tunnel_key"),
+                "keepalive": intent_data.get("keepalive", 10),
+                "mtu": intent_data.get("mtu", 1400),
                 "ipsec_profile": intent_data.get("ipsec_profile", f"IPSEC-PROF-{intent.intent_id}"),
                 "intent_id": intent.intent_id,
             }
         )
+        encryption = intent_data.get("encryption", "aes-256-gcm")
+        integrity = intent_data.get("integrity", "sha256")
+        psk = intent_data.get("psk", "")
         primitives.append(
             {
                 "primitive_type": "ipsec_tunnel",
                 "device": device.name,
                 "tunnel_id": tunnel_id,
                 "remote_peer": tunnel_dest,
+                "peer_ip": tunnel_dest,
+                "psk": psk,
+                "pre_shared_key": psk,
+                "acl_name": intent_data.get("acl_name") or f"ACL-IPSEC-{intent.intent_id}",
+                "interface": intent_data.get("interface") or f"Tunnel{tunnel_id}",
+                "isakmp_policy": {
+                    "encryption": encryption,
+                    "hash": integrity,
+                    "dh_group": intent_data.get("dh_group", 14),
+                    "lifetime": intent_data.get("lifetime", 86400),
+                },
+                "transform_set": {
+                    "name": f"TS-{intent.intent_id}",
+                    "encryption": "esp-aes 256",
+                    "integrity": "esp-sha256-hmac",
+                },
+                "tunnel_interface": None,
                 "ike_version": intent_data.get("ike_version", 2),
-                "encryption": intent_data.get("encryption", "aes-256-gcm"),
-                "integrity": intent_data.get("integrity", "sha256"),
+                "encryption": encryption,
+                "integrity": integrity,
                 "dh_group": intent_data.get("dh_group", 14),
                 "mode": "tunnel_protection",
                 "intent_id": intent.intent_id,
@@ -3096,9 +3176,18 @@ def resolve_dmvpn(intent) -> dict:
                 "primitive_type": "dmvpn",
                 "device": device.name,
                 "tunnel_id": tunnel_id,
+                "tunnel_interface": f"Tunnel{tunnel_id}",
                 "nhs_address": nhs_address,
+                "nhs_ip": nhs_address,
+                "nhs_nbma": intent_data.get("nhs_nbma", nhs_address),
+                "nhrp_nhs": nhs_address,
+                "nhrp_map": intent_data.get("nhrp_map", ""),
                 "tunnel_source": intent_data.get("tunnel_source", ""),
+                "tunnel_ip": intent_data.get("tunnel_ip", ""),
+                "description": intent_data.get("description", ""),
                 "tunnel_key": intent_data.get("tunnel_key", 100),
+                "nhrp_network_id": intent_data.get("nhrp_network_id", intent_data.get("tunnel_key", 100)),
+                "nhrp_authentication": intent_data.get("nhrp_authentication", ""),
                 "phase": intent_data.get("phase", 3),
                 "role": intent_data.get("roles", {}).get(device.name, "spoke"),
                 "ipsec_profile": intent_data.get("ipsec_profile", ""),
@@ -3178,9 +3267,16 @@ def resolve_dot1x_nac(intent) -> dict:
                 "primitive_type": "dot1x",
                 "device": device.name,
                 "system_auth_control": True,
-                "interfaces": intent_data.get("interfaces", []),
+                "interfaces": _iface_dicts(
+                    intent_data.get("interfaces", []),
+                    port_control="auto",
+                    host_mode=intent_data.get("host_mode", "single-host"),
+                    reauth_period=intent_data.get("reauth_period", 3600),
+                    mab=intent_data.get("mab", False),
+                ),
                 "host_mode": intent_data.get("host_mode", "single-host"),
                 "radius_server_group": intent_data.get("radius_server_group", ""),
+                "radius_group": intent_data.get("radius_server_group") or "radius",
                 "reauth_period": intent_data.get("reauth_period", 3600),
                 "guest_vlan": intent_data.get("guest_vlan"),
                 "auth_fail_vlan": intent_data.get("auth_fail_vlan"),
@@ -3438,6 +3534,17 @@ def resolve_nat_pat(intent) -> dict:
 def resolve_nat64(intent) -> dict:
     """Resolve a NAT64 intent."""
     intent_data = intent.intent_data
+
+    # Templates consume v4_pool as {name, start, end}; accept a bare CIDR too.
+    v4_pool = intent_data.get("v4_pool", "")
+    if v4_pool and not isinstance(v4_pool, dict):
+        try:
+            net = ipaddress.ip_network(str(v4_pool), strict=False)
+            hosts = list(net.hosts()) or [net.network_address]
+            v4_pool = {"name": "NAT64-POOL", "start": str(hosts[0]), "end": str(hosts[-1])}
+        except ValueError:
+            v4_pool = {"name": "NAT64-POOL", "start": str(v4_pool), "end": str(v4_pool)}
+
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
@@ -3450,7 +3557,7 @@ def resolve_nat64(intent) -> dict:
                 "device": device.name,
                 "prefix": intent_data.get("prefix", "64:ff9b::/96"),
                 "mode": intent_data.get("mode", "stateful"),
-                "v4_pool": intent_data.get("v4_pool", ""),
+                "v4_pool": v4_pool,
                 "interfaces": intent_data.get("interfaces", []),
                 "intent_id": intent.intent_id,
             }
@@ -3479,6 +3586,7 @@ def resolve_wan_failover(intent) -> dict:
                     "probe_type": probe.get("type", "icmp-echo"),
                     "target": probe.get("target", ""),
                     "frequency": probe.get("frequency", 5),
+                    "interval": probe.get("interval") or probe.get("frequency", 5),
                     "threshold": probe.get("threshold", 1000),
                     "timeout": probe.get("timeout", 2000),
                     "intent_id": intent.intent_id,
@@ -3493,8 +3601,12 @@ def resolve_wan_failover(intent) -> dict:
                     "device": device.name,
                     "prefix": route["prefix"],
                     "next_hop": route.get("next_hop", ""),
+                    "exit_interface": route.get("exit_interface", ""),
                     "admin_distance": route.get("admin_distance", 250),
+                    "vrf": route.get("vrf", ""),
+                    "tag": route.get("tag"),
                     "track": route.get("track"),
+                    "name": route.get("name", ""),
                     "intent_id": intent.intent_id,
                 }
             )
@@ -3915,12 +4027,15 @@ def resolve_cloud_bgp(intent) -> dict:
             {
                 "primitive_type": "bgp_neighbor",
                 "device": device.name,
+                "vrf_name": intent_data.get("vrf", ""),
                 "local_asn": intent_data.get("local_asn"),
                 "neighbor_ip": intent_data.get("cloud_peer_ip", ""),
                 "neighbor_asn": intent_data.get("cloud_asn"),
                 "neighbor_description": f"Cloud-{intent_data.get('provider', 'cloud')}",
                 "bfd_enabled": intent_data.get("bfd", True),
+                "route_map_in": intent_data.get("route_map_in", ""),
                 "route_map_out": intent_data.get("route_map_out", ""),
+                "max_prefix": intent_data.get("max_prefix"),
                 "communities": intent_data.get("communities", []),
                 "intent_id": intent.intent_id,
             }
@@ -4086,6 +4201,13 @@ def resolve_qos_dscp_mark(intent) -> dict:
 def resolve_qos_cos_remark(intent) -> dict:
     """Resolve a CoS remarking intent."""
     intent_data = intent.intent_data
+    # Templates iterate cos_map as a list of {cos, dscp} mappings; accept the
+    # natural dict form ({cos: dscp}) in the intent and normalise here.
+    raw_map = intent_data.get("cos_map", {})
+    if isinstance(raw_map, dict):
+        cos_map = [{"cos": k, "dscp": v} for k, v in raw_map.items()]
+    else:
+        cos_map = raw_map
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
@@ -4097,7 +4219,7 @@ def resolve_qos_cos_remark(intent) -> dict:
                 "primitive_type": "qos_cos_remark",
                 "device": device.name,
                 "trust_cos": intent_data.get("trust_cos", True),
-                "cos_map": intent_data.get("cos_map", {}),
+                "cos_map": cos_map,
                 "apply_interfaces": intent_data.get("apply_interfaces", []),
                 "intent_id": intent.intent_id,
             }
@@ -4260,7 +4382,7 @@ def resolve_multicast_pim_ssm(intent) -> dict:
                 "device": device.name,
                 "mode": "ssm",
                 "ssm_range": intent_data.get("ssm_range", "232.0.0.0/8"),
-                "interfaces": intent_data.get("interfaces", []),
+                "interfaces": _iface_dicts(intent_data.get("interfaces", [])),
                 "intent_id": intent.intent_id,
             }
         )
@@ -4315,7 +4437,7 @@ def resolve_multicast_vrf(intent) -> dict:
                 "pim_mode": intent_data.get("pim_mode", "sparse-mode"),
                 "rp_address": intent_data.get("rp_address", ""),
                 "mdt_default_group": intent_data.get("mdt_default_group", ""),
-                "interfaces": intent_data.get("interfaces", []),
+                "interfaces": _iface_dicts(intent_data.get("interfaces", [])),
                 "intent_id": intent.intent_id,
             }
         )
@@ -4327,6 +4449,12 @@ def resolve_multicast_vrf(intent) -> dict:
 def resolve_msdp(intent) -> dict:
     """Resolve an MSDP intent."""
     intent_data = intent.intent_data
+    # Ensure every peer dict carries the keys the templates guard on.
+    peers = [
+        {"connect_source": None, "sa_limit": None, "remote_as": None, **p}
+        for p in intent_data.get("peers", [])
+        if isinstance(p, dict)
+    ]
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
@@ -4337,7 +4465,7 @@ def resolve_msdp(intent) -> dict:
             {
                 "primitive_type": "msdp",
                 "device": device.name,
-                "peers": intent_data.get("peers", []),
+                "peers": peers,
                 "originator_id": intent_data.get("originator_id", ""),
                 "default_peer": intent_data.get("default_peer", ""),
                 "sa_filter": intent_data.get("sa_filter", ""),
@@ -4966,7 +5094,9 @@ def resolve_reachability_static(intent) -> dict:
                     "exit_interface": route.get("exit_interface", ""),
                     "admin_distance": route.get("admin_distance", 1),
                     "vrf": route.get("vrf", ""),
+                    "tag": route.get("tag"),
                     "track": route.get("track"),
+                    "name": route.get("name", ""),
                     "intent_id": intent.intent_id,
                 }
             )
@@ -4996,7 +5126,8 @@ def resolve_reachability_bgp_network(intent) -> dict:
                 "primitive_type": "bgp_network",
                 "device": device.name,
                 "local_asn": local_asn,
-                "networks": networks,
+                # Templates iterate networks as {prefix, mask?, route_map?} dicts.
+                "networks": [n if isinstance(n, dict) else {"prefix": n} for n in networks],
                 "vrf": intent_data.get("vrf", ""),
                 "route_map": intent_data.get("route_map", ""),
                 "intent_id": intent.intent_id,
@@ -5027,7 +5158,10 @@ def resolve_reachability_floating(intent) -> dict:
                     "device": device.name,
                     "prefix": route["prefix"],
                     "next_hop": route.get("next_hop", ""),
+                    "exit_interface": route.get("exit_interface", ""),
                     "admin_distance": route.get("admin_distance", 250),
+                    "vrf": route.get("vrf", ""),
+                    "tag": route.get("tag"),
                     "track": route.get("track"),
                     "name": route.get("name", "floating-backup"),
                     "intent_id": intent.intent_id,
@@ -5165,14 +5299,20 @@ def resolve_service_dns(intent) -> dict:
     if not records:
         raise ValueError(f"Intent {intent.intent_id}: 'records' list required for service_dns.")
 
+    # One primitive per record so the dns_record template's flat
+    # record_name/record_type/record_value contract is satisfied.
     primitives = [
         {
             "primitive_type": "dns_record",
+            "record_name": r.get("name", ""),
+            "record_type": r.get("type", "A"),
+            "record_value": r.get("value", ""),
             "records": records,
             "zone": intent_data.get("zone", ""),
-            "ttl": intent_data.get("ttl", 300),
+            "ttl": r.get("ttl", intent_data.get("ttl", 300)),
             "intent_id": intent.intent_id,
         }
+        for r in records
     ]
 
     return _empty_plan([], primitives)
@@ -5214,21 +5354,32 @@ def resolve_service_nat(intent) -> dict:
     primitives = []
     affected = []
 
+    # The nat templates iterate a static_mappings list of {inside, outside}
+    # and bind inside/outside interfaces once — emit one primitive per device.
+    mappings = [
+        {
+            "inside": m["inside_local"],
+            "outside": m["inside_global"],
+            "vrf": m.get("vrf", ""),
+            "protocol": m.get("protocol", ""),
+            "port": m.get("port"),
+        }
+        for m in intent_data.get("static_mappings", [])
+    ]
+
     for device in devices:
         affected.append(device.name)
-        for mapping in intent_data.get("static_mappings", []):
-            primitives.append(
-                {
-                    "primitive_type": "nat",
-                    "device": device.name,
-                    "nat_type": "static",
-                    "inside_local": mapping["inside_local"],
-                    "inside_global": mapping["inside_global"],
-                    "protocol": mapping.get("protocol", ""),
-                    "port": mapping.get("port"),
-                    "intent_id": intent.intent_id,
-                }
-            )
+        primitives.append(
+            {
+                "primitive_type": "nat",
+                "device": device.name,
+                "nat_type": "static",
+                "static_mappings": mappings,
+                "inside_interface": intent_data.get("inside_interface", ""),
+                "outside_interface": intent_data.get("outside_interface", ""),
+                "intent_id": intent.intent_id,
+            }
+        )
 
     return _empty_plan(affected, primitives)
 

@@ -1,0 +1,33 @@
+# -----------------------------------------------------------------------------
+# Intent type: dmvpn
+# Purpose:     DMVPN phase 3 spoke pointing at the DC hub.
+# -----------------------------------------------------------------------------
+
+id: acme-wan-dmvpn-001
+type: dmvpn
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031059
+description: "DMVPN — phase-3 overlay with the DC East hub as NHS"
+
+scope:
+  devices: [branch-lon-rtr-01]
+
+nhs_address: 172.16.0.1
+tunnel_source: GigabitEthernet0/0/0
+tunnel_key: 100
+phase: 3
+ipsec_profile: IPSEC-DMVPN
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

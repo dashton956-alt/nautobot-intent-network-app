@@ -1,0 +1,32 @@
+# -----------------------------------------------------------------------------
+# Intent type: wireless_band_steer
+# Purpose:     Steer dual-band clients to 5 GHz on the corporate SSID.
+# -----------------------------------------------------------------------------
+
+id: acme-wl-band-steer-001
+type: wireless_band_steer
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031001
+description: "Wireless band steering — prefer 5 GHz for CORP-WIFI clients"
+
+scope:
+  devices: [wlc-dc-east-01]
+
+ssid_name: CORP-WIFI
+preferred_band: 5ghz
+probe_suppression: true
+load_balance_threshold: 12
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

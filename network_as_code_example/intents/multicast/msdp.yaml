@@ -1,0 +1,35 @@
+# -----------------------------------------------------------------------------
+# Intent type: msdp
+# Purpose:     MSDP peering between the two DC RPs.
+# -----------------------------------------------------------------------------
+
+id: acme-mc-msdp-001
+type: msdp
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031038
+description: "MSDP — inter-domain source discovery between DC RPs"
+
+scope:
+  devices: [dc-east-core-01]
+
+originator_id: Loopback0
+peers:
+  - ip: 10.255.0.2
+    remote_as: 65000
+    description: dc-west-rp
+default_peer: ""
+sa_filter: ""
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

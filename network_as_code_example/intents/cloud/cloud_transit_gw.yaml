@@ -1,0 +1,36 @@
+# -----------------------------------------------------------------------------
+# Intent type: cloud_transit_gw
+# Purpose:     Transit gateway attachments and route propagation.
+# -----------------------------------------------------------------------------
+
+id: acme-cloud-tgw-001
+type: cloud_transit_gw
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031016
+description: "Cloud transit gateway — attach prod and shared-services VPCs"
+
+scope:
+  devices: [dc-east-edge-01]
+
+provider: aws
+transit_gateway_id: tgw-0f1e2d3c4b5a69788
+attachments:
+  - vpc-0aa11bb22cc33dd44
+  - vpc-0ee55ff66aa77bb88
+route_tables:
+  - tgw-rtb-000111222333aaa
+propagation: true
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

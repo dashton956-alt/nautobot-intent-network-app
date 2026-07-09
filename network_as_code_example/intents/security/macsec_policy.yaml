@@ -1,0 +1,36 @@
+# -----------------------------------------------------------------------------
+# Intent type: macsec_policy
+# Purpose:     MACsec policy alias — encrypt inter-switch links.
+# -----------------------------------------------------------------------------
+
+id: acme-sec-macsec-pol-001
+type: macsec_policy
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031052
+description: "MACsec policy — GCM-AES-256 on DC interconnect links"
+
+scope:
+  devices: [dc-east-core-01]
+
+interfaces:
+  - Ethernet49
+  - Ethernet50
+policy_name: MACSEC-DCI
+cipher_suite: gcm-aes-256
+key_chain: KC-MACSEC-DCI
+replay_protection: true
+replay_window: 0
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

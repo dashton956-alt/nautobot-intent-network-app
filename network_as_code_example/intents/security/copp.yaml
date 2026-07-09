@@ -1,0 +1,51 @@
+# -----------------------------------------------------------------------------
+# Intent type: copp
+# Purpose:     Control-plane policing for management traffic.
+# -----------------------------------------------------------------------------
+
+id: acme-sec-copp-001
+type: copp
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031050
+description: "CoPP — rate-limit control-plane classes"
+
+scope:
+  devices: [dc-east-core-01]
+
+policy_name: COPP-POLICY
+classes:
+  - name: COPP-ICMP
+    acl_name: ACL-COPP-ICMP
+    rate_bps: 64000
+    conform_action: transmit
+    exceed_action: drop
+    rules:
+      - action: permit
+        protocol: icmp
+        source: any
+        destination: any
+  - name: COPP-SSH
+    acl_name: ACL-COPP-SSH
+    rate_bps: 1000000
+    conform_action: transmit
+    exceed_action: drop
+    rules:
+      - action: permit
+        protocol: tcp
+        source: 10.0.0.0/8
+        destination: any
+        port: 22
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

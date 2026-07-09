@@ -1,0 +1,35 @@
+# -----------------------------------------------------------------------------
+# Intent type: wireless_guest
+# Purpose:     Guest SSID with captive portal, rate limits and client isolation.
+# -----------------------------------------------------------------------------
+
+id: acme-wl-guest-001
+type: wireless_guest
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031004
+description: "Wireless guest — captive portal with per-client rate limiting"
+
+scope:
+  devices: [wlc-dc-east-01]
+
+ssid_name: GUEST-WIFI
+captive_portal_url: "https://guest.acme-corp.example/portal"
+rate_limit_down: 5000
+rate_limit_up: 2000
+session_timeout: 3600
+isolation: true
+vlan_id: 900
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

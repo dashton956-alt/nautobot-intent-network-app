@@ -1,0 +1,38 @@
+# -----------------------------------------------------------------------------
+# Intent type: cloud_route_table
+# Purpose:     VPC route table entries steering traffic via TGW and NAT.
+# -----------------------------------------------------------------------------
+
+id: acme-cloud-rtb-001
+type: cloud_route_table
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031013
+description: "Cloud route table — private subnet routes via TGW and NAT GW"
+
+scope:
+  devices: [dc-east-edge-01]
+
+provider: aws
+route_table_id: rtb-0123456789abcdef0
+vpc_id: vpc-0aa11bb22cc33dd44
+routes:
+  - destination: "10.0.0.0/8"
+    target: tgw-0f1e2d3c4b5a69788
+  - destination: "0.0.0.0/0"
+    target: nat-0a9b8c7d6e5f40312
+associations:
+  - subnet-0a1b2c3d4e5f6a7b8
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

@@ -80,6 +80,16 @@ def _intent_obj(data):
     return i
 
 
+def _device_cls_stub(devices):
+    """Stub for the Device model class: .objects.filter(...) -> iterable queryset."""
+    qs = mock.MagicMock()
+    qs.exists.return_value = True
+    qs.__iter__ = lambda self: iter(devices)
+    cls = mock.MagicMock()
+    cls.objects.filter.return_value = qs
+    return cls
+
+
 def _template_map():
     import re
 
@@ -117,6 +127,9 @@ class IntentRenderSmokeTest(TestCase):
             "allocate_loopback_ip": mock.Mock(return_value="10.0.0.1"),
             "allocate_route_distinguisher": mock.Mock(return_value="65000:1"),
             "allocate_route_target": mock.Mock(return_value=("65000:1", "65000:1")),
+            "allocate_wireless_vlan": mock.Mock(return_value=850),
+            # resolve_security queries Device.objects directly (legacy path).
+            "Device": _device_cls_stub(two),
         }
         with mock.patch.multiple(R, **patches):
             for f in files:

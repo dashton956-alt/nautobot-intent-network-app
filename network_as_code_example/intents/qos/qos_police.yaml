@@ -1,0 +1,36 @@
+# -----------------------------------------------------------------------------
+# Intent type: qos_police
+# Purpose:     Police scavenger traffic on user ports.
+# -----------------------------------------------------------------------------
+
+id: acme-qos-police-001
+type: qos_police
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031030
+description: "QoS policing — 10 Mbps policer for bulk traffic"
+
+scope:
+  devices: [dc-east-access-sw-01]
+
+policy_map: PM-POLICE-BULK
+rate_bps: 10000000
+burst_bytes: 312500
+conform_action: transmit
+exceed_action: drop
+violate_action: drop
+apply_interfaces:
+  - Ethernet10
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

@@ -1,0 +1,34 @@
+# -----------------------------------------------------------------------------
+# Intent type: mpls_l2vpn
+# Purpose:     VPLS instance bridging customer sites over MPLS.
+# -----------------------------------------------------------------------------
+
+id: acme-mpls-l2vpn-001
+type: mpls_l2vpn
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031045
+description: "MPLS L2VPN — VPLS instance for customer LAN extension"
+
+scope:
+  devices: [pe-router-lon-01]
+
+vpls_instance: CUST-A-VPLS
+vpn_id: 1100
+bridge_domain: 1100
+pw_class: PW-MPLS
+mtu: 1500
+mac_limit: 2048
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

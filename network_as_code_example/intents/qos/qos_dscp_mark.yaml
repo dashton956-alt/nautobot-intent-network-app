@@ -1,0 +1,40 @@
+# -----------------------------------------------------------------------------
+# Intent type: qos_dscp_mark
+# Purpose:     Mark application traffic with DSCP at ingress.
+# -----------------------------------------------------------------------------
+
+id: acme-qos-dscp-mark-001
+type: qos_dscp_mark
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031029
+description: "QoS DSCP marking — voice EF, video AF41 at the access edge"
+
+scope:
+  devices: [dc-east-access-sw-01]
+
+policy_map: PM-MARK-INGRESS
+trust_boundary: dscp
+markings:
+  - class_name: VOICE
+    match_acl: ACL-VOICE
+    dscp: ef
+  - class_name: VIDEO
+    match_acl: ACL-VIDEO
+    dscp: af41
+apply_interfaces:
+  - Ethernet1
+  - Ethernet2
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert
