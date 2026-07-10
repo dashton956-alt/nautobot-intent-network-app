@@ -764,11 +764,20 @@
             const style = document.documentElement.style;
             style.setProperty('--nb-top', Math.max(0, Math.round(r.top + window.scrollY)) + 'px');
             style.setProperty('--nb-left', Math.max(0, Math.round(r.left + window.scrollX)) + 'px');
+            if (network) network.redraw();   // resize the canvas to the new area
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
             fitAroundChrome();
             window.addEventListener('resize', fitAroundChrome);
+            // Re-fit when Nautobot's sidebar expands/collapses: that changes the
+            // content block's box without firing a window 'resize'.
+            const parent = document.getElementById('topology-root').parentElement;
+            if (parent && window.ResizeObserver) {
+                new ResizeObserver(fitAroundChrome).observe(parent);
+            }
+            // Fallback for chrome that animates open/closed via CSS transitions.
+            document.addEventListener('transitionend', fitAroundChrome, true);
             await loadFilters();
             await loadGraph();
         });
