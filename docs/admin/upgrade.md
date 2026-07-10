@@ -28,6 +28,23 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.14 (topology viewer and VNI Pools fixes)
+
+v2.0.14 is a **bug-fix release** — no database migrations and no pipeline
+behaviour changes.
+
+```bash
+pip install --upgrade nautobot-app-intent-networking==2.0.14
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+- The topology viewer now fits around Nautobot's navbar/sidebar (re-fitting
+  live when the sidebar toggles) and gains a **← Exit** toolbar link.
+- The VNI Pools add/edit form no longer crashes with
+  `AttributeError: 'VxlanVniPool' object has no attribute 'get_relationships'`.
+
+See the [v2.0.14 release notes](../admin/release_notes/version_2.0.14.md) for full details.
+
 ### Upgrading to v2.0.13 (render-contract enforcement and full corpus coverage)
 
 v2.0.13 is a **reliability release** — no database migrations are included.
