@@ -26,16 +26,18 @@
 /* Override Nautobot's base inside our content area */
         #topology-root{
             position:fixed;
-            inset:0;
+            /* Fill the viewport *below* Nautobot's fixed navbar so the navbar
+               stays visible and usable. The exact navbar height is measured at
+               load time and stored in --nb-navbar-h (56px fallback). */
+            inset:var(--nb-navbar-h, 56px) 0 0 0;
             display:grid;
             grid-template-columns:260px 1fr 380px;
             grid-template-rows:52px 1fr;
             background:var(--bg);
             color:var(--text);
             font-family:'Sora','Segoe UI',sans-serif;
-            /* Sit above Nautobot's fixed navbar (~1030) so the full-screen
-               viewer isn't clipped under the toolbar. */
-            z-index:1100;
+            /* Below the navbar (~1030) so its dropdown menus open over us. */
+            z-index:1000;
         }
 
 /* ── Top bar ─────────────────────────────────────────────────────────────── */
@@ -79,7 +81,10 @@
             cursor:pointer;
             transition:background .15s,border-color .15s;
             white-space:nowrap;
+            text-decoration:none;   /* also used on the Exit link */
+            display:inline-block;
         }
+        a.tb-btn:hover,a.tb-btn:focus{color:var(--text);text-decoration:none}
         .tb-btn:hover{background:var(--border);border-color:var(--accent)}
         .tb-btn.active{background:rgba(56,189,248,.15);border-color:var(--accent);color:var(--accent)}
         #tb-status{
@@ -591,6 +596,7 @@
 
   <!-- ── Top bar ── -->
         <div id="topbar">
+            <a class="tb-btn" href="{% url 'plugins:intent_networking:dashboard' %}" title="Back to the Intent dashboard">← Exit</a>
             <h1>🌐 Intent Topology</h1>
             <div class="tb-sep"></div>
             <select id="filter-tenant" class="tb-select" onchange="applyFilters()">
@@ -745,7 +751,19 @@
         const LIVE_TTL      = 60000; // ms
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
+        // Measure Nautobot's fixed navbar so the viewer starts right below it
+        // (keeps the navbar visible/usable instead of covering it full-screen).
+        function fitBelowNavbar() {
+            const nav = document.querySelector('nav.navbar, header nav, #navbar, .navbar');
+            if (nav) {
+                document.documentElement.style.setProperty(
+                    '--nb-navbar-h', nav.getBoundingClientRect().height + 'px');
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', async () => {
+            fitBelowNavbar();
+            window.addEventListener('resize', fitBelowNavbar);
             await loadFilters();
             await loadGraph();
         });
