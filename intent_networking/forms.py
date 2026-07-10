@@ -1,7 +1,13 @@
 """Form definitions for the intent_networking app."""
 
 from django import forms
-from nautobot.apps.forms import NautobotBulkEditForm, NautobotFilterForm, NautobotModelForm
+from nautobot.apps.forms import (
+    BootstrapMixin,
+    DynamicModelChoiceField,
+    NautobotBulkEditForm,
+    NautobotFilterForm,
+    NautobotModelForm,
+)
 from nautobot.extras.forms.mixins import StatusModelBulkEditFormMixin
 from nautobot.tenancy.models import Tenant
 
@@ -78,8 +84,21 @@ class IntentBulkEditForm(StatusModelBulkEditFormMixin, NautobotBulkEditForm):  #
         nullable_fields = ["scheduled_deploy_at"]
 
 
-class VxlanVniPoolForm(NautobotModelForm):  # pylint: disable=too-many-ancestors
-    """Model form for creating and editing VxlanVniPool records."""
+class VxlanVniPoolForm(BootstrapMixin, forms.ModelForm):
+    """Model form for creating and editing VxlanVniPool records.
+
+    Deliberately a plain ModelForm (not NautobotModelForm): VxlanVniPool is a
+    BaseModel without relationship/custom-field/note support, and newer Nautobot
+    releases call ``instance.get_relationships()`` unconditionally from
+    NautobotModelForm's mixins, crashing the add/edit views with
+    ``AttributeError: 'VxlanVniPool' object has no attribute 'get_relationships'``.
+    """
+
+    tenant = DynamicModelChoiceField(
+        queryset=Tenant.objects.all(),
+        required=False,
+        help_text="Leave blank for a shared pool available to all tenants.",
+    )
 
     class Meta:
         """Meta options for VxlanVniPoolForm."""
@@ -89,7 +108,6 @@ class VxlanVniPoolForm(NautobotModelForm):  # pylint: disable=too-many-ancestors
         help_texts = {
             "range_start": "First VNI value in pool (e.g. 10000)",
             "range_end": "Last VNI value in pool (e.g. 19999)",
-            "tenant": "Leave blank for a shared pool available to all tenants.",
         }
 
 
