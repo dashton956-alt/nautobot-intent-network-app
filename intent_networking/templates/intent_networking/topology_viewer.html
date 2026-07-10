@@ -26,16 +26,19 @@
 /* Override Nautobot's base inside our content area */
         #topology-root{
             position:fixed;
-            inset:0;
+            /* Fill the viewport *around* Nautobot's chrome (top navbar and/or
+               left sidebar, depending on theme). The offsets are measured at
+               load time from where Nautobot placed our content block, and
+               stored in --nb-top / --nb-left (fallbacks cover a plain navbar). */
+            inset:var(--nb-top, 56px) 0 0 var(--nb-left, 0);
             display:grid;
             grid-template-columns:260px 1fr 380px;
             grid-template-rows:52px 1fr;
             background:var(--bg);
             color:var(--text);
             font-family:'Sora','Segoe UI',sans-serif;
-            /* Sit above Nautobot's fixed navbar (~1030) so the full-screen
-               viewer isn't clipped under the toolbar. */
-            z-index:1100;
+            /* Below Nautobot's chrome (~1030) so nav menus open over us. */
+            z-index:1000;
         }
 
 /* ── Top bar ─────────────────────────────────────────────────────────────── */
@@ -79,7 +82,10 @@
             cursor:pointer;
             transition:background .15s,border-color .15s;
             white-space:nowrap;
+            text-decoration:none;   /* also used on the Exit link */
+            display:inline-block;
         }
+        a.tb-btn:hover,a.tb-btn:focus{color:var(--text);text-decoration:none}
         .tb-btn:hover{background:var(--border);border-color:var(--accent)}
         .tb-btn.active{background:rgba(56,189,248,.15);border-color:var(--accent);color:var(--accent)}
         #tb-status{
@@ -591,6 +597,7 @@
 
   <!-- ── Top bar ── -->
         <div id="topbar">
+            <a class="tb-btn" href="{% url 'plugins:intent_networking:dashboard' %}" title="Back to the Intent dashboard">← Exit</a>
             <h1>🌐 Intent Topology</h1>
             <div class="tb-sep"></div>
             <select id="filter-tenant" class="tb-select" onchange="applyFilters()">
@@ -745,7 +752,32 @@
         const LIVE_TTL      = 60000; // ms
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
+        // Fit the fixed viewer around Nautobot's chrome (top navbar and/or left
+        // sidebar, depending on theme) so navigation stays visible and usable.
+        // We measure where Nautobot placed our content block in the normal
+        // layout flow — its top/left already account for whatever chrome the
+        // theme renders — and use those as the viewer's insets.
+        function fitAroundChrome() {
+            const parent = document.getElementById('topology-root').parentElement;
+            if (!parent) return;
+            const r = parent.getBoundingClientRect();
+            const style = document.documentElement.style;
+            style.setProperty('--nb-top', Math.max(0, Math.round(r.top + window.scrollY)) + 'px');
+            style.setProperty('--nb-left', Math.max(0, Math.round(r.left + window.scrollX)) + 'px');
+            if (network) network.redraw();   // resize the canvas to the new area
+        }
+
         window.addEventListener('DOMContentLoaded', async () => {
+            fitAroundChrome();
+            window.addEventListener('resize', fitAroundChrome);
+            // Re-fit when Nautobot's sidebar expands/collapses: that changes the
+            // content block's box without firing a window 'resize'.
+            const parent = document.getElementById('topology-root').parentElement;
+            if (parent && window.ResizeObserver) {
+                new ResizeObserver(fitAroundChrome).observe(parent);
+            }
+            // Fallback for chrome that animates open/closed via CSS transitions.
+            document.addEventListener('transitionend', fitAroundChrome, true);
             await loadFilters();
             await loadGraph();
         });
