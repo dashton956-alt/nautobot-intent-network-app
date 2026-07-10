@@ -26,17 +26,18 @@
 /* Override Nautobot's base inside our content area */
         #topology-root{
             position:fixed;
-            /* Fill the viewport *below* Nautobot's fixed navbar so the navbar
-               stays visible and usable. The exact navbar height is measured at
-               load time and stored in --nb-navbar-h (56px fallback). */
-            inset:var(--nb-navbar-h, 56px) 0 0 0;
+            /* Fill the viewport *around* Nautobot's chrome (top navbar and/or
+               left sidebar, depending on theme). The offsets are measured at
+               load time from where Nautobot placed our content block, and
+               stored in --nb-top / --nb-left (fallbacks cover a plain navbar). */
+            inset:var(--nb-top, 56px) 0 0 var(--nb-left, 0);
             display:grid;
             grid-template-columns:260px 1fr 380px;
             grid-template-rows:52px 1fr;
             background:var(--bg);
             color:var(--text);
             font-family:'Sora','Segoe UI',sans-serif;
-            /* Below the navbar (~1030) so its dropdown menus open over us. */
+            /* Below Nautobot's chrome (~1030) so nav menus open over us. */
             z-index:1000;
         }
 
@@ -751,19 +752,23 @@
         const LIVE_TTL      = 60000; // ms
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
-        // Measure Nautobot's fixed navbar so the viewer starts right below it
-        // (keeps the navbar visible/usable instead of covering it full-screen).
-        function fitBelowNavbar() {
-            const nav = document.querySelector('nav.navbar, header nav, #navbar, .navbar');
-            if (nav) {
-                document.documentElement.style.setProperty(
-                    '--nb-navbar-h', nav.getBoundingClientRect().height + 'px');
-            }
+        // Fit the fixed viewer around Nautobot's chrome (top navbar and/or left
+        // sidebar, depending on theme) so navigation stays visible and usable.
+        // We measure where Nautobot placed our content block in the normal
+        // layout flow — its top/left already account for whatever chrome the
+        // theme renders — and use those as the viewer's insets.
+        function fitAroundChrome() {
+            const parent = document.getElementById('topology-root').parentElement;
+            if (!parent) return;
+            const r = parent.getBoundingClientRect();
+            const style = document.documentElement.style;
+            style.setProperty('--nb-top', Math.max(0, Math.round(r.top + window.scrollY)) + 'px');
+            style.setProperty('--nb-left', Math.max(0, Math.round(r.left + window.scrollX)) + 'px');
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
-            fitBelowNavbar();
-            window.addEventListener('resize', fitBelowNavbar);
+            fitAroundChrome();
+            window.addEventListener('resize', fitAroundChrome);
             await loadFilters();
             await loadGraph();
         });
