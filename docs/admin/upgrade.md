@@ -28,6 +28,24 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.15 (multi-tunnel GRE and per-device eBGP EVPN)
+
+v2.0.15 is a **feature release** — no database migrations, and both legacy
+intent forms are unchanged.
+
+```bash
+pip install --upgrade nautobot-app-intent-networking==2.0.15
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+- `gre_tunnel` intents may now define a `security.gre.tunnels` list (one GRE
+  interface per entry; explicit `name: TunnelN` pins the tunnel id).
+- `bgp_evpn_af` intents may now define per-device
+  `routing.address_families.l2vpn_evpn.devices` blocks for eBGP EVPN fabrics
+  with a unique AS per switch.
+
+See the [v2.0.15 release notes](../admin/release_notes/version_2.0.15.md) for full details.
+
 ### Upgrading to v2.0.14 (topology viewer and VNI Pools fixes)
 
 v2.0.14 is a **bug-fix release** — no database migrations and no pipeline
