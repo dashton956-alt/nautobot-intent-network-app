@@ -936,8 +936,6 @@ class RicherFormResolverTest(TestCase):
         self.assertEqual(prims[1]["tunnel_ip"], "100.64.2.2/30")
 
     def test_gre_tunnel_legacy_flat_form_still_works(self):
-        from unittest.mock import patch
-
         from intent_networking.resolver import resolve_gre_tunnel
 
         intent = self._intent({"tunnel_source": "1.1.1.1", "tunnel_destination": "2.2.2.2"})
