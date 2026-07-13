@@ -2552,32 +2552,81 @@ def resolve_l3vni(intent) -> dict:
     }
 
 
+def _evpn_neighbors(raw) -> list:
+    """Normalise EVPN neighbour entries to the full key set the templates read.
+
+    Every guarded key is always present (None when unset) so the per-platform
+    ``{% if neighbor.x %}`` guards never trip StrictUndefined, and both the
+    ``remote_as`` and ``remote_asn`` spellings used across template sets work.
+    """
+    out = []
+    for n in raw or []:
+        if not isinstance(n, dict):
+            n = {"ip": n}
+        remote = n.get("remote_asn") or n.get("remote_as")
+        out.append(
+            {
+                "ip": n.get("ip"),
+                "remote_as": remote,
+                "remote_asn": remote,
+                "description": n.get("description", ""),
+                "update_source": n.get("update_source"),
+                "route_reflector_client": n.get("route_reflector_client", False),
+                "send_community": n.get("send_community", "extended"),
+            }
+        )
+    return out
+
+
 @transaction.atomic
 def resolve_bgp_evpn_af(intent) -> dict:
-    """Resolve a BGP EVPN address family intent."""
+    """Resolve a BGP EVPN address family intent.
+
+    Supported forms:
+      - Per-device blocks (eBGP EVPN fabrics where every switch has its own
+        AS): ``routing.address_families.l2vpn_evpn.devices`` — a list of
+        ``{hostname, as_number, router_id, neighbors:[...]}``; each scoped
+        device gets the block matching its hostname.
+      - Fabric-wide: ``routing.{as_number, router_id}`` +
+        ``routing.address_families.l2vpn_evpn.neighbors`` (or the legacy flat
+        ``local_asn`` / ``neighbors``) applied to every scoped device.
+    """
     intent_data = intent.intent_data
-    # Nested form: routing.{as_number, router_id, address_families.l2vpn_evpn.{neighbors:[...]}}
     routing = intent_data.get("routing", {})
     evpn_af = routing.get("address_families", {}).get("l2vpn_evpn", {})
-    local_asn = intent_data.get("local_asn") or routing.get("as_number")
-    if not local_asn:
-        raise ValueError(f"Intent {intent.intent_id}: 'local_asn' (or 'routing.as_number') required for bgp_evpn_af.")
 
-    neighbors = intent_data.get("neighbors") or evpn_af.get("neighbors", [])
-    router_id = intent_data.get("router_id") or routing.get("router_id", "")
+    per_device = {d.get("hostname"): d for d in evpn_af.get("devices", []) if isinstance(d, dict) and d.get("hostname")}
+
+    local_asn = intent_data.get("local_asn") or routing.get("as_number")
+    if not local_asn and not per_device:
+        raise ValueError(
+            f"Intent {intent.intent_id}: 'local_asn' (or 'routing.as_number', or per-device "
+            f"'routing.address_families.l2vpn_evpn.devices') required for bgp_evpn_af."
+        )
+
+    shared_neighbors = _evpn_neighbors(intent_data.get("neighbors") or evpn_af.get("neighbors", []))
+    shared_router_id = intent_data.get("router_id") or routing.get("router_id", "")
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
 
     for device in devices:
+        block = per_device.get(device.name)
+        if per_device and not block:
+            logger.warning(
+                "Intent %s: device '%s' is in scope but has no l2vpn_evpn.devices block — skipped.",
+                intent.intent_id,
+                device.name,
+            )
+            continue
         affected.append(device.name)
         primitives.append(
             {
                 "primitive_type": "bgp_evpn_af",
                 "device": device.name,
-                "local_asn": local_asn,
-                "router_id": router_id,
-                "neighbors": neighbors,
+                "local_asn": (block.get("as_number") if block else None) or local_asn,
+                "router_id": (block.get("router_id") if block else None) or shared_router_id,
+                "neighbors": _evpn_neighbors(block.get("neighbors")) if block else shared_neighbors,
                 "advertise_all_vni": intent_data.get("advertise_all_vni", True),
                 "route_target_auto": intent_data.get("route_target_auto", True),
                 "intent_id": intent.intent_id,
@@ -3048,14 +3097,44 @@ def resolve_ipsec_ikev2(intent) -> dict:
 
 @transaction.atomic
 def resolve_gre_tunnel(intent) -> dict:
-    """Resolve a GRE tunnel intent."""
+    """Resolve a GRE tunnel intent.
+
+    Supported forms:
+      - Multi-tunnel list: ``security.gre.tunnels`` — a list of
+        ``{name, local, remote, tunnel_ip, description, keepalive, mtu}``
+        entries, one GRE interface per entry per scoped device.
+      - Legacy flat single tunnel: top-level ``tunnel_source`` /
+        ``tunnel_destination`` (or ``tunnel.local_endpoint`` /
+        ``tunnel.remote_endpoint``).
+    """
     intent_data = intent.intent_data
-    tunnel_dest = intent_data.get("tunnel_destination") or intent_data.get("tunnel", {}).get("remote_endpoint")
-    tunnel_source = intent_data.get("tunnel_source") or intent_data.get("tunnel", {}).get("local_endpoint")
-    if not tunnel_dest or not tunnel_source:
-        raise ValueError(
-            f"Intent {intent.intent_id}: 'tunnel_destination' and 'tunnel_source' required for gre_tunnel."
-        )
+
+    tunnel_defs = intent_data.get("security", {}).get("gre", {}).get("tunnels", [])
+    if not tunnel_defs:
+        tunnel_dest = intent_data.get("tunnel_destination") or intent_data.get("tunnel", {}).get("remote_endpoint")
+        tunnel_source = intent_data.get("tunnel_source") or intent_data.get("tunnel", {}).get("local_endpoint")
+        if not tunnel_dest or not tunnel_source:
+            raise ValueError(
+                f"Intent {intent.intent_id}: 'security.gre.tunnels' (or legacy "
+                f"'tunnel_destination' + 'tunnel_source') required for gre_tunnel."
+            )
+        tunnel_defs = [
+            {
+                "local": tunnel_source,
+                "remote": tunnel_dest,
+                "tunnel_ip": intent_data.get("tunnel_ip", ""),
+                "description": intent_data.get("description", ""),
+                "tunnel_key": intent_data.get("tunnel_key"),
+                "keepalive": intent_data.get("keepalive", 10),
+                "mtu": intent_data.get("mtu", 1400),
+            }
+        ]
+
+    for t in tunnel_defs:
+        if not (t.get("local") or t.get("tunnel_source")) or not (t.get("remote") or t.get("tunnel_destination")):
+            raise ValueError(
+                f"Intent {intent.intent_id}: GRE tunnel '{t.get('name', '?')}' requires 'local' and 'remote'."
+            )
 
     devices = _get_scope_devices(intent)
     primitives = []
@@ -3063,24 +3142,30 @@ def resolve_gre_tunnel(intent) -> dict:
 
     for device in devices:
         affected.append(device.name)
-        tunnel_id = allocate_tunnel_id(device, intent, "gre")
-        primitives.append(
-            {
-                "primitive_type": "gre_tunnel",
-                "device": device.name,
-                "tunnel_id": tunnel_id,
-                "tunnel_interface": f"Tunnel{tunnel_id}",
-                "tunnel_source": tunnel_source,
-                "tunnel_destination": tunnel_dest,
-                "ip_address": intent_data.get("tunnel_ip", ""),
-                "tunnel_ip": intent_data.get("tunnel_ip", ""),
-                "description": intent_data.get("description", ""),
-                "tunnel_key": intent_data.get("tunnel_key"),
-                "keepalive": intent_data.get("keepalive", 10),
-                "mtu": intent_data.get("mtu", 1400),
-                "intent_id": intent.intent_id,
-            }
-        )
+        for t in tunnel_defs:
+            # Honour an explicit interface name (e.g. "Tunnel3"); otherwise
+            # allocate a tunnel id per interface.
+            tunnel_id = _trailing_int(t.get("name")) or allocate_tunnel_id(device, intent, "gre")
+            keepalive = t.get("keepalive", 10)
+            if isinstance(keepalive, dict) and not keepalive.get("enabled", True):
+                keepalive = None
+            primitives.append(
+                {
+                    "primitive_type": "gre_tunnel",
+                    "device": device.name,
+                    "tunnel_id": tunnel_id,
+                    "tunnel_interface": t.get("name") or f"Tunnel{tunnel_id}",
+                    "tunnel_source": t.get("local") or t.get("tunnel_source"),
+                    "tunnel_destination": t.get("remote") or t.get("tunnel_destination"),
+                    "ip_address": t.get("tunnel_ip", ""),
+                    "tunnel_ip": t.get("tunnel_ip", ""),
+                    "description": t.get("description", ""),
+                    "tunnel_key": t.get("tunnel_key"),
+                    "keepalive": keepalive,
+                    "mtu": t.get("mtu", 1400),
+                    "intent_id": intent.intent_id,
+                }
+            )
 
     return _empty_plan(affected, primitives)
 

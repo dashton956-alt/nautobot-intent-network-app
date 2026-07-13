@@ -880,3 +880,115 @@ class GapResolutionTest(TestCase):
         # accepts CIDR form and unknown IP returns empty
         self.assertEqual(["gap-leaf-01"], [d.name for d in _devices_by_ip(intent, "203.0.113.10/24")])
         self.assertEqual([], _devices_by_ip(intent, "9.9.9.9"))
+
+
+class RicherFormResolverTest(TestCase):
+    """Multi-tunnel GRE lists and per-device eBGP-EVPN blocks (customer forms)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        NestedBlockResolverTest.setUpTestData()
+        cls.tenant = NestedBlockResolverTest.tenant
+        cls.device = NestedBlockResolverTest.device
+
+    def _intent(self, intent_data):
+        intent = MagicMock()
+        intent.intent_id = "richer-test"
+        intent.tenant = self.tenant
+        intent.intent_data = {"scope": {"devices": ["dc-east-leaf-01"]}, **intent_data}
+        return intent
+
+    def test_gre_tunnel_multi_tunnel_list(self):
+        from intent_networking.resolver import resolve_gre_tunnel
+
+        intent = self._intent(
+            {
+                "security": {
+                    "gre": {
+                        "tunnels": [
+                            {
+                                "name": "Tunnel1",
+                                "description": "GRE_to_branch1",
+                                "local": "10.0.100.1",
+                                "remote": "10.0.101.0",
+                                "tunnel_ip": "100.64.1.2/30",
+                                "keepalive": {"enabled": True, "interval": 10, "retries": 3},
+                                "mtu": 1476,
+                            },
+                            {
+                                "name": "Tunnel2",
+                                "local": "10.0.100.1",
+                                "remote": "10.0.102.0",
+                                "tunnel_ip": "100.64.2.2/30",
+                            },
+                        ]
+                    }
+                }
+            }
+        )
+        prims = resolve_gre_tunnel(intent)["primitives"]
+        self.assertEqual(len(prims), 2)
+        self.assertEqual(prims[0]["tunnel_interface"], "Tunnel1")
+        self.assertEqual(prims[0]["tunnel_id"], 1)  # honours the explicit name
+        self.assertEqual(prims[0]["tunnel_source"], "10.0.100.1")
+        self.assertEqual(prims[0]["tunnel_destination"], "10.0.101.0")
+        self.assertEqual(prims[1]["tunnel_interface"], "Tunnel2")
+        self.assertEqual(prims[1]["tunnel_ip"], "100.64.2.2/30")
+
+    def test_gre_tunnel_legacy_flat_form_still_works(self):
+        from unittest.mock import patch
+
+        from intent_networking.resolver import resolve_gre_tunnel
+
+        intent = self._intent({"tunnel_source": "1.1.1.1", "tunnel_destination": "2.2.2.2"})
+        # No explicit tunnel name in the legacy form — the id is allocated.
+        with patch("intent_networking.resolver.allocate_tunnel_id", return_value=7):
+            prims = resolve_gre_tunnel(intent)["primitives"]
+        self.assertEqual(len(prims), 1)
+        self.assertEqual(prims[0]["tunnel_destination"], "2.2.2.2")
+        self.assertEqual(prims[0]["tunnel_interface"], "Tunnel7")
+
+    def test_bgp_evpn_af_per_device_blocks(self):
+        from intent_networking.resolver import resolve_bgp_evpn_af
+
+        intent = self._intent(
+            {
+                "routing": {
+                    "protocol": "bgp",
+                    "address_families": {
+                        "l2vpn_evpn": {
+                            "enabled": True,
+                            "devices": [
+                                {
+                                    "hostname": "dc-east-leaf-01",
+                                    "as_number": 65011,
+                                    "router_id": "192.168.0.21",
+                                    "neighbors": [
+                                        {"ip": "192.168.0.1", "remote_as": 65001, "description": "spine1_evpn"},
+                                    ],
+                                },
+                                {"hostname": "not-in-scope", "as_number": 65099},
+                            ],
+                        }
+                    },
+                }
+            }
+        )
+        prims = resolve_bgp_evpn_af(intent)["primitives"]
+        self.assertEqual(len(prims), 1)  # only the scoped device with a block
+        prim = prims[0]
+        self.assertEqual(prim["local_asn"], 65011)
+        self.assertEqual(prim["router_id"], "192.168.0.21")
+        self.assertEqual(prim["neighbors"][0]["ip"], "192.168.0.1")
+        # both spellings the platform templates use, plus guarded keys present
+        self.assertEqual(prim["neighbors"][0]["remote_asn"], 65001)
+        self.assertEqual(prim["neighbors"][0]["remote_as"], 65001)
+        self.assertIn("update_source", prim["neighbors"][0])
+
+    def test_bgp_evpn_af_fabric_wide_form_still_works(self):
+        from intent_networking.resolver import resolve_bgp_evpn_af
+
+        intent = self._intent({"routing": {"as_number": 65000}, "neighbors": [{"ip": "10.0.0.1"}]})
+        prims = resolve_bgp_evpn_af(intent)["primitives"]
+        self.assertEqual(prims[0]["local_asn"], 65000)
+        self.assertEqual(prims[0]["neighbors"][0]["ip"], "10.0.0.1")

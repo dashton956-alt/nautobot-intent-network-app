@@ -1,0 +1,54 @@
+# -----------------------------------------------------------------------------
+# Intent type: bgp_evpn_af (per-device form)
+# Purpose:     eBGP EVPN overlay where each fabric switch has its own AS —
+#              per-device blocks under routing.address_families.l2vpn_evpn.
+# -----------------------------------------------------------------------------
+
+intent:
+  id: template-bgp-evpn-per-device-001
+  type: bgp_evpn_af
+  version: 1
+  tenant: acme-corp
+  change_ticket: CHG0031064
+  description: "BGP EVPN overlay — per-device AS/router-id/neighbours (eBGP fabric)"
+
+  scope:
+    devices:
+      - render-leaf-01
+      - render-leaf-02
+
+  routing:
+    protocol: bgp
+    address_families:
+      l2vpn_evpn:
+        enabled: true
+        devices:
+          - hostname: render-leaf-01
+            as_number: 65011
+            router_id: "192.168.0.21"
+            neighbors:
+              - ip: "192.168.0.1"
+                remote_as: 65001
+                description: "spine1_evpn"
+                update_source: Loopback0
+          - hostname: render-leaf-02
+            as_number: 65012
+            router_id: "192.168.0.22"
+            neighbors:
+              - ip: "192.168.0.1"
+                remote_as: 65001
+                description: "spine1_evpn"
+                update_source: Loopback0
+
+  policy:
+    compliance: NONE
+    encryption: none
+
+  deployment:
+    strategy: rolling
+    save_config: true
+
+  verification:
+    level: basic
+    trigger: on_deploy
+    fail_action: alert
