@@ -1,0 +1,48 @@
+# -----------------------------------------------------------------------------
+# Intent type: gre_tunnel (multi-tunnel form)
+# Purpose:     Hub-side GRE: several tunnels (one per branch) defined in a
+#              single intent via the security.gre.tunnels list.
+# -----------------------------------------------------------------------------
+
+id: acme-wan-gre-hub-001
+type: gre_tunnel
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031063
+description: "GRE hub — tunnels to all branches from the DC WAN edge"
+
+scope:
+  devices: [dc-east-edge-01]
+
+security:
+  gre:
+    tunnels:
+      - name: Tunnel1
+        description: "GRE_to_branch1"
+        local: "10.0.100.1"
+        remote: "10.0.101.0"
+        tunnel_ip: "100.64.1.2/30"
+        keepalive:
+          enabled: true
+          interval: 10
+          retries: 3
+        mtu: 1476
+      - name: Tunnel2
+        description: "GRE_to_branch2"
+        local: "10.0.100.1"
+        remote: "10.0.102.0"
+        tunnel_ip: "100.64.2.2/30"
+        mtu: 1476
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert
