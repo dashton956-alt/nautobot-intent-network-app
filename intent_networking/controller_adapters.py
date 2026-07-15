@@ -580,8 +580,33 @@ class CatalystCenterAdapter:
             base_url=url,
             username=username,
             password=password,
-            verify=False,
+            verify=self._resolve_tls_verify(),
         )
+
+    @staticmethod
+    def _resolve_tls_verify():
+        """Resolve the TLS verification setting for the Catalyst Center session.
+
+        Secure by default. Catalyst Center commonly ships a self-signed
+        certificate; the supported way to handle that is to trust it via a CA
+        bundle (verification stays ON):
+
+            catalyst_center_ca_bundle: "/etc/ssl/dnac-ca.pem"
+
+        Verification can be disabled entirely — but only as an explicit,
+        documented opt-out (lab/testing) — with:
+
+            catalyst_center_verify_ssl: false
+
+        Returns the value passed to ``requests``' ``verify`` argument: a CA
+        bundle path (str), or a bool (defaults to True).
+        """
+        ca_bundle = _get_plugin_config("catalyst_center_ca_bundle")
+        if ca_bundle:
+            return ca_bundle
+        verify = _get_plugin_config("catalyst_center_verify_ssl")
+        # Default ON when unset; only False when explicitly configured false.
+        return False if verify is False else True
 
     @staticmethod
     def _resolve_credentials():

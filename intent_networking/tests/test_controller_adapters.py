@@ -514,6 +514,26 @@ class CatalystCenterAdapterImportTest(SimpleTestCase):
             self.assertIn("catalyst", str(ctx.exception))
             self.assertIn("poetry add", str(ctx.exception))
 
+    def test_tls_verify_defaults_on(self):
+        """TLS verification must default ON (secure by default)."""
+        from intent_networking.controller_adapters import CatalystCenterAdapter  # noqa: PLC0415
+
+        self.assertIs(CatalystCenterAdapter._resolve_tls_verify(), True)
+
+    @override_settings(PLUGINS_CONFIG={"intent_networking": {"catalyst_center_verify_ssl": False}})
+    def test_tls_verify_explicit_opt_out(self):
+        """Verification can be disabled, but only via explicit config."""
+        from intent_networking.controller_adapters import CatalystCenterAdapter  # noqa: PLC0415
+
+        self.assertIs(CatalystCenterAdapter._resolve_tls_verify(), False)
+
+    @override_settings(PLUGINS_CONFIG={"intent_networking": {"catalyst_center_ca_bundle": "/etc/ssl/dnac-ca.pem"}})
+    def test_tls_verify_ca_bundle_takes_precedence(self):
+        """A CA bundle path keeps verification ON against a self-signed cert."""
+        from intent_networking.controller_adapters import CatalystCenterAdapter  # noqa: PLC0415
+
+        self.assertEqual(CatalystCenterAdapter._resolve_tls_verify(), "/etc/ssl/dnac-ca.pem")
+
 
 class CatalystCenterAdapterTest(SimpleTestCase):
     """Test CatalystCenterAdapter deploy, verify, rollback, and task polling."""
