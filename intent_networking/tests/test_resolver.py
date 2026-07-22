@@ -1035,7 +1035,11 @@ class RicherFormResolverTest(TestCase):
         from intent_networking.resolver import resolve_dc_underlay
 
         intent = self._intent(
-            {"dc": {"underlay": {"protocol": "bgp"}}, "local_asn": 65000, "neighbors": [{"ip": "10.0.0.1", "asn": 65001}]}
+            {
+                "dc": {"underlay": {"protocol": "bgp"}},
+                "local_asn": 65000,
+                "neighbors": [{"ip": "10.0.0.1", "asn": 65001}],
+            }
         )
         with patch("intent_networking.resolver.allocate_loopback_ip", return_value="10.255.0.1") as alloc:
             prims = resolve_dc_underlay(intent)["primitives"]
