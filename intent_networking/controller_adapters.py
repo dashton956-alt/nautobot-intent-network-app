@@ -606,7 +606,7 @@ class CatalystCenterAdapter:
             return ca_bundle
         verify = _get_plugin_config("catalyst_center_verify_ssl")
         # Default ON when unset; only False when explicitly configured false.
-        return False if verify is False else True
+        return verify is not False
 
     @staticmethod
     def _resolve_credentials():
