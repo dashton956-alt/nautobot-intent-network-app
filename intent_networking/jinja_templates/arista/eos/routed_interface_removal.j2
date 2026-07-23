@@ -1,0 +1,18 @@
+{# routed_interface_removal.j2 — arista-eos #}
+! Remove Routed (L3) Interface config
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.ip_address %}
+   no ip address
+{% endif %}
+{% if iface.ipv6_address %}
+   no ipv6 address
+{% endif %}
+{% if iface.vrf %}
+   no vrf {{ iface.vrf }}
+{% endif %}
+   switchport
+!
+{% endfor %}

@@ -1,0 +1,39 @@
+# -----------------------------------------------------------------------------
+# Intent type: vrf_route_leak
+# Purpose:     Leak routes between a tenant VRF and the global table — e.g. a
+#              border spine handing tenant EVPN routes to the WAN/GRE path.
+# -----------------------------------------------------------------------------
+
+id: template-vrf-route-leak-001
+type: vrf_route_leak
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031066
+description: "VRF route leak — IP-VRF-1 tenant routes into global for WAN handoff"
+
+scope:
+  devices: [dc-spine2]
+
+source_vrf: IP-VRF-1
+dest_vrf: default
+bgp_asn: 65002
+import_route_targets:
+  - "65002:10099"
+export_route_targets:
+  - "65002:10099"
+static_leaks:
+  - prefix: "192.168.1.0/24"
+    next_hop: "10.0.6.0"
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert

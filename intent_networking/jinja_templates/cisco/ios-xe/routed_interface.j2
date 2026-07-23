@@ -1,0 +1,29 @@
+{# routed_interface.j2 — ios-xe #}
+! Routed (L3) Interface
+! Intent: {{ intent_id }}
+!
+{% for iface in interfaces | default([]) %}
+interface {{ iface.name }}
+{% if iface.description %}
+ description {{ iface.description }}
+{% endif %}
+ no switchport
+{% if iface.vrf %}
+ vrf forwarding {{ iface.vrf }}
+{% endif %}
+{% if iface.ip_address %}
+ ip address {{ iface.ip_netmask | default(iface.ip_address) }}
+{% endif %}
+{% if iface.ipv6_address %}
+ ipv6 address {{ iface.ipv6_address }}
+{% endif %}
+{% if iface.mtu %}
+ mtu {{ iface.mtu }}
+{% endif %}
+{% if iface.enabled | default(true) %}
+ no shutdown
+{% else %}
+ shutdown
+{% endif %}
+!
+{% endfor %}

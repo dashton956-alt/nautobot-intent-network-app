@@ -1,0 +1,19 @@
+{# vrf_route_leak_removal.j2 — arista-eos #}
+! Remove Inter-VRF Route Leak: {{ source_vrf }}
+! Intent: {{ intent_id }}
+!
+{% if import_route_targets or export_route_targets %}
+router bgp {{ bgp_asn | default(65000) }}
+   vrf {{ source_vrf }}
+{% for rt in export_route_targets | default([]) %}
+      no route-target export vpn-ipv4 {{ rt }}
+{% endfor %}
+{% for rt in import_route_targets | default([]) %}
+      no route-target import vpn-ipv4 {{ rt }}
+{% endfor %}
+!
+{% endif %}
+{% for leak in static_leaks | default([]) %}
+no ip route vrf {{ source_vrf }} {{ leak.prefix }}
+{% endfor %}
+!

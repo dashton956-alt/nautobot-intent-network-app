@@ -49,6 +49,7 @@ mapping:
       - ip_source_guard
       - macsec
       # Layer 3
+      - routed_interface
       - static_route
       - ospf
       - bgp_ebgp
@@ -87,6 +88,7 @@ mapping:
       - evpn_multisite
       - dc_underlay
       - dc_mlag
+      - vrf_route_leak
       # Security
       - connectivity
       - security
@@ -3337,3 +3339,26 @@ mapping:
   zone:
     type: str
     required: false
+
+  # ── Routed (L3) interface + inter-VRF route leak fields ──
+  source_vrf:
+    type: str
+    required: false
+  dest_vrf:
+    type: str
+    required: false
+  import_route_targets:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  export_route_targets:
+    type: seq
+    required: false
+    sequence:
+      - type: str
+  static_leaks:
+    type: seq
+    required: false
+    sequence:
+      - type: any

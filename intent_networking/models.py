@@ -67,6 +67,7 @@ class IntentTypeChoices(models.TextChoices):
     MACSEC = "macsec", "MACsec"
 
     # ── 2. Layer 3 / Routing ──────────────────────────────────────────────
+    ROUTED_INTERFACE = "routed_interface", "Routed (L3) Interface"
     STATIC_ROUTE = "static_route", "Static Route"
     OSPF = "ospf", "OSPF Adjacency / Area"
     BGP_EBGP = "bgp_ebgp", "BGP Peering (eBGP)"
@@ -106,6 +107,7 @@ class IntentTypeChoices(models.TextChoices):
     EVPN_MULTISITE = "evpn_multisite", "Multi-Site EVPN"
     DC_UNDERLAY = "dc_underlay", "DC Underlay (OSPF/BGP)"
     DC_MLAG = "dc_mlag", "MLAG in DC Fabric"
+    VRF_ROUTE_LEAK = "vrf_route_leak", "Inter-VRF Route Leak"
 
     # ── 5. Security & Firewalling ─────────────────────────────────────────
     ACL = "acl", "ACL"

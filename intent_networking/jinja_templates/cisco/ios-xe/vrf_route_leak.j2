@@ -1,0 +1,24 @@
+{# vrf_route_leak.j2 — ios-xe #}
+! Inter-VRF Route Leak: {{ source_vrf }} <-> {{ dest_vrf }}
+! Intent: {{ intent_id }}
+!
+{% if import_route_targets or export_route_targets %}
+vrf definition {{ source_vrf }}
+ address-family ipv4
+{% for rt in export_route_targets | default([]) %}
+  route-target export {{ rt }}
+{% endfor %}
+{% for rt in import_route_targets | default([]) %}
+  route-target import {{ rt }}
+{% endfor %}
+ exit-address-family
+!
+{% endif %}
+{% for leak in static_leaks | default([]) %}
+{% if dest_vrf == "default" %}
+ip route vrf {{ source_vrf }} {{ leak.prefix | replace('/', ' ') }} {{ leak.next_hop | default("") }} global
+{% else %}
+ip route vrf {{ source_vrf }} {{ leak.prefix | replace('/', ' ') }} {{ leak.next_hop | default("") }}
+{% endif %}
+{% endfor %}
+!

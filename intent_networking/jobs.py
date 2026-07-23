@@ -1315,6 +1315,8 @@ def _render_all_configs(plan: ResolutionPlan, job_logger=None) -> dict:
         "srv6": "srv6.j2",
         "6pe_6vpe": "6pe_6vpe.j2",
         "mvpn": "mvpn.j2",
+        "routed_interface": "routed_interface.j2",
+        "vrf_route_leak": "vrf_route_leak.j2",
         # DC / EVPN / VXLAN
         "loopback": "loopback.j2",
         "vtep": "vtep.j2",

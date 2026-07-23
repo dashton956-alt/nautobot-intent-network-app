@@ -1,0 +1,40 @@
+# -----------------------------------------------------------------------------
+# Intent type: routed_interface
+# Purpose:     Configure physical interfaces as routed (L3) with IP addresses —
+#              e.g. spine-leaf P2P /31 fabric links or WAN uplinks. This is the
+#              underlay addressing the EVPN/BGP sessions peer over.
+# -----------------------------------------------------------------------------
+
+id: template-routed-interface-001
+type: routed_interface
+version: 1
+tenant: acme-corp
+change_ticket: CHG0031065
+description: "Routed interfaces — spine-leaf P2P /31 fabric links"
+
+scope:
+  devices: [dc-spine1]
+
+interfaces:
+  - name: Ethernet1
+    ip_address: "10.0.6.1/31"
+    description: "P2P_dc-leaf1_Ethernet1"
+    mtu: 9214
+    enabled: true
+  - name: Ethernet2
+    ip_address: "10.0.7.1/31"
+    description: "P2P_dc-leaf2_Ethernet1"
+    mtu: 9214
+
+policy:
+  compliance: NONE
+  encryption: none
+
+deployment:
+  strategy: rolling
+  save_config: true
+
+verification:
+  level: basic
+  trigger: on_deploy
+  fail_action: alert
