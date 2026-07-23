@@ -1,0 +1,23 @@
+{# vrf_route_leak.j2 — arista-eos #}
+! Inter-VRF Route Leak: {{ source_vrf }} <-> {{ dest_vrf }}
+! Intent: {{ intent_id }}
+!
+{% if import_route_targets or export_route_targets %}
+router bgp {{ bgp_asn | default(65000) }}
+   vrf {{ source_vrf }}
+{% for rt in export_route_targets | default([]) %}
+      route-target export vpn-ipv4 {{ rt }}
+{% endfor %}
+{% for rt in import_route_targets | default([]) %}
+      route-target import vpn-ipv4 {{ rt }}
+{% endfor %}
+!
+{% endif %}
+{% for leak in static_leaks | default([]) %}
+{% if dest_vrf == "default" %}
+ip route vrf {{ source_vrf }} {{ leak.prefix }} {{ leak.next_hop | default("") }}
+{% else %}
+ip route vrf {{ source_vrf }} {{ leak.prefix }} vrf {{ dest_vrf }} {{ leak.next_hop | default("") }}
+{% endif %}
+{% endfor %}
+!

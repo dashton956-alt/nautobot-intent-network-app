@@ -990,3 +990,68 @@ class RicherFormResolverTest(TestCase):
         prims = resolve_bgp_evpn_af(intent)["primitives"]
         self.assertEqual(prims[0]["local_asn"], 65000)
         self.assertEqual(prims[0]["neighbors"][0]["ip"], "10.0.0.1")
+
+    def test_routed_interface_emits_p2p_addresses(self):
+        from intent_networking.resolver import resolve_routed_interface
+
+        intent = self._intent(
+            {
+                "interfaces": [
+                    {"name": "Ethernet1", "ip_address": "10.0.6.1/31", "description": "P2P_leaf1", "mtu": 9214},
+                ]
+            }
+        )
+        prim = resolve_routed_interface(intent)["primitives"][0]
+        self.assertEqual(prim["primitive_type"], "routed_interface")
+        iface = prim["interfaces"][0]
+        self.assertEqual(iface["ip_address"], "10.0.6.1/31")
+        self.assertEqual(iface["ip_netmask"], "10.0.6.1 255.255.255.254")  # IOS dotted-mask form
+        self.assertTrue(iface["enabled"])
+
+    def test_routed_interface_requires_name_and_ip(self):
+        from intent_networking.resolver import resolve_routed_interface
+
+        intent = self._intent({"interfaces": [{"description": "no name/ip"}]})
+        with self.assertRaises(ValueError):
+            resolve_routed_interface(intent)
+
+    def test_routed_interface_per_device_blocks(self):
+        from intent_networking.resolver import resolve_routed_interface
+
+        intent = self._intent(
+            {
+                "devices": [
+                    {"hostname": "dc-east-leaf-01", "interfaces": [{"name": "Ethernet2", "ip_address": "10.0.6.0/31"}]},
+                    {"hostname": "not-in-scope", "interfaces": [{"name": "Ethernet9", "ip_address": "10.9.9.9/31"}]},
+                ]
+            }
+        )
+        prims = resolve_routed_interface(intent)["primitives"]
+        self.assertEqual(len(prims), 1)
+        self.assertEqual(prims[0]["interfaces"][0]["name"], "Ethernet2")
+
+    def test_vrf_route_leak_emits_targets_and_static(self):
+        from intent_networking.resolver import resolve_vrf_route_leak
+
+        intent = self._intent(
+            {
+                "source_vrf": "IP-VRF-1",
+                "dest_vrf": "default",
+                "bgp_asn": 65002,
+                "import_route_targets": ["65002:10099"],
+                "export_route_targets": ["65002:10099"],
+                "static_leaks": [{"prefix": "192.168.1.0/24", "next_hop": "10.0.6.0"}],
+            }
+        )
+        prim = resolve_vrf_route_leak(intent)["primitives"][0]
+        self.assertEqual(prim["primitive_type"], "vrf_route_leak")
+        self.assertEqual(prim["source_vrf"], "IP-VRF-1")
+        self.assertEqual(prim["import_route_targets"], ["65002:10099"])
+        self.assertEqual(prim["static_leaks"][0]["prefix"], "192.168.1.0/24")
+
+    def test_vrf_route_leak_requires_source_vrf(self):
+        from intent_networking.resolver import resolve_vrf_route_leak
+
+        intent = self._intent({"dest_vrf": "default"})
+        with self.assertRaises(ValueError):
+            resolve_vrf_route_leak(intent)

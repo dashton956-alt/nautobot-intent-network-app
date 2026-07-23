@@ -2838,6 +2838,128 @@ def resolve_dc_mlag(intent) -> dict:
     return resolve_mlag(intent)
 
 
+@transaction.atomic
+def resolve_routed_interface(intent) -> dict:
+    """Resolve a routed (L3) physical-interface intent.
+
+    Configures point-to-point fabric links, WAN uplinks, or any physical
+    interface as routed (``no switchport``) with an IPv4/IPv6 address — the
+    piece the underlay needs so BGP/OSPF has something to peer over.
+
+    Two forms:
+      - Per-device blocks: ``devices`` — a list of
+        ``{hostname, interfaces:[{name, ip_address, description, mtu, enabled,
+        vrf}]}``; each scoped device gets the block matching its hostname.
+      - Fabric-wide: a top-level ``interfaces`` list applied to every scoped
+        device.
+    """
+    intent_data = intent.intent_data
+    per_device = {
+        d.get("hostname"): d for d in intent_data.get("devices", []) if isinstance(d, dict) and d.get("hostname")
+    }
+    shared_ifaces = intent_data.get("interfaces", [])
+    if not per_device and not shared_ifaces:
+        raise ValueError(
+            f"Intent {intent.intent_id}: 'interfaces' (or per-device 'devices[].interfaces') required "
+            f"for routed_interface."
+        )
+
+    def _norm(ifaces):
+        out = []
+        for i in ifaces:
+            if not i.get("name") or not (i.get("ip_address") or i.get("ipv6_address")):
+                raise ValueError(f"Intent {intent.intent_id}: each routed interface needs 'name' and 'ip_address'.")
+            # Provide both CIDR (EOS/XR/NXOS) and dotted "addr mask" (IOS-XE) forms.
+            cidr = i.get("ip_address", "")
+            ip_netmask = cidr
+            if cidr and "/" in cidr:
+                try:
+                    iface = ipaddress.ip_interface(cidr)
+                    ip_netmask = f"{iface.ip} {iface.netmask}"
+                except ValueError:
+                    ip_netmask = cidr
+            out.append(
+                {
+                    "name": i["name"],
+                    "ip_address": cidr,
+                    "ip_netmask": ip_netmask,
+                    "ipv6_address": i.get("ipv6_address", ""),
+                    "description": i.get("description", ""),
+                    "mtu": i.get("mtu"),
+                    "vrf": i.get("vrf", ""),
+                    "enabled": i.get("enabled", True),
+                }
+            )
+        return out
+
+    devices = _get_scope_devices(intent)
+    primitives = []
+    affected = []
+
+    for device in devices:
+        block = per_device.get(device.name)
+        if per_device and not block:
+            logger.warning(
+                "Intent %s: device '%s' in scope has no routed_interface devices block — skipped.",
+                intent.intent_id,
+                device.name,
+            )
+            continue
+        ifaces = _norm(block["interfaces"]) if block else _norm(shared_ifaces)
+        affected.append(device.name)
+        primitives.append(
+            {
+                "primitive_type": "routed_interface",
+                "device": device.name,
+                "interfaces": ifaces,
+                "intent_id": intent.intent_id,
+            }
+        )
+
+    return _empty_plan(affected, primitives)
+
+
+@transaction.atomic
+def resolve_vrf_route_leak(intent) -> dict:
+    """Resolve an inter-VRF route-leak intent.
+
+    Bridges routes between VRFs (or a VRF and the global table) — e.g. leaking
+    the tenant EVPN VRF into the global/GRE table on a border spine for
+    WAN handoff. Supports both route-target import/export (BGP VPN leaking) and
+    explicit static leaks.
+
+    Fields: ``source_vrf`` (required), ``dest_vrf`` (default ``"default"`` /
+    global), ``import_route_targets``, ``export_route_targets``,
+    ``static_leaks`` (list of ``{prefix, next_hop}``), ``bgp_asn``.
+    """
+    intent_data = intent.intent_data
+    source_vrf = intent_data.get("source_vrf")
+    if not source_vrf:
+        raise ValueError(f"Intent {intent.intent_id}: 'source_vrf' required for vrf_route_leak.")
+
+    devices = _get_scope_devices(intent)
+    primitives = []
+    affected = []
+
+    for device in devices:
+        affected.append(device.name)
+        primitives.append(
+            {
+                "primitive_type": "vrf_route_leak",
+                "device": device.name,
+                "source_vrf": source_vrf,
+                "dest_vrf": intent_data.get("dest_vrf", "default"),
+                "import_route_targets": intent_data.get("import_route_targets", []),
+                "export_route_targets": intent_data.get("export_route_targets", []),
+                "static_leaks": intent_data.get("static_leaks", []),
+                "bgp_asn": intent_data.get("bgp_asn") or _get_plugin_config("default_bgp_asn"),
+                "intent_id": intent.intent_id,
+            }
+        )
+
+    return _empty_plan(affected, primitives)
+
+
 # =========================================================================
 # 5. SECURITY & FIREWALLING RESOLVERS
 # =========================================================================
@@ -5529,6 +5651,7 @@ RESOLVERS = {
     "route_redistribution": resolve_route_redistribution,
     "route_policy": resolve_route_policy,
     "prefix_list": resolve_prefix_list,
+    "routed_interface": resolve_routed_interface,
     "vrf_basic": resolve_vrf_basic,
     "bfd": resolve_bfd,
     "pbr": resolve_pbr,
@@ -5557,6 +5680,7 @@ RESOLVERS = {
     "evpn_multisite": resolve_evpn_multisite,
     "dc_underlay": resolve_dc_underlay,
     "dc_mlag": resolve_dc_mlag,
+    "vrf_route_leak": resolve_vrf_route_leak,
     # 5. Security & Firewalling
     "acl": resolve_acl,
     "zbf": resolve_zbf,

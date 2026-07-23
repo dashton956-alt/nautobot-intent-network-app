@@ -1,0 +1,8 @@
+{# vrf_route_leak_removal.j2 — ios-xe #}
+! Remove Inter-VRF Route Leak: {{ source_vrf }}
+! Intent: {{ intent_id }}
+!
+{% for leak in static_leaks | default([]) %}
+no ip route vrf {{ source_vrf }} {{ leak.prefix | replace('/', ' ') }}
+{% endfor %}
+!
