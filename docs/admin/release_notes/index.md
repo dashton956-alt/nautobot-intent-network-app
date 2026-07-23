@@ -4,6 +4,7 @@ All published release notes are listed below. Patch releases are included within
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [v2.0.16](version_2.0.16.md) | 2026-07-23 | Security + fabric release: topology viewer XSS fixed; Catalyst Center TLS verify on by default; new `routed_interface` (P2P/WAN L3 links) and `vrf_route_leak` intent types; `dc_underlay` honours explicit per-device loopbacks. Validated against a 74-intent customer POC fabric |
 | [v2.0.15](version_2.0.15.md) | 2026-07-13 | Feature release: multi-tunnel GRE intents (`security.gre.tunnels[]` — hub routers, one intent) and per-device eBGP-EVPN overlays (`l2vpn_evpn.devices[]` — unique AS per switch); legacy forms unchanged; validated against a 57-intent customer POC corpus |
 | [v2.0.14](version_2.0.14.md) | 2026-07-10 | Bug-fix release: topology viewer fits around Nautobot's navbar/sidebar (re-fits live on sidebar toggle, adds Exit link) instead of covering the navigation; VNI Pools add/edit form crash (`get_relationships` AttributeError) fixed |
 | [v2.0.13](version_2.0.13.md) | 2026-07-09 | Reliability release: render contract enforced end-to-end across all 6 platform template sets (~300 latent resolver↔template fixes); full example corpus — all 134 intent types covered (170 files, schema-valid); deploys hard-fail on render errors instead of pushing partial config; auto-provisioned `intent-engine-svc` service account for chained jobs; topology viewer physical/logical edge filter |
