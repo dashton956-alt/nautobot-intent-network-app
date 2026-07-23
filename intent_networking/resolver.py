@@ -2767,21 +2767,52 @@ def resolve_evpn_multisite(intent) -> dict:
 def resolve_dc_underlay(intent) -> dict:
     """Resolve a DC underlay (OSPF/BGP) intent.
 
-    Allocates loopback IPs and configures point-to-point links + routing.
+    Supported forms:
+      - Per-device blocks (eBGP fabrics where every switch has its own AS,
+        loopback and neighbour list): ``dc.underlay.devices`` — a list of
+        ``{hostname, as_number, router_id, loopback, neighbors:[{ip, remote_as,
+        description}]}``. Each scoped device gets the block matching its
+        hostname; its **explicit loopback/router-id are used as-is** (no pool
+        allocation), and one bgp_neighbor primitive is emitted per neighbour.
+      - Fabric-wide: top-level ``local_asn``/``neighbors`` (or
+        ``dc.underlay.bgp.{as_base, spine_as}``) applied to every scoped device,
+        with the loopback **allocated from the pool** when not given explicitly.
     """
     intent_data = intent.intent_data
-    # Nested form: dc.underlay.{protocol, bgp.{as_base,...}, loopback.{interface}, ...}
+    # Nested form: dc.underlay.{protocol, bgp.{as_base,...}, loopback.{interface}, devices:[...]}
     underlay = intent_data.get("dc", {}).get("underlay", {})
     underlay_bgp = underlay.get("bgp", {})
     underlay_protocol = intent_data.get("protocol") or underlay.get("protocol", "ospf")
     loopback_intf = intent_data.get("loopback_interface") or underlay.get("loopback", {}).get("interface", "Loopback0")
+
+    per_device = {
+        d.get("hostname"): d for d in underlay.get("devices", []) if isinstance(d, dict) and d.get("hostname")
+    }
+
     devices = _get_scope_devices(intent)
     primitives = []
     affected = []
 
     for device in devices:
+        block = per_device.get(device.name)
+        if per_device and not block:
+            logger.warning(
+                "Intent %s: device '%s' is in scope but has no dc.underlay.devices block — skipped.",
+                intent.intent_id,
+                device.name,
+            )
+            continue
         affected.append(device.name)
-        loopback_ip = allocate_loopback_ip(device, intent)
+
+        # Use the explicit loopback/router-id from the device block when given
+        # (strip any /prefix); otherwise allocate a /32 from the loopback pool.
+        explicit_lo = (block or {}).get("loopback") or (block or {}).get("router_id")
+        if explicit_lo:
+            loopback_ip = str(explicit_lo).split("/", maxsplit=1)[0]
+        else:
+            loopback_ip = allocate_loopback_ip(device, intent)
+
+        router_id = str((block or {}).get("router_id", "")).split("/", maxsplit=1)[0] or loopback_ip
 
         primitives.append(
             {
@@ -2801,29 +2832,34 @@ def resolve_dc_underlay(intent) -> dict:
                     "device": device.name,
                     "process_id": intent_data.get("process_id", 1),
                     "area": intent_data.get("area", "0.0.0.0"),  # noqa: S104  — OSPF area ID
-                    "router_id": loopback_ip,
+                    "router_id": router_id,
                     "interfaces": intent_data.get("interfaces", []),
                     "intent_id": intent.intent_id,
                 }
             )
         else:
-            local_asn = (
-                intent_data.get("local_asn") or underlay_bgp.get("as_base") or _get_plugin_config("default_bgp_asn")
-            )
+            if block:
+                local_asn = block.get("as_number") or _get_plugin_config("default_bgp_asn")
+                neighbors = block.get("neighbors", [])
+            else:
+                local_asn = (
+                    intent_data.get("local_asn") or underlay_bgp.get("as_base") or _get_plugin_config("default_bgp_asn")
+                )
+                neighbors = intent_data.get("neighbors", [])
             spine_as = underlay_bgp.get("spine_as", local_asn)
             # The bgp_neighbor template renders a single peer, so emit one primitive
             # per explicit neighbor. BGP-unnumbered underlays carry no neighbor IPs
             # (interface-based peering) and therefore emit no per-neighbor config here.
-            for nb in intent_data.get("neighbors", []):
+            for nb in neighbors:
                 primitives.append(
                     {
                         "primitive_type": "bgp_neighbor",
                         "device": device.name,
                         "local_asn": local_asn,
                         "neighbor_ip": nb.get("ip") or nb.get("neighbor_ip"),
-                        "neighbor_asn": nb.get("asn") or nb.get("remote_asn") or spine_as,
+                        "neighbor_asn": nb.get("asn") or nb.get("remote_asn") or nb.get("remote_as") or spine_as,
                         "neighbor_description": nb.get("description", ""),
-                        "router_id": loopback_ip,
+                        "router_id": router_id,
                         "bfd_enabled": underlay.get("bfd", False),
                         "intent_id": intent.intent_id,
                     }
