@@ -739,6 +739,20 @@
         const API = '/api/plugins/intent-networking';
         const HEADERS = {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'};
 
+        // HTML-escape any server-provided value before it is interpolated into
+        // innerHTML. Device names, intent metadata, and live-collected device
+        // fields (interface descriptions, ARP/route/BGP tables) are not trusted
+        // and must never be rendered as markup — prevents stored/DOM XSS.
+        function esc(v) {
+            if (v === null || v === undefined) return '';
+            return String(v)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         let network         = null;
         let nodesDS         = null;
         let edgesDS         = null;
@@ -949,10 +963,10 @@
             const ic  = m.intent_count || 0;
 
             tip.innerHTML = `
-    <div style="font-weight:700;color:var(--text);margin-bottom:5px">${node.label}</div>
+    <div style="font-weight:700;color:var(--text);margin-bottom:5px">${esc(node.label)}</div>
     <div style="font-size:.65rem;color:var(--muted);font-family:var(--font-mono)">
-      ${m.platform || 'unknown platform'}<br>
-      ${m.site || ''} · ${m.mgmt_ip || 'no mgmt IP'}<br>
+      ${esc(m.platform || 'unknown platform')}<br>
+      ${esc(m.site || '')} · ${esc(m.mgmt_ip || 'no mgmt IP')}<br>
       ${ic} deployed intent${ic !== 1 ? 's' : ''}
     </div>`;
 
@@ -967,12 +981,12 @@
 
             tip.innerHTML = `
     <div style="font-weight:600;color:var(--text);margin-bottom:4px">
-      ${m.iface_a || '?'} ↔ ${m.iface_b || '?'}
+      ${esc(m.iface_a || '?')} ↔ ${esc(m.iface_b || '?')}
     </div>
     <div style="font-size:.65rem;color:var(--muted);font-family:var(--font-mono)">
-      Type: ${m.cable_type || 'unknown'}<br>
+      Type: ${esc(m.cable_type || 'unknown')}<br>
       ${m.shared_intents && m.shared_intents.length
-        ? `Intents: ${m.shared_intents.join(', ')}`
+        ? `Intents: ${m.shared_intents.map(esc).join(', ')}`
         : 'No shared intents'}
     </div>`;
 
@@ -1002,7 +1016,7 @@
                 `<span id="detail-status-dot" style="display:inline-block;width:7px;height:7px;
      border-radius:50%;background:${node.color.background};margin-right:4px;vertical-align:middle">
     </span>
-    ${m.platform || 'unknown'} · ${m.site || '—'} · ${m.mgmt_ip || 'no mgmt IP'}`;
+    ${esc(m.platform || 'unknown')} · ${esc(m.site || '—')} · ${esc(m.mgmt_ip || 'no mgmt IP')}`;
 
   // Highlight node
             highlightDeviceOnGraph(deviceName);
@@ -1037,7 +1051,7 @@
             } catch(e) {
                 ['arp','routing','bgp','ifaces'].forEach(t => {
                     document.getElementById(`tab-${t}`).innerHTML =
-                        `<div class="error-msg">Failed to load live data: ${e.message}</div>`;
+                        `<div class="error-msg">Failed to load live data: ${esc(e.message)}</div>`;
                 });
             }
         }
@@ -1051,28 +1065,28 @@
             }
 
             el.innerHTML = intents.map(i => `
-    <div class="intent-card" onclick="highlightIntent('${i.intent_id}')">
-      <div class="intent-card-id">${i.intent_id}</div>
+    <div class="intent-card" data-intent-id="${esc(i.intent_id)}" onclick="highlightIntent(this.dataset.intentId)">
+      <div class="intent-card-id">${esc(i.intent_id)}</div>
       <div style="margin-bottom:4px">
-        <span class="intent-badge badge-${i.status}">${i.status}</span>
+        <span class="intent-badge badge-${esc(i.status)}">${esc(i.status)}</span>
         <span class="intent-badge" style="background:rgba(56,189,248,.1);color:var(--accent)">
-          ${i.intent_type}
+          ${esc(i.intent_type)}
         </span>
       </div>
       ${i.vrf_name
-        ? `<div class="intent-card-row"><span>VRF</span><span>${i.vrf_name}</span></div>`
+        ? `<div class="intent-card-row"><span>VRF</span><span>${esc(i.vrf_name)}</span></div>`
         : ''}
       ${i.rd_allocated
-        ? `<div class="intent-card-row"><span>RD</span><span>${i.rd_allocated}</span></div>`
+        ? `<div class="intent-card-row"><span>RD</span><span>${esc(i.rd_allocated)}</span></div>`
         : ''}
       ${i.rt_export
-        ? `<div class="intent-card-row"><span>RT</span><span>${i.rt_export}</span></div>`
+        ? `<div class="intent-card-row"><span>RT</span><span>${esc(i.rt_export)}</span></div>`
         : ''}
       <div class="intent-card-row">
-        <span>Tenant</span><span>${i.tenant}</span>
+        <span>Tenant</span><span>${esc(i.tenant)}</span>
       </div>
       ${i.deployed_at
-        ? `<div class="intent-card-row"><span>Deployed</span><span>${fmtDate(i.deployed_at)}</span></div>`
+        ? `<div class="intent-card-row"><span>Deployed</span><span>${esc(fmtDate(i.deployed_at))}</span></div>`
         : ''}
       ${i.verified_ok !== null && i.verified_ok !== undefined
         ? `<div class="intent-card-row">
@@ -1090,7 +1104,7 @@
             if (data.collection_error) {
                 ['arp','routing','bgp'].forEach(t => {
                     document.getElementById(`tab-${t}`).innerHTML =
-                        `<div class="error-msg">⚠ Live collection: ${data.collection_error}</div>`;
+                        `<div class="error-msg">⚠ Live collection: ${esc(data.collection_error)}</div>`;
                 });
             } else {
                 renderArpTab(data.arp_table || []);
@@ -1110,10 +1124,10 @@
       </tr></thead>
       <tbody>
         ${rows.map(r => `<tr>
-            <td>${r.ip}</td>
-            <td>${r.mac}</td>
-            <td>${r.interface}</td>
-            <td style="color:var(--muted)">${r.age}</td>
+            <td>${esc(r.ip)}</td>
+            <td>${esc(r.mac)}</td>
+            <td>${esc(r.interface)}</td>
+            <td style="color:var(--muted)">${esc(r.age)}</td>
             </tr>`).join('')}
       </tbody>
     </table>`;
@@ -1136,7 +1150,7 @@
       <span style="font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;
                    color:var(--muted)">VRF: </span>
       <span style="font-size:.72rem;font-weight:700;color:var(--accent);
-                   font-family:var(--font-mono)">${vrf}</span>
+                   font-family:var(--font-mono)">${esc(vrf)}</span>
     </div>
     <table class="data-table" style="margin-bottom:12px">
       <thead><tr>
@@ -1144,10 +1158,10 @@
       </tr></thead>
       <tbody>
         ${routes.map(r => `<tr>
-                <td>${r.network}${r.mask ? '/'+r.mask : ''}</td>
-                <td>${r.nexthop}</td>
-                <td style="color:var(--purple)">${r.protocol}</td>
-                <td style="color:var(--muted)">${r.interface}</td>
+                <td>${esc(r.network)}${r.mask ? '/'+esc(r.mask) : ''}</td>
+                <td>${esc(r.nexthop)}</td>
+                <td style="color:var(--purple)">${esc(r.protocol)}</td>
+                <td style="color:var(--muted)">${esc(r.interface)}</td>
                 </tr>`).join('')}
       </tbody>
     </table>
@@ -1167,13 +1181,13 @@
           const up = String(r.state).toLowerCase().includes('establish') ||
                      (!isNaN(parseInt(r.state)) && parseInt(r.state) >= 0);
           return `<tr>
-            <td>${r.neighbor}</td>
-            <td style="color:var(--muted)">${r.as}</td>
+            <td>${esc(r.neighbor)}</td>
+            <td style="color:var(--muted)">${esc(r.as)}</td>
             <td style="color:${up ? 'var(--green)' : 'var(--red)'}">
-            ${up ? '▲' : '▼'} ${r.state}
+            ${up ? '▲' : '▼'} ${esc(r.state)}
             </td>
-            <td style="color:var(--accent);font-size:.65rem">${r.vrf}</td>
-            <td style="color:var(--muted)">${r.prefixes_rx}</td>
+            <td style="color:var(--accent);font-size:.65rem">${esc(r.vrf)}</td>
+            <td style="color:var(--muted)">${esc(r.prefixes_rx)}</td>
             </tr>`;
         }).join('')}
       </tbody>
@@ -1195,27 +1209,29 @@
       <span class="iface-summary-down">${down} down</span>
     </div>
   ` + ifaces.map((i, idx) => {
-                const typeLabel = (i.type || '').replace(/_/g, ' ').replace(/-/g, ' ');
-                const mtuStr = i.mtu ? `${i.mtu}` : '—';
-                const macStr = i.mac_address || '—';
-                const descStr = i.description || '—';
-                const statusStr = i.status || 'Unknown';
-                const modeStr = i.mode ? i.mode.replace(/_/g, ' ') : '—';
+                // esc() every field: interface descriptions, names, peers etc.
+                // are live-collected from devices and are not trusted markup.
+                const typeLabel = esc((i.type || '').replace(/_/g, ' ').replace(/-/g, ' '));
+                const mtuStr = i.mtu ? esc(i.mtu) : '—';
+                const macStr = esc(i.mac_address || '—');
+                const descStr = esc(i.description || '—');
+                const statusStr = esc(i.status || 'Unknown');
+                const modeStr = esc(i.mode ? i.mode.replace(/_/g, ' ') : '—');
                 const speedStr = i.speed ? `${(i.speed / 1000).toFixed(i.speed >= 1000 ? 0 : 1)} Gbps` : '—';
-                const duplexStr = i.duplex || '—';
-                const vrfStr = i.vrf || '—';
-                const lagStr = i.lag || '—';
-                const peerStr = i.cable_peer || '—';
+                const duplexStr = esc(i.duplex || '—');
+                const vrfStr = esc(i.vrf || '—');
+                const lagStr = esc(i.lag || '—');
+                const peerStr = esc(i.cable_peer || '—');
                 const mgmtBadge = i.mgmt_only ? '<span class="iface-badge mgmt">MGMT</span>' : '';
 
                 return `
     <div class="iface-card" data-idx="${idx}">
       <div class="iface-header" onclick="toggleIface(this)">
         <div class="iface-dot ${i.enabled ? 'up' : 'down'}"></div>
-        <div class="iface-name">${i.name}</div>
+        <div class="iface-name">${esc(i.name)}</div>
         ${mgmtBadge}
         <div class="iface-type-label">${typeLabel}</div>
-        <div class="iface-ips">${i.ips.length ? i.ips.join(', ') : ''}</div>
+        <div class="iface-ips">${i.ips.length ? i.ips.map(esc).join(', ') : ''}</div>
         <div class="iface-chevron">&#9662;</div>
       </div>
       <div class="iface-detail" style="display:none">
@@ -1230,7 +1246,7 @@
           <div class="iface-field"><span class="iface-label">VRF</span><span class="iface-value">${vrfStr}</span></div>
           <div class="iface-field"><span class="iface-label">LAG</span><span class="iface-value">${lagStr}</span></div>
           <div class="iface-field"><span class="iface-label">Cable Peer</span><span class="iface-value">${peerStr}</span></div>
-          <div class="iface-field full-width"><span class="iface-label">IP Addresses</span><span class="iface-value iface-mono">${i.ips.length ? i.ips.join('<br>') : '—'}</span></div>
+          <div class="iface-field full-width"><span class="iface-label">IP Addresses</span><span class="iface-value iface-mono">${i.ips.length ? i.ips.map(esc).join('<br>') : '—'}</span></div>
           <div class="iface-field full-width"><span class="iface-label">Description</span><span class="iface-value">${descStr}</span></div>
         </div>
       </div>
@@ -1256,12 +1272,12 @@
                 return;
             }
             el.innerHTML = intents.map(i => `
-    <div class="intent-item" id="il-${i.intent_id}"
-         onclick="highlightIntent('${i.intent_id}')">
-      <div class="intent-item-id">${i.intent_id}</div>
+    <div class="intent-item" id="il-${esc(i.intent_id)}"
+         data-intent-id="${esc(i.intent_id)}" onclick="highlightIntent(this.dataset.intentId)">
+      <div class="intent-item-id">${esc(i.intent_id)}</div>
       <div class="intent-item-meta">
         <span class="intent-badge badge-deployed">deployed</span>
-        ${i.intent_type} · ${i.tenant__name}
+        ${esc(i.intent_type)} · ${esc(i.tenant__name)}
       </div>
     </div>
   `).join('');

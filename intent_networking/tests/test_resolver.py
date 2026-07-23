@@ -1055,3 +1055,59 @@ class RicherFormResolverTest(TestCase):
         intent = self._intent({"dest_vrf": "default"})
         with self.assertRaises(ValueError):
             resolve_vrf_route_leak(intent)
+
+    def test_dc_underlay_per_device_uses_explicit_loopback(self):
+        """Per-device underlay blocks use the explicit loopback/AS — no pool."""
+        from intent_networking.resolver import resolve_dc_underlay
+
+        intent = self._intent(
+            {
+                "dc": {
+                    "underlay": {
+                        "protocol": "bgp",
+                        "bfd": True,
+                        "devices": [
+                            {
+                                "hostname": "dc-east-leaf-01",
+                                "as_number": 65011,
+                                "router_id": "192.168.0.21",
+                                "loopback": "192.168.0.21/32",
+                                "neighbors": [
+                                    {"ip": "10.0.1.1", "remote_as": 65001, "description": "dc-spine1"},
+                                ],
+                            },
+                            {"hostname": "not-in-scope", "as_number": 65099, "loopback": "192.168.0.99/32"},
+                        ],
+                    }
+                }
+            }
+        )
+        # allocate_loopback_ip must NOT be called when an explicit loopback is given.
+        with patch("intent_networking.resolver.allocate_loopback_ip", side_effect=AssertionError("pool used")):
+            prims = resolve_dc_underlay(intent)["primitives"]
+
+        lo = next(p for p in prims if p["primitive_type"] == "loopback")
+        self.assertEqual(lo["device"], "dc-east-leaf-01")
+        self.assertEqual(lo["ip_address"], "192.168.0.21/32")  # explicit, not allocated
+        nb = next(p for p in prims if p["primitive_type"] == "bgp_neighbor")
+        self.assertEqual(nb["local_asn"], 65011)
+        self.assertEqual(nb["neighbor_ip"], "10.0.1.1")
+        self.assertEqual(nb["neighbor_asn"], 65001)
+        self.assertEqual(nb["router_id"], "192.168.0.21")
+
+    def test_dc_underlay_fabric_wide_form_still_allocates(self):
+        """Legacy fabric-wide underlay (no per-device blocks) uses the pool."""
+        from intent_networking.resolver import resolve_dc_underlay
+
+        intent = self._intent(
+            {
+                "dc": {"underlay": {"protocol": "bgp"}},
+                "local_asn": 65000,
+                "neighbors": [{"ip": "10.0.0.1", "asn": 65001}],
+            }
+        )
+        with patch("intent_networking.resolver.allocate_loopback_ip", return_value="10.255.0.1") as alloc:
+            prims = resolve_dc_underlay(intent)["primitives"]
+        alloc.assert_called_once()
+        lo = next(p for p in prims if p["primitive_type"] == "loopback")
+        self.assertEqual(lo["ip_address"], "10.255.0.1/32")
