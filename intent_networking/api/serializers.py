@@ -47,6 +47,7 @@ INTENT_REQUIRED_FIELDS: dict[str, list[str]] = {
     "ip_source_guard": ["interfaces"],
     "macsec": ["interfaces"],
     # L3 / Routing
+    "routed_interface": [],
     "static_route": ["routes"],
     "ospf": ["interfaces"],
     "bgp_ebgp": ["local_asn", "neighbor_ip", "neighbor_asn"],
@@ -84,6 +85,7 @@ INTENT_REQUIRED_FIELDS: dict[str, list[str]] = {
     "evpn_multisite": [],
     "dc_underlay": [],
     "dc_mlag": ["peer_link_interfaces", "domain_id"],
+    "vrf_route_leak": ["source_vrf"],
     # Security
     "acl": ["acl_name"],
     "zbf": ["zone_pairs"],
