@@ -28,6 +28,24 @@ sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
 
 ## Version-Specific Notes
 
+### Upgrading to v2.0.16 (security + fabric features)
+
+v2.0.16 is a **security + feature release** — no database migrations.
+
+```bash
+pip install --upgrade nautobot-app-intent-networking==2.0.16
+sudo systemctl restart nautobot nautobot-worker nautobot-scheduler
+```
+
+- Topology viewer XSS fixed; Catalyst Center TLS verification now **on by
+  default** (set `catalyst_center_ca_bundle` for a self-signed DNAC, or
+  `catalyst_center_verify_ssl: false` to explicitly opt out).
+- New `routed_interface` and `vrf_route_leak` intent types.
+- `dc_underlay` now uses the explicit per-device `loopback`/`router_id` — no
+  loopback pool needed for fabrics that specify them.
+
+See the [v2.0.16 release notes](../admin/release_notes/version_2.0.16.md) for full details.
+
 ### Upgrading to v2.0.15 (multi-tunnel GRE and per-device eBGP EVPN)
 
 v2.0.15 is a **feature release** — no database migrations, and both legacy
